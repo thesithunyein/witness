@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(pkgDir, "..", "..");
+const srcDir = resolve(pkgDir, "src");
 
 /** `src/` is generated and gitignored; only the app copies are source. */
 const MODULES = [
@@ -36,7 +37,7 @@ const MODULES = [
 function transform(source, from) {
   const flattened = source.replace(/"\.\.\/(abi|witness|webauthn)"/g, '"./$1"');
   const header =
-    `// GENERATED FILE — do not edit.\n` +
+    `// GENERATED FILE, do not edit.\n` +
     `// Source: ${from} (the same module the reference app imports).\n` +
     `// Regenerate with: bun run build (or node scripts/sync.mjs)\n\n`;
   return header + flattened;
@@ -51,10 +52,18 @@ export function sync({ check = false } = {}) {
     return { ...m, generated: transform(readFileSync(source, "utf8"), m.from) };
   });
 
+  // `src/` is generated and gitignored, so a fresh checkout has none of it. That is
+  // a clean tree, not drift: `build` and `prepublishOnly` regenerate before packing,
+  // so nothing stale can be published. Only a src/ that exists AND disagrees with
+  // the app is a problem, which is what this fails on. Before this, `--check` could
+  // never pass in CI, because CI always starts from a checkout with no src/.
+  const generatedTreeExists = existsSync(srcDir);
+
   const stale = [];
   for (const item of plan) {
     const target = resolve(pkgDir, item.to);
     if (check) {
+      if (!generatedTreeExists) continue;
       const current = existsSync(target) ? readFileSync(target, "utf8") : null;
       if (current !== item.generated) stale.push(item.to);
       continue;
@@ -67,7 +76,7 @@ export function sync({ check = false } = {}) {
     // A stale package is worse than none: it would publish an API the app no
     // longer honours, and the integrator would be the one who finds out.
     throw new Error(
-      `generated sources are stale: ${stale.join(", ")}. Run \`node scripts/sync.mjs\` and commit.`
+      `generated sources are stale: ${stale.join(", ")}. Run \`node scripts/sync.mjs\` to regenerate them.`
     );
   }
 
@@ -78,11 +87,15 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   const check = process.argv.includes("--check");
   try {
     const written = sync({ check });
-    console.log(
-      check
-        ? `sdk sources are current (${written.length} files)`
-        : `sdk sources generated: ${written.join(", ")}`
-    );
+    if (!check) {
+      console.log(`sdk sources generated: ${written.join(", ")}`);
+    } else if (existsSync(srcDir)) {
+      console.log(`sdk sources are current (${written.length} files)`);
+    } else {
+      console.log(
+        "no src/ in this checkout: the sources are generated at build time, so there is nothing stale to compare"
+      );
+    }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);

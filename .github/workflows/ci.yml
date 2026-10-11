@@ -1,13 +1,16 @@
 name: CI
 
-# The four checks CONTRIBUTING.md requires, in one place. Nothing here needs a
-# secret: the contract tests generate their own P-256 signatures, and the SDK check
-# only compares generated sources against the app's.
+# The checks CONTRIBUTING.md requires, in one place, plus the style guard. Nothing
+# here needs a secret: the contract tests generate their own P-256 signatures, the
+# SDK check only compares generated sources against the app's, and check-style.mjs
+# only reads text.
 #
-# NOTE: written but not yet executed on GitHub Actions. The same commands were run
-# locally (see the README's status badges, which are static and describe verified
-# local runs). If this job fails on its first run, the failure is in the workflow,
-# not the project — fix it here rather than working around it.
+# NOTE: this workflow has now run on GitHub Actions, and its first run found two
+# faults in the workflow itself, both fixed in the same commit that records this:
+# the contracts job never installed the root @noble/curves that scripts/sign-action.mjs
+# imports (so 25 tests failed on a missing module, not on the contracts), and the SDK
+# check ran from a checkout with no generated src/, which could never pass. The README
+# badges remain static descriptions of local runs.
 
 on:
   push:
@@ -40,6 +43,12 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      # AND that runtime needs the module the signer imports. @noble/curves lives in
+      # the ROOT package.json, not in contracts/, so this install has to run from the
+      # repository root: without it every ffi call dies with ERR_MODULE_NOT_FOUND.
+      - run: npm ci --no-audit --no-fund
+        working-directory: .
+
       - run: forge fmt --check
       - run: forge test -vv
 
@@ -59,6 +68,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+
+      # Reads text only, so it runs before the install: a stray em dash fails the
+      # job in seconds instead of after the bundles.
+      - run: node ../scripts/check-style.mjs
 
       - run: bun install --frozen-lockfile
       - run: ./node_modules/.bin/tsc --noEmit
@@ -85,7 +98,9 @@ jobs:
           node-version-file: .nvmrc
 
       - run: npm install --no-audit --no-fund
-      # Fails if packages/sdk/src lags app/lib — the drift guard that keeps the
-      # published package honest.
+      # `check` fails if a generated src/ tree disagrees with app/lib. A fresh checkout
+      # has no src/ at all (it is generated and gitignored), so the proof that the
+      # package still matches the app is the build below: it regenerates from app/lib
+      # and bundles what it generated.
       - run: bun run check
       - run: bun run build
