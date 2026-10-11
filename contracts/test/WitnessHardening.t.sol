@@ -105,7 +105,8 @@ contract WitnessHardeningTest is Test {
     // ---------------------------------------------------------------------
 
     function test_native_happyPath_passkeyApprovedMonTransferExecutes() public {
-        intentId = _createIntent(LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
+        intentId =
+            _createIntent(LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
 
         bytes32 ah = safe.nativeActionHash(intentId, alice, LIMIT);
         WebAuthn.Assertion memory a = _sign(ah);
@@ -123,9 +124,8 @@ contract WitnessHardeningTest is Test {
     /// @notice The centring scenario, native: the human approved 0.5 MON, the agent
     ///         was injected into moving 5, and the payment cannot happen.
     function test_native_blocked_injectedAmountExceedsApproval() public {
-        intentId = _createIntent(
-            0.5e18, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600)
-        );
+        intentId =
+            _createIntent(0.5e18, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
 
         bytes32 approved = safe.nativeActionHash(intentId, attacker, 0.5e18);
         WebAuthn.Assertion memory a = _sign(approved);
@@ -141,7 +141,8 @@ contract WitnessHardeningTest is Test {
     /// @notice An ERC-20 approval must not be replayable as a native payment. Both
     ///         actions can have identical recipient and amount; the tag differs.
     function test_native_erc20ApprovalCannotBeReplayedAsNative() public {
-        intentId = _createIntent(10e18, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
+        intentId =
+            _createIntent(10e18, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
 
         // The human genuinely approved an ERC-20 transfer of the same size.
         bytes32 erc20Hash = safe.actionHash(intentId, alice, LIMIT);
@@ -157,9 +158,8 @@ contract WitnessHardeningTest is Test {
     /// @notice Native intents and ERC-20 intents are different action types, so a
     ///         native intent cannot be spent through the ERC-20 path either.
     function test_native_nativeIntentRejectedOnErc20Path() public {
-        intentId = _createIntent(
-            LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600)
-        );
+        intentId =
+            _createIntent(LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
         bytes32 ah = safe.actionHash(intentId, alice, LIMIT);
         WebAuthn.Assertion memory a = _sign(ah);
 
@@ -170,7 +170,8 @@ contract WitnessHardeningTest is Test {
 
     /// @notice A genuine approval is still required: no signature, no MON.
     function test_native_blocked_withoutApprovalSignature() public {
-        intentId = _createIntent(LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
+        intentId =
+            _createIntent(LIMIT, WitnessAction.TRANSFER_NATIVE, uint64(block.timestamp + 600));
 
         bytes32 ah = safe.nativeActionHash(intentId, alice, LIMIT);
         // The agent signs with its own key: right digest, wrong key.

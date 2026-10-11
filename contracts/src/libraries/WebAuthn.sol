@@ -140,9 +140,8 @@ library WebAuthn {
         bytes32 clientDataHash = sha256(a.clientDataJSON);
         bytes32 digest = sha256(abi.encodePacked(a.authenticatorData, clientDataHash));
 
-        (bool ok, bytes memory out) = P256_PRECOMPILE.staticcall(
-            abi.encodePacked(digest, a.r, a.s, qx, qy)
-        );
+        (bool ok, bytes memory out) =
+            P256_PRECOMPILE.staticcall(abi.encodePacked(digest, a.r, a.s, qx, qy));
 
         if (!ok || out.length != 32 || abi.decode(out, (uint256)) != 1) {
             return AuthError.BadSignature;
@@ -163,10 +162,11 @@ library WebAuthn {
     /// @notice base64url encoding WITHOUT padding, matching the WebAuthn spec's
     ///         encoding of `challenge` inside clientDataJSON.
     function _base64UrlEncode(bytes32 data) private pure returns (bytes memory) {
-        bytes memory table =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        bytes memory table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
         bytes memory input = new bytes(32);
-        for (uint256 k = 0; k < 32; ++k) input[k] = data[k];
+        for (uint256 k = 0; k < 32; ++k) {
+            input[k] = data[k];
+        }
 
         // Unpadded length: (len * 4 + 2) / 3
         uint256 outLen = (input.length * 4 + 2) / 3;
@@ -227,11 +227,7 @@ library WebAuthn {
 
     /// @notice Naive substring search. clientDataJSON is ~150-250 bytes in practice,
     ///         so the quadratic worst case is bounded and cheap.
-    function _indexOf(bytes memory haystack, bytes memory needle)
-        private
-        pure
-        returns (int256)
-    {
+    function _indexOf(bytes memory haystack, bytes memory needle) private pure returns (int256) {
         if (needle.length == 0 || haystack.length < needle.length) return -1;
         for (uint256 i = 0; i + needle.length <= haystack.length; ++i) {
             bool matched = true;

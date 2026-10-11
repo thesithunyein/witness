@@ -128,8 +128,7 @@ contract Deploy is Script {
         // --- ERC-8004: register the agent's identity, owned by the executor ---
         if (c.identityRegistry != address(0)) {
             bytes memory ret = agent.forwardAsOwner(
-                c.identityRegistry,
-                abi.encodeWithSignature("register(string)", c.agentURI)
+                c.identityRegistry, abi.encodeWithSignature("register(string)", c.agentURI)
             );
             // The registry returns the new agent id. A call that returns nothing
             // usable leaves the id at 0, which the verifier treats as "no identity

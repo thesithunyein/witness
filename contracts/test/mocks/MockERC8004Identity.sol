@@ -32,9 +32,8 @@ contract MockERC8004Identity {
         ownerOf[agentId] = msg.sender;
 
         if (msg.sender.code.length > 0) {
-            bytes4 ret = IERC721Receiver(msg.sender).onERC721Received(
-                address(this), address(0), agentId, ""
-            );
+            bytes4 ret = IERC721Receiver(msg.sender)
+                .onERC721Received(address(this), address(0), agentId, "");
             if (ret != IERC721Receiver.onERC721Received.selector) {
                 revert UnsafeRecipient(msg.sender);
             }

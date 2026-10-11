@@ -34,7 +34,11 @@ contract AgentExecutor is IERC721Receiver {
 
     event OperatorSet(address indexed operator);
     event TransferAttempted(
-        uint256 indexed intentId, address indexed operator_, bytes32 actionHash, address to, uint256 amount
+        uint256 indexed intentId,
+        address indexed operator_,
+        bytes32 actionHash,
+        address to,
+        uint256 amount
     );
 
     error NotAuthorized();

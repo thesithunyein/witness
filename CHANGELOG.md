@@ -1,5 +1,67 @@
 # Changelog
 
+## 2026-10-11 (ui) — the poster became a control panel
+
+The design concept changed; the behaviour did not. Nothing about the contracts, the
+API routes, the SDK or the passkey ceremony is touched here, and the deploying origin
+and `rpId` are unchanged — which is what keeps passkeys enrolled before this commit
+valid after it.
+
+- **Navigation moved into a sticky app bar.** All four sections are one click away from
+  anywhere on the page. The tabs render on the first paint rather than after the config
+  fetch, so the bar no longer grows a row under the reader as it loads.
+- **The poster hero is gone.** It opened with the wordmark set 232px wide, which said
+  nothing and spent the entire first screen. In its place is a dashboard header with four
+  live tiles: the standing permission and when it expires, how many requests are waiting on
+  the human, whether the ERC-8004 identity check is enforced, and whether the deployment's
+  configuration is frozen. Every value is read from the chain; none is asserted in copy.
+- **One brand ramp, indigo → cyan**, carries the mark, the amount inside the permission
+  sentence, the primary action and the request panel's own frame. Amber, green and red stay
+  strictly semantic — waiting, approved, refused — and still always arrive with an icon and
+  a label rather than as colour alone.
+- **Type is functional now**: Inter for the interface, Space Grotesk for display lines,
+  JetBrains Mono for every figure and identifier, all self-hosted by `next/font`. Digits are
+  tabular, so the countdown ticking does not reflow the row it sits in.
+- **Verified on the deployed origin**, not just locally: all four panels switch, the
+  developer page renders, all three fonts load, no console errors, and no horizontal
+  overflow at 1440px or 390px.
+
+## 2026-10-11 (fix) — the SDK builds from a clean install, and formatting is a gate that passes
+
+Two things the docs pass exposed, both fixed at the cause.
+
+- **`@witness/sdk` could not emit declarations from a fresh `npm install`**: `tsc` reported
+  `TS2742` because the inferred type of `publicClient` named viem's internal module paths.
+  Fixed in the source both packages share — `app/lib/witness.ts` now annotates the return type
+  as viem's public `PublicClient` — so the emitted `dist/types` imports only `"viem"` and an
+  integrator can actually resolve it. Verified: `bun run check` and `bun run build` pass, and
+  the generated `.d.ts` files were grepped to confirm they reference nothing internal.
+- **Formatting is enforced rather than aspirational.** `.github/workflows/ci.yml` runs
+  `forge fmt --check`, which the contracts did not pass, so `forge fmt` was applied across nine
+  Solidity files (whitespace only) and `forge test` re-run afterwards: 40 passed, 0 failed.
+
+## 2026-10-11 (docs) — the repository reads like a product, not a scratchpad
+
+No behaviour changed. This is the front door, and the missing paperwork.
+
+- **README**: status badges (all of them describing something verified, none of them
+  aspirational — including an honest `audit: not yet`), two Mermaid diagrams (the trust
+  boundaries, and the request→approval→on-chain-verification sequence including the step
+  where the agent reads the receipt itself), a full project tree, a security posture table,
+  and a *Verifying it yourself* section listing the commands behind every claim.
+- **`THREAT-MODEL.md` and `SECURITY.md`** are now linked from the README's Security section
+  rather than buried; the badges link to both.
+- New: [LICENSE](LICENSE) (MIT, with the vendored-dependency note), [CONTRIBUTING.md](CONTRIBUTING.md)
+  (the four checks, the Worker/Next parity rule, and what will be declined),
+  [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) (Contributor Covenant 2.1), and
+  [SECURITY.md](SECURITY.md) (private advisories, response targets, and the hardening already
+  on the list so nobody reports it as a discovery).
+- New: `.github/workflows/ci.yml` — contracts, app types + bundles, and the SDK drift check.
+  **Written but not yet executed on Actions**; the same commands pass locally, and the first
+  run is the real test of the workflow itself.
+- Both Mermaid diagrams were parsed with mermaid 11 (the version GitHub renders) rather than
+  eyeballed, so they render instead of showing a syntax error to a reviewer.
+
 ## 2026-10-11 (later) — the agent actually asks: a real request queue, a real package, a threat model
 
 Three things the previous revision only claimed are now real: the agent asks over

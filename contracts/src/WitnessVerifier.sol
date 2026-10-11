@@ -42,10 +42,7 @@ contract WitnessVerifier is IWitnessVerifier {
     event RelyingPartySet(string rpId, string origin);
     event ConfigurationLocked(address indexed identityRegistry, string rpId, string origin);
     event Verified(
-        uint256 indexed intentId,
-        address indexed actor,
-        bytes32 indexed actionHash,
-        uint256 amount
+        uint256 indexed intentId, address indexed actor, bytes32 indexed actionHash, uint256 amount
     );
 
     constructor(address registry_, string memory rpId_, string memory origin_) {
@@ -68,10 +65,7 @@ contract WitnessVerifier is IWitnessVerifier {
 
     /// @notice Update the relying party identity. The deployment origin must match
     ///         the browser origin judges actually visit, or every passkey prompt fails.
-    function setRelyingParty(string calldata rpId_, string calldata origin_)
-        external
-        onlyOwner
-    {
+    function setRelyingParty(string calldata rpId_, string calldata origin_) external onlyOwner {
         if (configurationLocked) revert Locked();
         rpId = rpId_;
         origin = origin_;
@@ -166,9 +160,7 @@ contract WitnessVerifier is IWitnessVerifier {
         if (amount > it.maxAmount) return Reason.OverLimit;
 
         // The passkey must have signed THIS digest, using the key the human enrolled.
-        WebAuthn.AuthError err = WebAuthn.verify(
-            actionHash, assertion, it.qx, it.qy, rpId, origin
-        );
+        WebAuthn.AuthError err = WebAuthn.verify(actionHash, assertion, it.qx, it.qy, rpId, origin);
         return _mapAuthError(err);
     }
 
@@ -176,9 +168,8 @@ contract WitnessVerifier is IWitnessVerifier {
     ///      the agent id. Uses staticcall so a reverting/burned token id returns
     ///      false instead of bubbling up an opaque error.
     function _ownsAgent(uint256 agentId, address expectedOwner) private view returns (bool) {
-        (bool ok, bytes memory data) = identityRegistry.staticcall(
-            abi.encodeWithSignature("ownerOf(uint256)", agentId)
-        );
+        (bool ok, bytes memory data) =
+            identityRegistry.staticcall(abi.encodeWithSignature("ownerOf(uint256)", agentId));
         if (!ok || data.length < 32) return false;
         return abi.decode(data, (address)) == expectedOwner;
     }

@@ -1,0 +1,91 @@
+name: CI
+
+# The four checks CONTRIBUTING.md requires, in one place. Nothing here needs a
+# secret: the contract tests generate their own P-256 signatures, and the SDK check
+# only compares generated sources against the app's.
+#
+# NOTE: written but not yet executed on GitHub Actions. The same commands were run
+# locally (see the README's status badges, which are static and describe verified
+# local runs). If this job fails on its first run, the failure is in the workflow,
+# not the project — fix it here rather than working around it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: contracts (forge test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      # The suite shells out to `node` for real P-256 signatures, so this job needs
+      # a Node runtime as well as forge.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: forge fmt --check
+      - run: forge test -vv
+
+  app:
+    name: app (types, worker, static bundle)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: bun install --frozen-lockfile
+      - run: ./node_modules/.bin/tsc --noEmit
+      # `target: browser` in build-worker.mjs fails on any Node-only import, so this
+      # step is the edge-compatibility check, not just a bundling check.
+      - run: bun run build-worker.mjs
+      - run: bun run build-static.mjs
+
+  sdk:
+    name: sdk (generated sources current)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: npm install --no-audit --no-fund
+      # Fails if packages/sdk/src lags app/lib — the drift guard that keeps the
+      # published package honest.
+      - run: bun run check
+      - run: bun run build

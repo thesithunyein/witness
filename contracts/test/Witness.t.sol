@@ -120,11 +120,7 @@ contract WitnessTest is Test {
         return _sign(challenge, "", "", "");
     }
 
-    function _parseAssertion(bytes memory out)
-        internal
-        pure
-        returns (WebAuthn.Assertion memory a)
-    {
+    function _parseAssertion(bytes memory out) internal pure returns (WebAuthn.Assertion memory a) {
         string[] memory L = _splitLines(out);
         require(L.length >= 6, "sign-action: expected 6 output lines");
         a.authenticatorData = _hexToBytes(L[0]);
@@ -144,17 +140,23 @@ contract WitnessTest is Test {
     /// @notice Documents the foundation: Monad's 0x0100 precompile accepts a real
     ///         P-256 signature and rejects a tampered one.
     function test_primitive_p256PrecompileAcceptsRealSignatureOnly() public view {
-        (bool ok, bytes memory out) =
-            address(0x0100).staticcall(AssertionVector.PRECOMPILE_INPUT);
+        (bool ok, bytes memory out) = address(0x0100).staticcall(AssertionVector.PRECOMPILE_INPUT);
         assertTrue(ok, "staticcall should succeed");
         assertEq(out.length, 32, "precompile returns uint256");
         assertEq(abi.decode(out, (uint256)), 1, "valid P-256 signature must verify");
 
         // flip one bit of r -> must be rejected
         uint256 tamperedR = AssertionVector.R ^ 1;
-        (bool ok2, bytes memory out2) = address(0x0100).staticcall(
-            abi.encodePacked(AssertionVector.MESSAGE_HASH, tamperedR, AssertionVector.S, AssertionVector.QX, AssertionVector.QY)
-        );
+        (bool ok2, bytes memory out2) = address(0x0100)
+            .staticcall(
+                abi.encodePacked(
+                    AssertionVector.MESSAGE_HASH,
+                    tamperedR,
+                    AssertionVector.S,
+                    AssertionVector.QX,
+                    AssertionVector.QY
+                )
+            );
         assertTrue(ok2, "call itself succeeds");
         assertEq(out2.length, 0, "tampered signature must return empty");
     }
@@ -183,9 +185,7 @@ contract WitnessTest is Test {
         bytes32 ah = safe.actionHash(intentId, alice, LIMIT);
         WebAuthn.Assertion memory a = _sign(ah);
 
-        Reason r = verifier.check(
-            intentId, WitnessAction.TRANSFER, ah, LIMIT, address(agent), a
-        );
+        Reason r = verifier.check(intentId, WitnessAction.TRANSFER, ah, LIMIT, address(agent), a);
         assertEq(uint256(r), uint256(Reason.Allowed), "preflight should read Allowed");
     }
 

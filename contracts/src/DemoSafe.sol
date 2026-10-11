@@ -149,12 +149,7 @@ contract DemoSafe {
         if (actionHash_ != expectedActionHash) revert HashMismatch();
 
         verifier.authorizeAndConsume(
-            intentId,
-            WitnessAction.TRANSFER_NATIVE,
-            actionHash_,
-            amount,
-            msg.sender,
-            assertion
+            intentId, WitnessAction.TRANSFER_NATIVE, actionHash_, amount, msg.sender, assertion
         );
 
         emit AuthorizedNativeTransfer(intentId, msg.sender, actionHash_, to, amount);

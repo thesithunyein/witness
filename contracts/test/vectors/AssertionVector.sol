@@ -9,21 +9,28 @@ library AssertionVector {
     string internal constant RP_ID = "witness.sithunyein.com";
     string internal constant ORIGIN = "https://witness.sithunyein.com";
 
-    bytes32 internal constant CHALLENGE = 0x8b14b08a178295832a17ada1c0a3a18216bce123c802fdd33249535cda172cc2;
+    bytes32 internal constant CHALLENGE =
+        0x8b14b08a178295832a17ada1c0a3a18216bce123c802fdd33249535cda172cc2;
     string internal constant CHALLENGE_B64 = "ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI";
 
-    bytes32 internal constant MESSAGE_HASH = 0xc7922c53403b8fab06f9cb0cfcd6e6d2617069883d442029212930d0e0bdd421;
+    bytes32 internal constant MESSAGE_HASH =
+        0xc7922c53403b8fab06f9cb0cfcd6e6d2617069883d442029212930d0e0bdd421;
 
-    string internal constant CLIENT_DATA_JSON = '{"type":"webauthn.get","challenge":"ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI","origin":"https://witness.sithunyein.com"}';
+    string internal constant CLIENT_DATA_JSON =
+        '{"type":"webauthn.get","challenge":"ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI","origin":"https://witness.sithunyein.com"}';
 
     // rpIdHash || flags(UP|UV) || signCount
     bytes internal constant AUTHENTICATOR_DATA =
         hex"afa2660ce69c3166a388b4888d09a1f0d1592b8dd776d5bcf54441c4c335045e0500000001";
 
-    uint256 internal constant R = 75194810704554168932658379578304730614334169991784484729140764237331035442699;
-    uint256 internal constant S = 10024360167764722336045871005070255674525920762661876586215279663339625351056;
-    uint256 internal constant QX = 44702274224498794473545520410227660840283676033840465889383061057408546046121;
-    uint256 internal constant QY = 21803181121322582768952485833475351927577024584072209868473887740193232502642;
+    uint256 internal constant R =
+        75194810704554168932658379578304730614334169991784484729140764237331035442699;
+    uint256 internal constant S =
+        10024360167764722336045871005070255674525920762661876586215279663339625351056;
+    uint256 internal constant QX =
+        44702274224498794473545520410227660840283676033840465889383061057408546046121;
+    uint256 internal constant QY =
+        21803181121322582768952485833475351927577024584072209868473887740193232502642;
 
     // messageHash || r || s || qx || qy -> input for the 0x0100 precompile
     bytes internal constant PRECOMPILE_INPUT =

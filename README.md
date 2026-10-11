@@ -2,6 +2,18 @@
 
 **Your agent asks. You decide.**
 
+[![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![node](https://img.shields.io/badge/node-20.11%2B-3c873a?style=flat-square)](.nvmrc)
+[![solidity](https://img.shields.io/badge/solidity-0.8.20%2B-363636?style=flat-square)](contracts/foundry.toml)
+[![foundry](https://img.shields.io/badge/forge-1.7.x-ff6b35?style=flat-square)](contracts/foundry.toml)
+[![chain](https://img.shields.io/badge/monad-testnet%2010143-blueviolet?style=flat-square)](contracts/deployments/10143.json)
+
+[![tests](https://img.shields.io/badge/contract%20tests-40%20passing-brightgreen?style=flat-square)](#tests)
+[![verified](https://img.shields.io/badge/contracts-verified%20%C2%B7%20exact%20match-brightgreen?style=flat-square)](#verifying-it-yourself)
+[![sdk](https://img.shields.io/badge/%40witness%2Fsdk-0.1.0-blue?style=flat-square)](packages/sdk)
+[![threat model](https://img.shields.io/badge/threat%20model-published-blueviolet?style=flat-square)](THREAT-MODEL.md)
+[![audited](https://img.shields.io/badge/audit-not%20yet-red?style=flat-square)](#security)
+
 Before an AI agent spends your money, you approve that exact action with a passkey — and the
 counterparty that holds the value enforces that approval on-chain.
 
@@ -69,6 +81,104 @@ cd contracts && ./verify.sh --etherscan   # also Monadscan (needs MONADSCAN_API_
 
 The script reads every address from the manifest and prints the reminder that a submitted job is not
 a verified contract — `exact_match` is.
+
+---
+
+## Architecture
+
+The one-line version:
+
+```
+        passkey tap                         on-chain, before funds move
+human ──────────────▶ approval ───────────────▶ the contract that holds the value
+                      (P256 / WebAuthn)                │
+                                                       ├─ Allowed  → execute, and spend the approval
+                                                       └─ BLOCKED  → revert + a typed reason
+```
+
+The same thing, with the trust boundaries drawn where they actually are:
+
+```mermaid
+flowchart TB
+  subgraph untrusted["Untrusted — assumes prompt injection"]
+    AG["Agent process<br/>asks for money, picks<br/>recipient and amount"]
+    INJ["Injected instruction<br/>asks for 10x the limit"]
+  end
+
+  subgraph server["App server — holds demo keys, never a passkey"]
+    API["/api/requests<br/>the queue"]
+    RELAY["/api/intent<br/>relayer key: create, revoke"]
+    EXEC["/api/agent<br/>operator key: submit"]
+  end
+
+  subgraph device["Human's device"]
+    PK["Passkey<br/>private key never leaves"]
+  end
+
+  subgraph chain["Monad — the only authority"]
+    SAFE["DemoSafe<br/>holds the value"]
+    VER["WitnessVerifier<br/>semantic checks + P-256"]
+    REG["ERC-8004 registry"]
+  end
+
+  AG -->|"POST"| API
+  INJ -->|"POST"| API
+  API -->|"renders what arrived"| PK
+  PK -->|"signs THIS digest"| EXEC
+  EXEC --> SAFE
+  SAFE --> VER
+  VER --> REG
+  VER -.->|"OverLimit, Expired,<br/>AlreadyConsumed, BadSignature"| EXEC
+```
+
+And the flow, as it actually runs — including the part most designs leave out, where
+the agent checks the payment for itself instead of trusting the answer it was given:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as Agent process (untrusted)
+  participant S as App server (relayer + operator keys)
+  participant B as Human's browser (holds the passkey)
+  participant C as DemoSafe (holds the value)
+  participant V as WitnessVerifier
+  participant R as ERC-8004 registry
+
+  A->>S: POST /api/requests — service, recipient, amount
+  S->>R: ownerOf(agentId)
+  R-->>S: the wallet that must match
+  S-->>A: pending + a link that delivers the request
+  B->>S: GET /api/requests (poll every 3s)
+  S-->>B: exactly what arrived
+  B->>C: actionHash(intentId, to, amount)
+  C-->>B: the canonical digest
+  Note over B: biometric prompt signs that digest —<br/>and the passkey never leaves the device
+  B->>S: POST /api/agent with the assertion
+  S->>C: executeNative(intentId, to, amount, assertion)
+  C->>V: authorizeAndConsume(...)
+  V->>V: exists, revoked, expired, consumed,<br/>actor, ERC-8004 owner, action type, cap,<br/>rpIdHash, UP+UV, webauthn.get, challenge, origin, P-256
+  alt every check passes
+    V-->>C: Allowed — and the intent is consumed
+    C-->>S: MON moved
+    S-->>B: transaction hash
+    B->>S: decision: approved
+    A->>S: GET /api/requests/:id
+    S-->>A: approved + hash
+    A->>C: reads the receipt itself
+    Note over A: a queue says "approved".<br/>The chain says whether money moved.
+  else any check fails
+    V-->>C: revert Unauthorized(Reason)
+    C-->>S: revert
+    S-->>B: the typed reason, in plain words
+  end
+```
+
+### Where the check lives, and why it is not in the agent
+
+The verifier is called by the contract that holds the value, not by the agent's own
+process. That is the whole design: an agent that bypasses `AgentExecutor` entirely
+and calls `DemoSafe` directly still cannot move a single token, because authorization
+there is not a permission the agent presents — it is a signature the human produced.
 
 ---
 
@@ -323,6 +433,105 @@ The two refused permissions are revoked at the end, so a run leaves no unusable 
 
 ---
 
+## Project structure
+
+```
+witness/
+├── contracts/                          Solidity — immutable once deployed
+│   ├── src/
+│   │   ├── WitnessIntentRegistry.sol   permissions, enrolled passkey key, one-time use
+│   │   ├── WitnessVerifier.sol         the check; typed reasons; identity binding; locks
+│   │   ├── DemoSafe.sol                the counterparty — holds value, two gated exits
+│   │   ├── AgentExecutor.sol           the agent's on-chain identity (ERC-8004 holder)
+│   │   ├── DemoUSD.sol                 valueless test asset
+│   │   ├── libraries/
+│   │   │   ├── WebAuthn.sol            assertion semantics via the 0x0100 P-256 precompile
+│   │   │   └── WitnessAction.sol       canonical action digests (ERC-20 + native)
+│   │   └── interfaces/
+│   │       ├── IWitness.sol            integration surface + the Reason enum
+│   │       ├── IERC20.sol
+│   │       └── IERC721Receiver.sol     required to receive the ERC-8004 token
+│   ├── test/
+│   │   ├── Witness.t.sol               24 end-to-end tests
+│   │   ├── WitnessHardening.t.sol      16 tests: native path, locks, replay, receiver hook
+│   │   ├── mocks/MockERC8004Identity.sol
+│   │   └── vectors/                    real P-256 assertions, generated by Node
+│   ├── script/Deploy.s.sol             deploy → register identity → lock → write manifest
+│   ├── deployments/10143.json          the single source of truth for addresses
+│   ├── verify.sh                       publish the source to an explorer (keyless)
+│   ├── foundry.toml                    evm_version = "osaka" (Monad's precompile set)
+│   └── lib/forge-std/                  vendored dependency, untouched
+│
+├── app/                                the product — Next.js + a Cloudflare Worker
+│   ├── app/
+│   │   ├── page.tsx                    Approvals / Activity / Agents / Settings
+│   │   ├── integrate/page.tsx          the developer surface, with a live preflight
+│   │   ├── layout.tsx, globals.css      two self-hosted faces, one poster-grade surface
+│   │   └── api/
+│   │       ├── config/route.ts         addresses + rpId, so the browser never guesses
+│   │       ├── intent/route.ts         relayed createIntent / revokeIntent (gas only)
+│   │       ├── agent/route.ts          the agent's attempt, submitted by the operator key
+│   │       └── requests/               the agent asks, and the decision comes back
+│   │           ├── route.ts            POST from the agent, GET for the page
+│   │           └── [id]/route.ts       the agent polls for the outcome
+│   │           └── [id]/decision/route.ts
+│   ├── lib/
+│   │   ├── sdk/index.ts                the SDK — the app imports this, so it cannot drift
+│   │   ├── abi.ts                      ABI fragments; Reason names must match IWitness.sol
+│   │   ├── webauthn.ts                 enrollment + assertion, DER → r/s
+│   │   ├── witness.ts                  chain config, revert decoding, formatting
+│   │   ├── queue.ts                    request types, validation, delivery tokens
+│   │   ├── queue-store.ts              the queue — dependency-free, shared by both hosts
+│   │   └── server/                     manifest loading, server keys, identity check
+│   ├── worker/index.ts                 the same routes for the edge deployment
+│   ├── static/                         the static entry the deployed bundle mounts
+│   ├── build-static.mjs                → app/out
+│   ├── build-worker.mjs                → app/worker-dist, and bakes the manifest in
+│   └── test-worker.mjs                 drives the Worker handlers against testnet
+│
+├── packages/sdk/                       @witness/sdk — built FROM app/lib, not a fork of it
+│   ├── scripts/sync.mjs                generates src/ from the app, with a --check gate
+│   ├── scripts/build.mjs               ESM + CJS bundles, then declarations via tsc
+│   └── README.md                       install, quickstart, guarantees, limits
+│
+├── examples/
+│   ├── agent-request.mjs               the agent: asks, waits, then verifies the receipt
+│   ├── monad-app.mjs                   a third-party integration, end to end (read-only)
+│   └── live-e2e.mjs                    live integration test against the deployed contracts
+│
+├── scripts/                            gen-assertion, sign-action, probe-p256, probe-highs
+├── THREAT-MODEL.md                     actors, attacks, residual risk, ranked weaknesses
+├── SECURITY.md                         disclosure policy and scope
+├── INTEGRATOR-KIT.md                   outreach: templates and the 15-minute offer
+├── SUBMISSION.md                       deliverable-by-deliverable handoff, with evidence
+├── CONTRIBUTING.md · CODE_OF_CONDUCT.md · LICENSE · CHANGELOG.md · .nvmrc
+└── .github/workflows/ci.yml            contracts, app and SDK checks
+```
+
+---
+
+## Verifying it yourself
+
+Every claim in this README has a command behind it, and none of them need a secret:
+
+```bash
+cd contracts && ./verify.sh          # source published to an explorer, keyless (Sourcify)
+cd contracts && forge test           # 40 tests, real P-256 through the real precompile
+cd app && bunx tsc --noEmit          # types
+cd packages/sdk && bun run check     # the published SDK has not drifted from the app
+node examples/agent-request.mjs      # a real agent asks a real deployment for money
+```
+
+Or ask production what it is running — this is the same response a judge can read:
+
+```bash
+curl -s https://witness.sithunyein.com/api/config
+# { chainId: 10143, rpId: "witness.sithunyein.com", payee: "0x…",
+#   agentId: "2148", identityEnforced: true, configurationLocked: true, … }
+```
+
+---
+
 ## Tests
 
 ```bash
@@ -371,13 +580,24 @@ If you are building 1, 2, or 3, the five-line integration is in
 
 ---
 
-## Security assumptions and limits
+## Security
+
+| | |
+|---|---|
+| **Enforced on-chain** | Per-action human consent, bound to chain, contract, permission, action type, asset, recipient and exact amount. One-time use. Typed refusals. ERC-8004 ownership checked against the live registry. |
+| **Not enforced** | Anything that does not call the verifier. A prompt-injected agent is assumed, not prevented — it can still *ask*. |
+| **Trusted for liveness** | The relayer and operator keys, which hold no approval power. |
+| **Frozen at deploy** | Accepted origin (`rpId`/`origin`), identity registry, registry's verifier pointer, `DemoSafe` ownership. |
+| **Still mutable** | `AgentExecutor.setOperator` (rotation only) and `forwardAsOwner` (owner-only arbitrary call on the executor). Neither can move the safe's funds. |
+| **Audit status** | Not audited. Testnet reference implementation. |
+
+- Full threat model: [**THREAT-MODEL.md**](THREAT-MODEL.md) — actors and their powers, ten attack
+  classes with mitigation *and residual risk*, out-of-scope list, weaknesses ranked.
+- Disclosure policy: [**SECURITY.md**](SECURITY.md) — private advisories, response targets, scope.
+- Verify it yourself: [**Verifying it yourself**](#verifying-it-yourself) below — no API key needed.
 
 Be precise about what this guarantees, because the guarantee is narrower than "the agent can't spend
 your money".
-
-A full threat model — every actor, every attack class with its mitigation and its residual risk, and
-the weaknesses ranked — is in [`THREAT-MODEL.md`](THREAT-MODEL.md).
 
 **Enforced.** Only a passkey signature over this chain, this contract, this permission, this action
 type, this recipient and this exact amount can move value out of a Witness-checked contract. That
@@ -407,54 +627,19 @@ before a mainnet deployment.
 
 ---
 
-## Repository layout
+## Contributing
 
-```
-contracts/
-  src/
-    WitnessIntentRegistry.sol   permissions + enrolled passkey key
-    WitnessVerifier.sol         the check, typed reasons, identity binding, locks
-    DemoSafe.sol                counterparty: ERC-20 + native MON paths, both gated
-    AgentExecutor.sol           the agent's on-chain identity (holds the ERC-8004 token)
-    DemoUSD.sol                 valueless test asset
-    libraries/WebAuthn.sol      WebAuthn assertion verification via 0x0100
-    libraries/WitnessAction.sol canonical action digests (ERC-20 + native)
-    interfaces/IWitness.sol     integration surface + Reason enum
-    interfaces/IERC721Receiver.sol  required to receive the ERC-8004 token
-  test/
-    Witness.t.sol               24 end-to-end tests
-    WitnessHardening.t.sol      16 tests: native path, locks, no arbitrary-call surface
-  script/Deploy.s.sol           deploy, register identity, lock, write the manifest
-  verify.sh                     publish the source to an explorer (keyless via Sourcify)
-  deployments/10143.json        the single source of truth for addresses
-packages/
-  sdk/                          @witness/sdk — built from app/lib, ESM + CJS + d.ts
-scripts/
-  gen-assertion.mjs             generate a real WebAuthn assertion fixture
-  sign-action.mjs               sign an arbitrary digest (used by the tests)
-  probe-p256.mjs                prove the Monad precompile is live
-  probe-highs.mjs               prove high-S signatures are accepted
-examples/
-  agent-request.mjs             the agent: asks over HTTP, waits, verifies the receipt itself
-  monad-app.mjs                 third-party integration, end to end (read-only)
-  live-e2e.mjs                  live integration test against the deployed contracts
-app/
-  app/                          the product: page.tsx (Approvals/Activity/Agents/Settings),
-                                integrate/ (developer surface)
-  app/api/                      config, intent (register/revoke), agent (attempt execution),
-                                requests (the agent's ask, and the decision back)
-  lib/queue.ts                  request types, validation, delivery tokens (isomorphic)
-  lib/queue-store.ts            the queue itself — one store, shared by both hosts
-  lib/sdk/index.ts              the SDK
-  lib/abi.ts                    ABI fragments; Reason names must match IWitness.sol
-  lib/webauthn.ts               passkey enrollment + assertion, DER → r/s
-  lib/server/                   manifest loading + server keys
-  public/agent.json             the ERC-8004 agent card the identity points at
-  build-static.mjs              bundle the page for the static deployment
-  build-worker.mjs              bundle the Worker; bakes the manifest in
-  test-worker.mjs               exercise the Worker handlers against testnet
-```
+[CONTRIBUTING.md](CONTRIBUTING.md) has the commands, the four checks a change must
+pass, and the two things that will be declined (anything that widens the trust
+story, and anything that skips a test to make a check pass). The most welcome
+contribution is a claim in [THREAT-MODEL.md](THREAT-MODEL.md) you can break.
+
+## Code of conduct
+
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1. Be specific,
+attack the claim rather than the person, and assume competence.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). `contracts/lib/forge-std` is a vendored dependency
+under its own licence (MIT OR Apache-2.0).

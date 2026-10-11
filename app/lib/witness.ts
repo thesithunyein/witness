@@ -1,4 +1,11 @@
-import { createPublicClient, http, decodeErrorResult, type Address, type Hex } from "viem";
+import {
+  createPublicClient,
+  http,
+  decodeErrorResult,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from "viem";
 import { REASON_NAMES, witnessVerifierAbi } from "./abi";
 
 export const MONAD_TESTNET = {
@@ -44,7 +51,12 @@ export type Deployment = {
 // The browser learns the addresses from /api/config instead, which keeps the
 // configured chain the single source of truth.
 
-export const publicClient = (chainId: number) =>
+// The return type is annotated on purpose. Left inferred, the concrete
+// instantiation names viem's internal module paths, so `tsc` cannot emit a
+// portable `.d.ts` for it (TS2742) and the SDK build fails on the declaration
+// step alone. `PublicClient` is part of viem's public surface, so the published
+// types stay resolvable for anyone who installs the package.
+export const publicClient = (chainId: number): PublicClient =>
   createPublicClient({
     chain: chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET,
     transport: http(),
