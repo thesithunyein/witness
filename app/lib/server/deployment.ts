@@ -16,6 +16,12 @@ export type Deployment = {
     AgentExecutor: Address;
   };
   erc8004IdentityRegistry: Address;
+  /**
+   * Where the demo agent's payments settle. Written by the deploy script; absent
+   * in an older manifest, in which case the app reports no settlement address
+   * rather than inventing one.
+   */
+  payee?: Address;
   safeFunding: string;
   /**
    * ERC-8004 binding, written by the deploy script. These are optional so a

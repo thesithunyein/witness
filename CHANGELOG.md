@@ -1,5 +1,81 @@
 # Changelog
 
+## 2026-10-11 (later) — the agent actually asks: a real request queue, a real package, a threat model
+
+Three things the previous revision only claimed are now real: the agent asks over
+HTTP, the integration surface is an installable package, and the trust claims are
+checkable by a stranger.
+
+### The request queue (this is the big one)
+
+- **The hero moment is no longer a fixture.** "Research Agent wants to spend 0.50 MON
+  on Market Data API" was three constants in `page.tsx`. It is now an agent process
+  POSTing to `POST /api/requests`, with the page rendering exactly what arrived.
+- **The empty state is honest.** If nothing has asked, the approval screen says so and
+  shows the one command that makes an agent ask. It does not invent a request to look
+  finished.
+- **`examples/agent-request.mjs`** — the agent as a separate process: it asks, polls
+  `GET /api/requests/:id` for the decision, and then **reads the receipt from Monad
+  itself** rather than believing the app. It exits non-zero when the transaction is
+  missing, reverted, or unconfirmed. `--over` sends the prompt-injection attack for real.
+- **Identity is checked on arrival.** A request claiming an ERC-8004 id is verified
+  against the registry (`ownerOf(id) == AgentExecutor`) before it reaches a human, so a
+  queue entry cannot claim an identity the agent wallet does not hold. Unconfigured
+  registry ⇒ reported as "not checked", never as "verified".
+- **The demo pays a real merchant.** `payee` is written into the deployment manifest by
+  `Deploy.s.sol` (`DEMO_PAYEE`, defaulting to the deployer). No more `0x1111…1111`.
+- **Delivery survives a cold instance.** The queue is process memory, so the POST also
+  returns a link carrying the validated request; the page merges it in. The link is a
+  delivery channel, not a trust channel — approving still needs the passkey.
+- **One store, two hosts.** `lib/queue-store.ts` is dependency-free and shared by the
+  Next routes and the Cloudflare Worker, so the two deployments cannot disagree about
+  what an agent asked for.
+
+### Fixed a real bug in the Worker deployment path
+
+The Worker's routes had drifted from the SDK's contract and would have failed on first
+use:
+
+- `/api/intent` expected `expiresInSeconds` while the SDK sends an absolute `expiry`
+  (so `BigInt(NaN)`), ignored `actionType`, and returned no `intentId`.
+- `/api/agent` scaled the amount a second time (the browser already sends base units),
+  which would have made every approval a `ChallengeMismatch`, and only supported the
+  ERC-20 path — the app has used the native MON path since the last revision.
+
+Both now mirror the Next routes, including reading `intentId` from the `IntentCreated`
+event rather than predicting it.
+
+### `@witness/sdk` is a package now
+
+- `packages/sdk` builds ESM + CJS + type declarations from the app's own modules, with
+  `viem` as a peer. A `sync.mjs --check` gate runs before publish, so the package can
+  never ship sources that lag the app.
+- Verified by packing the tarball and installing it into a separate consumer: ESM
+  import, CJS `require`, and a strict `tsc` pass over a file using the exported types.
+  The tarball is 16 kB and contains only `dist`, the README and the licence.
+
+### The claims are now checkable
+
+- **All five contracts are `exact_match` on Sourcify** (readable on MonadVision),
+  verified 2026-10-11. This needs no API key, which is why `contracts/verify.sh`
+  defaults to it; Monadscan additionally needs `MONADSCAN_API_KEY`.
+- **`THREAT-MODEL.md`** — actors and their powers, ten attack classes with mitigations
+  *and residual risks*, an explicit out-of-scope list, and the weaknesses ranked. It
+  records the uncomfortable ones: `forwardAsOwner` is a live owner-only arbitrary call,
+  `setOperator` is not locked, the relayer owns the permissions it creates, and the
+  decision endpoint is unauthenticated (a lying display, not a spending path).
+- **`INTEGRATOR-KIT.md`** — outreach: who to contact, three templates, the 15-minute
+  offer, and the three levels of "integration" that count.
+
+### Docs
+
+- README: the queue and the agent script, `npm i @witness/sdk`, explorer verification,
+  and a *Who this is for* section naming three adopters with the "why not roll their
+  own" answer for each.
+- SUBMISSION: this pass recorded, and the honest-limits section now names the queue's
+  durability boundary and the unauthenticated decision endpoint instead of leaving them
+  for a reviewer to find.
+
 ## 2026-10-11 — Witness Approvals: consumer experience + real ERC-8004 enforcement
 
 Two goals: make the product usable by someone who has never used a wallet, and make the on-chain

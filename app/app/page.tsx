@@ -10,32 +10,37 @@ import {
   type IntentRecord,
 } from "@/lib/sdk";
 import { short } from "@/lib/witness";
+import {
+  mergeRequests,
+  pendingRequest,
+  reportDecision,
+  requestFromSearch,
+  withDecision,
+  type AgentRequest,
+  type RequestDecision,
+} from "@/lib/queue";
 
 /* --------------------------------------------------------------------------
-   The demo request.
+   What is real here, and what is not.
 
-   Be precise about what is real and what is a fixture, because the whole product
-   is a claim about trust:
-
-     REAL  — the permission, the passkey enrollment, the approval, and every
-             refusal. Each one is a transaction against the deployed contracts,
-             and the refusal comes back as the contract's own typed Reason.
-     FIXTURE — the request itself. A live deployment has the agent POST its
-             request; this build has no request queue, so the request below is a
-             fixed example. It is labelled as one in the UI.
+     REAL   — the request. An agent process POSTs it to /api/requests, and this
+              page renders exactly what arrived. There is no fixture and no
+              constant standing in for it: if nobody has asked for anything, the
+              screen says so and tells you how to make the agent ask.
+     REAL   — the permission, the passkey enrollment, the approval, and every
+              refusal. Each is a transaction against the deployed contracts, and
+              a refusal is the contract's own typed Reason.
+     HONEST — the queue is process memory on the server. A request can be
+              delivered by the link the agent prints instead of by a poll; the
+              page accepts both and shows the same thing. A decision reported
+              back to the server is a notification, never a receipt — the
+              transaction is the receipt, and the agent checks it on-chain.
    -------------------------------------------------------------------------- */
-const DEMO = {
-  agentName: "Research Agent",
-  service: "Market Data API",
-  /** The payee for the example request. Shown under Security details. */
-  payee: "0x1111111111111111111111111111111111111111" as Address,
-  /** What the example request asks for: 0.5 MON. */
-  amountWei: 5n * 10n ** 17n,
-  /** What an injected agent would try instead: 5 MON, ten times the limit. */
-  overAmountWei: 5n * 10n ** 18n,
-  defaultLimitWei: 5n * 10n ** 17n,
-  windowMinutes: 10,
-} as const;
+const DEFAULT_LIMIT_MON = "0.5";
+const DEFAULT_WINDOW_MINUTES = 10;
+/** What a prompt-injected agent asks for: this many times the human's limit. */
+const INJECTION_MULTIPLIER = 10n;
+const FALLBACK_LIMIT_WEI = 5n * 10n ** 17n;
 
 type View = "approvals" | "activity" | "agents" | "settings";
 
@@ -51,6 +56,8 @@ type Config = {
     AgentExecutor: Address;
   };
   erc8004IdentityRegistry: Address;
+  /** Where the demo agent's payments settle. From the deployment manifest. */
+  payee?: Address;
   agentName: string;
   agentURI: string | null;
   agentId: string;
@@ -168,8 +175,14 @@ export default function Page() {
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
-  const [limitMon, setLimitMon] = useState("0.5");
-  const [expiryMinutes, setExpiryMinutes] = useState(String(DEMO.windowMinutes));
+  const [limitMon, setLimitMon] = useState(DEFAULT_LIMIT_MON);
+  const [expiryMinutes, setExpiryMinutes] = useState(String(DEFAULT_WINDOW_MINUTES));
+
+  /** What agents have asked for, from the app's queue. Never synthesised. */
+  const [requests, setRequests] = useState<AgentRequest[]>([]);
+  /** A request delivered by link rather than by poll, for a cold server instance. */
+  const [delivered, setDelivered] = useState<AgentRequest | null>(null);
+  const [queueErr, setQueueErr] = useState<string | null>(null);
 
   const tabsRef = useRef<HTMLDivElement>(null);
 
@@ -224,6 +237,51 @@ export default function Page() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  /**
+   * A request reaches this page two ways, and both are the same validated payload:
+   *
+   *   1. the agent POSTs it to the app, and this page polls the queue out, or
+   *   2. the agent prints a link carrying it (?req=…), which the human opens.
+   *
+   * The second exists because a serverless instance does not stay warm, and a
+   * demo that silently shows an empty queue would be worse than useless. The link
+   * grants nothing: approving still needs the passkey, and the amount is still
+   * checked against the permission on-chain.
+   */
+  useEffect(() => {
+    setDelivered(requestFromSearch(window.location.search));
+  }, []);
+
+  useEffect(() => {
+    if (intentId === null) return;
+    let stopped = false;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/requests?intentId=${intentId}`, { cache: "no-store" });
+        const j = (await res.json()) as { ok: boolean; requests?: AgentRequest[]; error?: string };
+        if (stopped) return;
+        if (!j.ok) {
+          setQueueErr(j.error ?? "could not read the requests queue");
+          return;
+        }
+        setQueueErr(null);
+        // Merge rather than replace: an instance that forgets must not wipe a
+        // request the human is already looking at.
+        setRequests((prev) => mergeRequests(j.requests ?? [], prev));
+      } catch (e) {
+        if (!stopped) setQueueErr(e instanceof Error ? e.message : String(e));
+      }
+    };
+
+    void poll();
+    const t = setInterval(poll, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
+  }, [intentId]);
 
   const refreshIntent = useCallback(
     async (id: bigint) => {
@@ -290,19 +348,51 @@ export default function Page() {
     }
   };
 
-  // --- the two decisions --------------------------------------------------
+  // --- the queue ----------------------------------------------------------
+
+  /**
+   * What agents have actually asked for. `delivered` goes first so a link the
+   * agent printed still wins over whatever copy the server happens to hold.
+   */
+  const queue = useMemo(
+    () => mergeRequests(delivered ? [delivered] : [], requests),
+    [delivered, requests]
+  );
+  /** The newest request still waiting on a human. Only this one is decidable. */
+  const asked = useMemo(() => pendingRequest(queue), [queue]);
+  /** What to render: the pending request, or the one just decided, as a record. */
+  const shown = asked ?? queue[0] ?? null;
 
   const request = useMemo(
     () =>
-      intentId === null
+      !asked || intentId === null
         ? null
-        : ({ intentId, kind: "native", to: DEMO.payee, amount: DEMO.amountWei } as const),
-    [intentId]
+        : ({
+            intentId,
+            kind: asked.kind,
+            to: asked.to as Address,
+            amount: BigInt(asked.amount),
+          } as const),
+    [asked, intentId]
   );
+
+  /**
+   * Record a decision here first, then tell the server so the waiting agent stops.
+   *
+   * Local first, because the transaction is what happened; the server notification
+   * is a courtesy. If the notification is lost the human still sees the truth, and
+   * so does the agent once it reads the chain.
+   */
+  const settle = useCallback(async (id: string, decision: RequestDecision) => {
+    const stamped = { ...decision, decidedAt: Date.now() };
+    setRequests((prev) => withDecision(prev, id, decision));
+    setDelivered((prev) => (prev && prev.id === id ? { ...prev, ...stamped } : prev));
+    await reportDecision(id, decision);
+  }, []);
 
   /** Approve: the human taps, the passkey signs this exact action, the chain enforces. */
   const approve = async () => {
-    if (!client || !request) return;
+    if (!client || !request || !asked) return;
     setBusy("approve");
     setErr(null);
     setVerdict(null);
@@ -311,19 +401,29 @@ export default function Page() {
       const result = await client.executeAuthorizedAction(request, assertion);
 
       if (result.allowed) {
+        await settle(asked.id, {
+          status: "approved",
+          txHash: result.txHash,
+          explorer: result.explorer,
+        });
         setVerdict({
           tone: "ok",
           label: "Approved",
-          note: `${config?.agentName ?? DEMO.agentName} can now complete this action. The permission is used up, so it cannot be replayed.`,
+          note: `${config?.agentName ?? "The agent"} can now complete this action. The permission is used up, so it cannot be replayed.`,
         });
         addEntry({
           tone: "ok",
           title: "Approved and paid",
-          detail: `${mon(request.amount)} to ${DEMO.service}`,
+          detail: `${mon(request.amount)} to ${asked.service}`,
           hash: result.txHash,
           explorer: result.explorer,
         });
       } else {
+        await settle(asked.id, {
+          status: "refused",
+          reason: result.name,
+          reasonCode: result.code,
+        });
         setVerdict({
           tone: "bad",
           label: "Not approved",
@@ -345,7 +445,7 @@ export default function Page() {
         setVerdict({
           tone: "bad",
           label: "Cancelled",
-          note: "The passkey prompt was dismissed, so nothing was approved and nothing moved.",
+          note: "The passkey prompt was dismissed, so nothing was approved and nothing moved. The request is still waiting.",
         });
       } else {
         setErr(e instanceof Error ? e.message : String(e));
@@ -360,7 +460,7 @@ export default function Page() {
    * That order matters — the refusal is produced by the contract, not by this UI.
    */
   const block = async () => {
-    if (!client || !request) return;
+    if (!client || !request || !asked) return;
     setBusy("block");
     setErr(null);
     setVerdict(null);
@@ -375,6 +475,11 @@ export default function Page() {
         });
         return;
       }
+      await settle(asked.id, {
+        status: "blocked",
+        reason: result.name,
+        reasonCode: result.code,
+      });
       setVerdict({
         tone: "bad",
         label: "Blocked",
@@ -384,7 +489,7 @@ export default function Page() {
       addEntry({
         tone: "bad",
         title: "You blocked a request",
-        detail: `${config?.agentName ?? DEMO.agentName} asked for ${mon(request.amount)}; you did not approve it.`,
+        detail: `${config?.agentName ?? "The agent"} asked for ${mon(request.amount)}; you did not approve it.`,
         reason: result.name,
       });
     } catch (e) {
@@ -395,33 +500,51 @@ export default function Page() {
   };
 
   /**
+   * Where an injected instruction would send money: the merchant this agent is
+   * actually working with, or the deployment's own payee when nothing is queued.
+   * Never a made-up address — the point of the attack is that it is real.
+   */
+  const injectionTarget = useMemo(
+    () => (asked?.to as Address | undefined) ?? config?.payee ?? null,
+    [asked, config]
+  );
+  /** Ten times the limit the human actually set, not a constant. */
+  const injectionAmount = (intent?.maxAmount ?? FALLBACK_LIMIT_WEI) * INJECTION_MULTIPLIER;
+  const canInject = Boolean(intent?.active && !busy && intentId !== null && injectionTarget);
+
+  /**
    * The adversary simulation: a prompt-injected agent asks for ten times the limit
    * with no approval to present. Kept in Agents rather than next to Approve, so it
    * never competes with the one action that matters on the approval screen.
    */
   const simulateInjection = async () => {
-    if (!client || !request) return;
+    if (!client || intentId === null || !injectionTarget) return;
     setBusy("attack");
     setErr(null);
     setVerdict(null);
     try {
-      const over = { ...request, amount: DEMO.overAmountWei };
+      const over = {
+        intentId,
+        kind: "native",
+        to: injectionTarget,
+        amount: injectionAmount,
+      } as const;
       const result = await client.executeAuthorizedAction(over, NO_APPROVAL);
       setVerdict({
         tone: result.allowed ? "bad" : "ok",
         label: result.allowed ? "Executed" : "Blocked",
         note: result.allowed
           ? "The oversized request went through. This should be impossible — report it."
-          : `${plainReason(result)} It asked for ${mon(DEMO.overAmountWei)} against your ${mon(intent?.maxAmount ?? DEMO.defaultLimitWei)} limit.`,
+          : `${plainReason(result)} It asked for ${mon(injectionAmount)} against your ${mon(intent?.maxAmount ?? FALLBACK_LIMIT_WEI)} limit.`,
         reason: result.allowed ? undefined : result.name,
       });
       addEntry({
         tone: result.allowed ? "bad" : "ok",
         title: "Unapproved request blocked",
-        detail: `An injected instruction asked for ${mon(DEMO.overAmountWei)}; the chain refused it.`,
+        detail: `An injected instruction asked for ${mon(injectionAmount)}; the chain refused it.`,
         reason: result.allowed ? undefined : result.name,
       });
-      await refreshIntent(request.intentId);
+      await refreshIntent(intentId);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -439,7 +562,7 @@ export default function Page() {
       addEntry({
         tone: "bad",
         title: "Permission withdrawn",
-        detail: `${config?.agentName ?? DEMO.agentName} can no longer act under this permission.`,
+        detail: `${config?.agentName ?? "The agent"} can no longer act under this permission.`,
       });
       setVerdict({
         tone: "bad",
@@ -459,6 +582,9 @@ export default function Page() {
     setIntent(null);
     setVerdict(null);
     setActivity([]);
+    setRequests([]);
+    setDelivered(null);
+    setQueueErr(null);
     for (const k of Object.values(KEYS)) {
       try {
         window.localStorage.removeItem(k);
@@ -472,16 +598,22 @@ export default function Page() {
 
   const remaining = intent ? Math.max(0, intent.expiry === 0n ? Infinity : Number(intent.expiry) - Math.floor(now / 1000)) : Infinity;
 
+  /**
+   * Risk is derived from the request against the permission that is on-chain — it
+   * is never asserted. A request above the limit is labelled as such before any
+   * passkey prompt, because the human should know the answer the chain will give.
+   */
   const risk = useMemo(() => {
     if (!intent) return null;
-    if (DEMO.amountWei > intent.maxAmount)
+    if (asked && BigInt(asked.amount) > intent.maxAmount)
       return { tone: "bad" as const, label: "Over your limit" };
     if (remaining <= 60) return { tone: "wait" as const, label: "Expiring soon" };
     if (!intent.active) return { tone: "bad" as const, label: "No longer active" };
     return { tone: "ok" as const, label: "Within your limit" };
-  }, [intent, remaining]);
+  }, [intent, remaining, asked]);
 
-  const canDecide = Boolean(intent && intent.active && !busy);
+  /** There is nothing to decide until an agent has actually asked for something. */
+  const canDecide = Boolean(intent?.active && asked && !busy);
 
   const tabs: { id: View; label: string }[] = [
     { id: "approvals", label: "Approvals" },
@@ -595,74 +727,103 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                 />
               ) : (
                 <>
-                  <div className="request">
-                    <div className="request__agent">
-                      <AgentAvatar />
-                      <div>
-                        <p className="micro" style={{ color: "var(--ink-dim)" }}>
-                          Waiting for you
-                        </p>
-                        <p className="card__title">{config.agentName}</p>
+                  {shown === null ? (
+                    <WaitingForAgent agentName={config.agentName} queueErr={queueErr} />
+                  ) : (
+                    <div className="request">
+                      <div className="request__agent">
+                        <AgentAvatar />
+                        <div>
+                          <p className="micro" style={{ color: "var(--ink-dim)" }}>
+                            {asked ? "Waiting for you" : "Already decided"}
+                          </p>
+                          <p className="card__title">{config.agentName}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <h2 className="request__sentence">
-                      {config.agentName} wants to spend <em>{mon(DEMO.amountWei)}</em> on{" "}
-                      {DEMO.service}.
-                    </h2>
-                    <p className="request__sub">
-                      One payment, to {DEMO.service}. Nothing moves until you approve it.
-                    </p>
-
-                    <dl className="facts">
-                      <div className="fact">
-                        <dt>Amount</dt>
-                        <dd className="mono">{mon(DEMO.amountWei)}</dd>
-                      </div>
-                      <div className="fact">
-                        <dt>Expires in</dt>
-                        <dd className="mono">{clock(remaining)}</dd>
-                      </div>
-                      <div className="fact">
-                        <dt>Risk</dt>
-                        <dd>
-                          <span className={`state state--${risk?.tone ?? "quiet"}`}>
-                            <span aria-hidden>{risk?.tone === "ok" ? "✓" : risk?.tone === "bad" ? "✕" : "•"}</span>
-                            {risk?.label ?? "Checking…"}
-                          </span>
-                        </dd>
-                      </div>
-                    </dl>
-
-                    <div className="decide">
-                      <button
-                        className="primary decide__primary"
-                        onClick={approve}
-                        disabled={!canDecide}
-                        aria-busy={busy === "approve"}
-                      >
-                        {busy === "approve" ? "Waiting for your passkey…" : "Approve with passkey"}
-                      </button>
-                      <button className="block" onClick={block} disabled={!canDecide}>
-                        {busy === "block" ? "Blocking…" : "Block"}
-                      </button>
-                    </div>
-
-                    {!intent?.active && (
-                      <p className="field__hint" style={{ marginTop: 14 }}>
-                        This permission is no longer active
-                        {intent?.consumed ? " (already used)" : intent?.revoked ? " (withdrawn)" : ""}
-                        {remaining <= 0 ? " (expired)" : ""}. Create a new one to keep going.
+                      <h2 className="request__sentence">
+                        {config.agentName} wants to spend <em>{mon(BigInt(shown.amount))}</em> on{" "}
+                        {shown.service}.
+                      </h2>
+                      <p className="request__sub">
+                        {asked
+                          ? `One payment, to ${shown.service}. Nothing moves until you approve it.`
+                          : outcomeLine(shown)}
                       </p>
-                    )}
 
-                    <SecurityDetails config={config} intent={intent} passkey={passkey} />
-                  </div>
+                      {shown.note && <p className="note">{shown.note}</p>}
+
+                      <dl className="facts">
+                        <div className="fact">
+                          <dt>Amount</dt>
+                          <dd className="mono">{mon(BigInt(shown.amount))}</dd>
+                        </div>
+                        <div className="fact">
+                          <dt>Expires in</dt>
+                          <dd className="mono">{clock(remaining)}</dd>
+                        </div>
+                        <div className="fact">
+                          <dt>{asked ? "Risk" : "Outcome"}</dt>
+                          <dd>
+                            {asked ? (
+                              <span className={`state state--${risk?.tone ?? "quiet"}`}>
+                                <span aria-hidden>
+                                  {risk?.tone === "ok" ? "✓" : risk?.tone === "bad" ? "✕" : "•"}
+                                </span>
+                                {risk?.label ?? "Checking…"}
+                              </span>
+                            ) : (
+                              <span
+                                className={`state ${shown.status === "approved" ? "state--ok" : "state--bad"}`}
+                              >
+                                <span aria-hidden>{shown.status === "approved" ? "✓" : "✕"}</span>
+                                {shown.status === "approved"
+                                  ? "Approved"
+                                  : shown.status === "blocked"
+                                    ? "You blocked it"
+                                    : "Refused"}
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="decide">
+                        <button
+                          className="primary decide__primary"
+                          onClick={approve}
+                          disabled={!canDecide}
+                          aria-busy={busy === "approve"}
+                        >
+                          {busy === "approve" ? "Waiting for your passkey…" : "Approve with passkey"}
+                        </button>
+                        <button className="block" onClick={block} disabled={!canDecide}>
+                          {busy === "block" ? "Blocking…" : "Block"}
+                        </button>
+                      </div>
+
+                      {!intent?.active && (
+                        <p className="field__hint" style={{ marginTop: 14 }}>
+                          This permission is no longer active
+                          {intent?.consumed ? " (already used)" : intent?.revoked ? " (withdrawn)" : ""}
+                          {remaining <= 0 ? " (expired)" : ""}. Create a new one to keep going.
+                        </p>
+                      )}
+
+                      <SecurityDetails
+                        config={config}
+                        intent={intent}
+                        passkey={passkey}
+                        request={shown}
+                      />
+                    </div>
+                  )}
 
                   <Notice>
-                    <strong>The request above is a fixed example</strong> — this build has no request
-                    queue, so the agent's request is a fixture. The permission, the approval, and
-                    every refusal are real transactions on Monad testnet.
+                    <strong>This request came from outside this app.</strong> An agent process POSTed
+                    it to <span className="mono">/api/requests</span>, and it is rendered here exactly
+                    as it arrived — recipient, amount, and the agent&rsquo;s own words. Nothing on this
+                    screen is a fixture.
                   </Notice>
 
                   <ActivityPreview entries={activity} onSeeAll={() => setView("activity")} />
@@ -768,13 +929,18 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   </div>
                 </div>
                 <div className="section-actions" style={{ marginTop: 0 }}>
-                  <button onClick={simulateInjection} disabled={!canDecide} aria-busy={busy === "attack"}>
-                    {busy === "attack" ? "Attempting…" : `Send an unapproved ${mon(DEMO.overAmountWei)} request`}
+                  <button onClick={simulateInjection} disabled={!canInject} aria-busy={busy === "attack"}>
+                    {busy === "attack"
+                      ? "Attempting…"
+                      : `Send an unapproved ${mon(injectionAmount)} request`}
                   </button>
                 </div>
                 <p className="note" style={{ marginTop: 14 }}>
+                  {injectionTarget
+                    ? `${mon(injectionAmount)} is ten times your limit, sent to ${short(injectionTarget)} with no approval attached. `
+                    : "Set a permission first, then this sends ten times its limit with no approval attached. "}
                   The refusal is a reverted transaction from the contract that holds the funds — not a
-                  check in the agent's code, and not a check in this page.
+                  check in the agent&rsquo;s code, and not a check in this page.
                 </p>
               </div>
             </section>
@@ -913,6 +1079,64 @@ function Notice({ children }: { children: React.ReactNode }) {
   return <p className="notice">{children}</p>;
 }
 
+/**
+ * No agent has asked for anything yet.
+ *
+ * This state used to be filled with a fixed example request, which made the
+ * product look finished and was the least honest thing on the screen. The promise
+ * is "your agent asks" — so when nothing has asked, the page says so, and shows
+ * the one command that makes an agent ask for real.
+ */
+function WaitingForAgent({ agentName, queueErr }: { agentName: string; queueErr: string | null }) {
+  return (
+    <div className="request">
+      <div className="request__agent">
+        <AgentAvatar />
+        <div>
+          <p className="micro" style={{ color: "var(--ink-dim)" }}>
+            Waiting
+          </p>
+          <p className="card__title">{agentName}</p>
+        </div>
+      </div>
+
+      <h2 className="request__sentence">No request waiting.</h2>
+      <p className="request__sub">
+        Your permission is live. When {agentName} wants to spend, it posts a request to this app.
+        Run the agent from the repository and it will appear here on its own.
+      </p>
+
+      <pre className="mono note" style={{ whiteSpace: "pre-wrap" }}>{`npm install
+node examples/agent-request.mjs`}</pre>
+
+      <p className="field__hint">
+        This page reads the queue every 3 seconds. Nothing is approved until you tap.
+      </p>
+
+      {queueErr && (
+        <p className="field__hint">
+          <strong>The queue could not be read:</strong> {queueErr}. The agent may still be able to
+          deliver a request by link.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** What happened to a request the human has already decided. */
+function outcomeLine(r: AgentRequest): string {
+  switch (r.status) {
+    case "approved":
+      return `You approved this${r.explorer ? ", and the transaction is on the chain" : ""}. The permission is used up, so it cannot be replayed.`;
+    case "blocked":
+      return "You refused this. Nothing was sent.";
+    case "refused":
+      return `The contract refused this${r.reason ? ` (${r.reason})` : ""}, so nothing was sent.`;
+    default:
+      return `One payment, to ${r.service}.`;
+  }
+}
+
 function ActivityPreview({ entries, onSeeAll }: { entries: Entry[]; onSeeAll: () => void }) {
   return (
     <div className="disclosure-block">
@@ -1039,11 +1263,14 @@ function SecurityDetails({
   config,
   intent,
   passkey,
+  request,
   defaultOpen,
 }: {
   config: Config;
   intent: IntentRecord | null;
   passkey: EnrolledPasskey | null;
+  /** The request currently on screen, when there is one. */
+  request?: AgentRequest | null;
   defaultOpen?: boolean;
 }) {
   return (
@@ -1116,8 +1343,48 @@ function SecurityDetails({
               ? `enrolled in this browser — credential ${short(passkey.credentialId, 10, 6)}`
               : "not enrolled in this browser"}
           </dd>
-          <dt>Payee (example request)</dt>
-          <dd>{DEMO.payee}</dd>
+          {request ? (
+            <>
+              <dt>Request</dt>
+              <dd className="mono">
+                {request.id} · arrived {when(request.createdAt)}
+              </dd>
+              <dt>Asked for by</dt>
+              <dd>
+                {request.service}
+                {request.agentId !== "0" ? ` · ERC-8004 #${request.agentId}` : ""}
+              </dd>
+              <dt>Paying to</dt>
+              <dd>
+                <a
+                  href={`${config.explorer}/address/${request.to}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {request.to} ↗
+                </a>
+              </dd>
+            </>
+          ) : (
+            <>
+              <dt>Request</dt>
+              <dd>none waiting — the agent has not asked for anything</dd>
+              <dt>Settlement address</dt>
+              <dd>
+                {config.payee ? (
+                  <a
+                    href={`${config.explorer}/address/${config.payee}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {config.payee} ↗
+                  </a>
+                ) : (
+                  "not recorded in the deployment manifest"
+                )}
+              </dd>
+            </>
+          )}
           <dt>Chain</dt>
           <dd>
             {config.chainId === 143 ? "Monad mainnet" : "Monad testnet"} · {config.chainId}

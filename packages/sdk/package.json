@@ -1,0 +1,56 @@
+{
+  "name": "@witness/sdk",
+  "version": "0.1.0",
+  "description": "Human authorization for AI agent actions: a passkey signs one exact action, and the counterparty verifies it on-chain. Monad.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.11 <25"
+  },
+  "keywords": [
+    "monad",
+    "web3",
+    "agents",
+    "webauthn",
+    "passkey",
+    "erc-8004",
+    "x402",
+    "authorization"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thesithunyein/witness.git",
+    "directory": "packages/sdk"
+  },
+  "scripts": {
+    "sync": "bun run scripts/sync.mjs",
+    "check": "bun run scripts/sync.mjs --check",
+    "build": "bun run scripts/build.mjs",
+    "prepack": "bun run scripts/build.mjs",
+    "prepublishOnly": "bun run scripts/sync.mjs --check && bun run scripts/build.mjs"
+  },
+  "peerDependencies": {
+    "viem": "^2.31.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "viem": "^2.57.4"
+  }
+}

@@ -25,6 +25,8 @@ export async function GET() {
         origin: d.origin,
         contracts: d.contracts,
         erc8004IdentityRegistry: d.erc8004IdentityRegistry,
+        /** Where the demo agent's payments settle, from the deployment manifest. */
+        payee: d.payee ?? null,
         agentName: d.agentName ?? "Research Agent",
         agentURI: d.agentURI ?? null,
         agentId: agentId.toString(),

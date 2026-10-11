@@ -23,6 +23,7 @@ export const DEPLOYMENT = {
   "deployer": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
   "erc8004IdentityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
   "origin": "https://witness.sithunyein.com",
+  "payee": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
   "rpId": "witness.sithunyein.com",
   "safeFunding": "1000000000000000000000"
 };

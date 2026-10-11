@@ -33,10 +33,12 @@ No wallet and no testnet funds are needed to use it: registration and gas are re
 server, and the approval is a passkey on the visitor's own device. The relayer can never approve
 anything — approving requires the enrolled passkey, which never leaves the user's device.
 
-> **The live site serves a build.** Its contract addresses are baked into the app bundle at build
-> time from `contracts/deployments/<chainId>.json`, so a redeploy of the contracts requires a
-> rebuild and redeploy of the app. Until that happens, the hosted site keeps talking to the
-> previous deployment. See [Deploying](#deploying).
+> **The live build matches the manifest**, verified by asking it: `GET /api/config` on production
+> returns the addresses below, `identityEnforced: true` and `configurationLocked: true`, and the
+> Settings tab reads *Enforced* / *Frozen*. Addresses are baked into the bundle at build time from
+> `contracts/deployments/<chainId>.json`, so **a contract redeploy needs an app redeploy too**, or
+> the hosted site keeps talking to the previous stack. That is the one operational trap here; see
+> [Deploying](#deploying).
 
 ### Deployed contracts (Monad testnet 10143)
 
@@ -56,6 +58,17 @@ by `lockConfiguration()`.
 
 `contracts/deployments/10143.json` is the single source of truth: the deploy script writes it, the
 app reads it, and the SDK is constructed from it. No address is ever hand-copied.
+
+**The source is verified, so you do not have to take any of this on trust.** All five contracts match
+their Solidity with `exact_match` on Sourcify, which needs no API key:
+
+```bash
+cd contracts && ./verify.sh          # MonadVision (Sourcify), keyless
+cd contracts && ./verify.sh --etherscan   # also Monadscan (needs MONADSCAN_API_KEY)
+```
+
+The script reads every address from the manifest and prints the reminder that a submitted job is not
+a verified contract — `exact_match` is.
 
 ---
 
@@ -156,6 +169,29 @@ cast send $DEMO_SAFE --value 1.5ether --private-key $DEPLOYER_PRIVATE_KEY \
 Verifying only the raw precompile signature would accept a signature over *any* digest, which proves
 nothing about what the human approved. That distinction is the point of this repo.
 
+### The agent actually asks
+
+A permission is only half of the loop. An agent has to be able to *ask*, and the human has to see
+what arrived. That is a real endpoint, not a fixture in the UI:
+
+```bash
+npm install
+node examples/agent-request.mjs          # a separate process POSTs a request and waits
+node examples/agent-request.mjs --over   # an injected agent asks for 10× the limit
+```
+
+The loop is four real steps: the agent `POST`s to `/api/requests`; the human decides in the browser
+with a passkey; the agent polls `/api/requests/:id` for the decision; and then the agent **checks the
+transaction on Monad itself** rather than believing the response. A queue that says "approved" is
+worth nothing; a receipt you can verify is worth everything, and that difference is the whole reason
+the queue is allowed to be untrusted.
+
+This process never holds the passkey, so it cannot approve anything. When it asks for ten times the
+human's limit, the refusal comes back from the contract that holds the funds.
+
+Requests arrive from outside the app. If nothing has asked, the approval screen says so and shows the
+command that makes an agent ask — it does not invent a request to look finished.
+
 ### Signature semantics, verified against live chains
 
 ```bash
@@ -222,6 +258,9 @@ controller, used once to register the identity).
 
 ## SDK
 
+Installable, with a build and a version: **`npm i @witness/sdk`** (from this repo: `packages/sdk`;
+the tarball is built from the app's own modules, so there is one copy of the truth and no drift).
+
 `app/lib/sdk/index.ts` wraps the whole loop so an integrating app never reimplements the digest, the
 WebAuthn ceremony, or the revert decoding:
 
@@ -234,8 +273,8 @@ WebAuthn ceremony, or the revert decoding:
 
 Typed refusals are the point: `result.name` is a stable code (`OverLimit`, `Expired`,
 `AlreadyConsumed`, `WrongAgent`, `AgentNotRegistered`, …) and `result.message` is the sentence a
-human should read. The SDK is four files with one dependency (viem): `lib/sdk/index.ts`, `lib/abi.ts`,
-`lib/witness.ts`, `lib/webauthn.ts`. Copy them, or point your build at the folder.
+human should read. One dependency (viem, as a peer), ESM + CJS + type declarations, and the reference
+app imports these exact modules — so a change that would break an integrator breaks the demo first.
 
 The digest is always read from the contract (`DemoSafe.actionHash` / `nativeActionHash`), never
 recomputed off-chain in parallel, so the bytes the passkey signs and the bytes the contract
@@ -251,11 +290,20 @@ including a live preflight that calls the deployed verifier from the browser.
 ```bash
 npm install                        # root deps: viem
 
+node examples/agent-request.mjs    # the agent asks, waits for the human, verifies on-chain
+node examples/agent-request.mjs --over    # the injected-agent attack, for real
+
 node examples/monad-app.mjs        # a third-party integration, end to end (read-only)
 node examples/monad-app.mjs 3 0.5 0x1111…1111
 
 node examples/live-e2e.mjs         # the deployed stack, with real transactions
 ```
+
+`examples/agent-request.mjs` is the agent half, as a separate process: it decides it needs to pay for
+something, `POST`s the request, waits for the human, and then reads the receipt from Monad itself. It
+exits non-zero if the transaction is missing, reverted, or unconfirmed — a server claiming "approved"
+is not evidence. Its default recipient is the deployment manifest's `payee`, so the demo pays a real,
+on-chain-visible merchant rather than a placeholder address nobody controls.
 
 `examples/monad-app.mjs` is the smallest honest version of "add Witness to my app": it reads the
 manifest, reads the permission, asks the contract for the action digest, and preflights. Everything
@@ -296,10 +344,40 @@ Gas: a full authorization check is ~177k; a transfer runs 70k–270k depending o
 
 ---
 
+## Who this is for
+
+Three adopters, and the honest reason each would not roll their own.
+
+**1. x402-style paid endpoints that need a payer authorization.** Today a 402 flow proves the payer's
+client *agreed to pay*; spending controls are per-payment client-side caps with no accumulated
+session budget and nothing the *resource server* can verify. Witness gives the server a check it can
+run itself — passkey-signed, action-bound, one-time — instead of trusting the payer's process to
+respect its own cap. Rolling your own means writing the WebAuthn parsing, the replay and revocation
+state, and a receipt format an integrator can recognise; that is this repo.
+
+**2. Monad DeFi agents.** A swap, a transfer, or a position close executed by an agent should be
+gated on a human approving *that* transaction size and destination, not on a policy document. The
+gate belongs in the vault or router that holds the value, because that is the only place an injected
+agent cannot route around. Rolling your own gives you a check nobody else's contract will ever call.
+
+**3. ERC-8004 agent marketplaces.** A listing can prove *which* agent is acting; it cannot prove a
+human authorized the action behind it. A marketplace that wants to accept a permission as a
+credential needs the counterparty to verify it — and a receipt is only useful if the counterparty
+recognises the format. Rolling your own produces a signature that only your own contracts check.
+
+If you are building 1, 2, or 3, the five-line integration is in
+[`SUBMISSION.md`](SUBMISSION.md#3-the-two-criteria-that-are-not-code), and
+[`INTEGRATOR-KIT.md`](INTEGRATOR-KIT.md) has the 15-minute version of the same thing.
+
+---
+
 ## Security assumptions and limits
 
 Be precise about what this guarantees, because the guarantee is narrower than "the agent can't spend
 your money".
+
+A full threat model — every actor, every attack class with its mitigation and its residual risk, and
+the weaknesses ranked — is in [`THREAT-MODEL.md`](THREAT-MODEL.md).
 
 **Enforced.** Only a passkey signature over this chain, this contract, this permission, this action
 type, this recipient and this exact amount can move value out of a Witness-checked contract. That
@@ -347,19 +425,26 @@ contracts/
     Witness.t.sol               24 end-to-end tests
     WitnessHardening.t.sol      16 tests: native path, locks, no arbitrary-call surface
   script/Deploy.s.sol           deploy, register identity, lock, write the manifest
+  verify.sh                     publish the source to an explorer (keyless via Sourcify)
   deployments/10143.json        the single source of truth for addresses
+packages/
+  sdk/                          @witness/sdk — built from app/lib, ESM + CJS + d.ts
 scripts/
   gen-assertion.mjs             generate a real WebAuthn assertion fixture
   sign-action.mjs               sign an arbitrary digest (used by the tests)
   probe-p256.mjs                prove the Monad precompile is live
   probe-highs.mjs               prove high-S signatures are accepted
 examples/
+  agent-request.mjs             the agent: asks over HTTP, waits, verifies the receipt itself
   monad-app.mjs                 third-party integration, end to end (read-only)
   live-e2e.mjs                  live integration test against the deployed contracts
 app/
   app/                          the product: page.tsx (Approvals/Activity/Agents/Settings),
                                 integrate/ (developer surface)
-  app/api/                      config, intent (register/revoke), agent (attempt execution)
+  app/api/                      config, intent (register/revoke), agent (attempt execution),
+                                requests (the agent's ask, and the decision back)
+  lib/queue.ts                  request types, validation, delivery tokens (isomorphic)
+  lib/queue-store.ts            the queue itself — one store, shared by both hosts
   lib/sdk/index.ts              the SDK
   lib/abi.ts                    ABI fragments; Reason names must match IWitness.sol
   lib/webauthn.ts               passkey enrollment + assertion, DER → r/s

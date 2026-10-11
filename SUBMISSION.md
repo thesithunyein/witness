@@ -29,7 +29,54 @@ records is still valid, the addresses are not.
 | `DemoUSD` | `0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c` |
 | ERC-8004 identity | **`#2148`**, owned by `AgentExecutor`, in the official registry `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 
-Changed in this pass:
+### Third pass — the agent actually asks
+
+Everything here is new since §0 was written. The theme: the two things the previous revision only
+*claimed* are now real, and the trust claims are now checkable by a stranger.
+
+- **The hero moment is no longer a fixture.** The request on the approval screen used to be three
+  constants in `page.tsx`. It is now a real HTTP request: an agent process `POST`s to `/api/requests`,
+  the page renders exactly what arrived, and the agent polls `/api/requests/:id` for the decision.
+  If nothing has asked, the screen says so and names the command that makes an agent ask — it does not
+  invent a request to look finished. `examples/agent-request.mjs` is that agent.
+- **The agent verifies the payment itself.** It does not believe the app's "approved": it reads the
+  receipt from Monad and exits non-zero if the transaction is missing, reverted, or unconfirmed. A
+  queue is a notification; the chain is the receipt.
+- **The demo pays a real merchant.** `payee` is recorded in the deployment manifest by the deploy
+  script (default: the deployer), so the money lands at an address with an on-chain history instead
+  of `0x1111…1111`.
+- **`@witness/sdk` is a package**, not four files to copy: `packages/sdk` builds ESM + CJS + type
+  declarations from the app's own modules, so the product and the integration surface cannot drift.
+  Verified by installing the packed tarball into a separate consumer and importing it three ways.
+- **Verified on an explorer, keylessly.** All five contracts are `exact_match` on Sourcify
+  (MonadVision) as of 2026-10-11, so a judge can read the source instead of trusting this document.
+  `contracts/verify.sh` reproduces it; Monadscan additionally needs `MONADSCAN_API_KEY`.
+- **`THREAT-MODEL.md`** — every actor, every attack class with mitigation *and residual risk*, and the
+  weaknesses ranked. It says out loud that `AgentExecutor.forwardAsOwner` is a live owner-only
+  arbitrary call, that `setOperator` is not locked, and that the relayer owns the permissions it
+  creates.
+- **`INTEGRATOR-KIT.md`** — the outreach kit: what counts as an integration, the 15-minute offer, and
+  three message templates. Outreach itself still needs your hands; that is the one thing here I
+  cannot do.
+
+**Verified on production** (`witness.sithunyein.com`, after a Vercel deploy of the current build), so
+none of the above is a claim about a local checkout:
+
+- `GET /api/config` returns the five addresses below with `identityEnforced: true` and
+  `configurationLocked: true` (before this pass it returned the *previous* addresses with
+  `identityEnforced: false` — the live product was weaker than the repo said).
+- The Settings tab renders *Enforced* / *Frozen*, checked in a real browser.
+- A real agent process POSTed a request to production, got back a delivery link, and the page rendered
+  "Research Agent wants to spend 0.5 MON on Market Data API" from what arrived. The page's queue poll
+  (`GET /api/requests?intentId=…` every 3 s) returns 200 with no console errors.
+- The agent polls, observes the human's decision, and reports it: *REFUSED — the contract would not
+  allow it*, with the typed reason and code.
+- The identity check is live: an id the executor does not own is refused with HTTP 403, and id `#2148`
+  is confirmed as owned by `AgentExecutor` on the real registry.
+- `/api/agent` on production still refuses a 10× attempt with a decoded `OverLimit`, and an in-limit
+  unsigned attempt with `RpIdMismatch` — real reverted transactions, not client checks.
+
+Changed in the second pass:
 
 - **ERC-8004 is now enforced.** The registry is set and the identity is bound, so an intent naming an
   agent id only verifies when the executor owns that id. The old "item 5" below is done.
@@ -121,15 +168,18 @@ Exercised **on production, in a real browser**:
    one-time and expires in 10 minutes, so re-register before recording.
 2. **Record the videos** (2 min pitch, 3 min demo) — the video is what is judged. Suggested beats in
    §4 below.
-3. **One external integrator** — see §3. Worth 20% and cannot be coded.
-4. **Three named adopters** — see §3. Worth 25%.
+3. **One external integrator** — worth 20% and cannot be coded. The kit is written
+   ([`INTEGRATOR-KIT.md`](INTEGRATOR-KIT.md)): who to contact, three message templates, the
+   15-minute offer, and what to ask for in return. It needs a human with a Discord account.
+4. **Three named adopters** — worth 25%. Now written up in the README under *Who this is for*,
+   each with the "why they would not roll their own" answer. What is missing is an outsider
+   agreeing with one of them, which is item 3.
 5. ~~Optional: ERC-8004 binding.~~ **DONE** — the registry is configured and verified on-chain, and
    identity `#2148` is owned by `AgentExecutor`. Enforcement is active in the deployed contracts; the
    only step left is rebuilding the hosted site so the app and the chain agree.
-6. **Rebuild and redeploy the hosted app.** The addresses are baked into the bundle at build time, so
-   `bun run build-worker.mjs` + a Vercel deploy is what makes witness.sithunyein.com talk to the
-   current stack. Passkeys are bound to the hostname; the verifier's accepted origin is now immutable
-   by design, so a host change means a new deployment rather than a settings update.
+6. ~~Rebuild and redeploy the hosted app.~~ **DONE**, and verified against production rather than
+   assumed — see "Verified on production" in §0. Passkeys are bound to the hostname, and the verifier's accepted origin is
+   immutable by design, so a future host change means a new deployment, not a settings update.
 
 ## 3. The two criteria that are not code
 
@@ -138,7 +188,8 @@ Deadline is Oct 13–14; assume the earlier. These carry 45% of the score.
 ### Traction (20%) — needs one other team
 
 The criterion is "even one other team integrating during the hackathon". A second app built by you
-scores nothing. A five-line integration for them:
+scores nothing. [`INTEGRATOR-KIT.md`](INTEGRATOR-KIT.md) has the messages; the five-line
+integration for them:
 
 ```solidity
 bytes32 actionHash = safe.actionHash(intentId, recipient, amount);
@@ -149,7 +200,11 @@ verifier.authorizeAndConsume(
 ```
 
 DM teams in the Metropolis Discord, offer to do the integration for them in 15 minutes, and name the
-integration in the README and the video.
+integration in the README and the video. Three levels count, cheapest first: L1 = they run
+`examples/monad-app.mjs` against the deployed stack; L2 = their backend asks Witness before releasing
+a resource; L3 = their contract calls `authorizeAndConsume` and the tx is on Monadscan. Get one L1
+before spending a day on an L3 — it is a real third party confirming the integration surface works,
+and it takes them fifteen minutes.
 
 ### Founder & market readiness (25%) — needs named adopters
 
@@ -202,7 +257,19 @@ differentiators are per-action human consent, passkey-signed, verifiable by the 
 
 - The passkey **approve** step has been exercised up to the device prompt, not through it; the
   biometric tap itself is the outstanding human step.
-- No external integrator, no named adopters, no videos, no logo.
+- The request queue is **process memory** on the server. A recycled instance forgets, which is why
+  the agent's `POST` also returns a delivery link carrying the validated request. The agent's own
+  re-send loop covers the same gap. A production version needs durable storage and an audit trail.
+- The **decision** endpoint (`POST /api/requests/:id/decision`) is unauthenticated: anyone can mark a
+  request approved with any transaction hash. That spends nothing — the money moves only through
+  `/api/agent`, which needs a passkey assertion — and it is why `examples/agent-request.mjs` verifies
+  the receipt on-chain instead of trusting the answer. It is still a lying-display surface, and
+  `THREAT-MODEL.md` lists it as one.
+- **`AgentExecutor.forwardAsOwner` is a live owner-only arbitrary call** on the executor, and
+  `setOperator` is not locked. Neither can move the safe's funds — both outbound paths still require
+  a passkey assertion — but the executor's own identity token is reachable, and calling that
+  "frozen configuration" would be generous.
+- No external integrator, no named adopters who agreed to be named, no videos, no logo.
 - The hosted site still serves a build made before the second deployment; its addresses are stale
   until it is rebuilt.
 - ERC-8004 enforcement is active on the current deployment (registry set, identity owned, both

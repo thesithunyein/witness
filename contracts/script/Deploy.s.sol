@@ -21,6 +21,8 @@ import {WitnessVerifier} from "../src/WitnessVerifier.sol";
 ///   ERC8004_IDENTITY_REGISTRY   optional; defaults to the official registry for
 ///                               the chain (see _defaultIdentityRegistry)
 ///   DEMO_SAFE_FUNDING           default 1000e18 DemoUSD units
+///   DEMO_PAYEE                  default the deployer; the address the demo agent
+///                               pays, recorded in the manifest as `payee`
 ///
 /// The manifest is written to deployments/<chainid>.json so no address is ever
 /// hand-copied between the contracts, the SDK, and the app.
@@ -38,6 +40,10 @@ contract Deploy is Script {
         string agentURI;
         address identityRegistry;
         uint256 funding;
+        /// @dev Where the demo agent's payments settle. Recorded in the manifest
+        ///      so the request the agent sends names a real, on-chain-visible
+        ///      merchant instead of a placeholder. Defaults to the deployer.
+        address payee;
     }
 
     struct Deployed {
@@ -73,6 +79,7 @@ contract Deploy is Script {
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
         Config memory c = _config();
         c.deployer = vm.addr(pk);
+        c.payee = vm.envOr("DEMO_PAYEE", c.deployer);
 
         Deployed memory d = _deploy(pk, c);
         _writeManifest(c, d);
@@ -162,6 +169,7 @@ contract Deploy is Script {
         vm.serializeString(root, "agentURI", c.agentURI);
         vm.serializeUint(root, "agentId", d.agentId);
         vm.serializeAddress(root, "erc8004IdentityRegistry", c.identityRegistry);
+        vm.serializeAddress(root, "payee", c.payee);
         vm.serializeString(root, "contracts", contractsJson);
         vm.serializeString(root, "safeFunding", vm.toString(c.funding));
         string memory json = vm.serializeBool(root, "configurationLocked", true);

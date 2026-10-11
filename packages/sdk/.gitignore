@@ -1,0 +1,6 @@
+# Generated: the sources live in the app (app/lib) and are copied here by
+# scripts/sync.mjs on every build. Nothing in src/ is authored.
+src/
+dist/
+node_modules/
+*.tgz

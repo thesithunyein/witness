@@ -247,11 +247,14 @@ export default function Integrate() {
           ))}
         </ul>
         <p className="note" style={{ marginTop: 16 }}>
-          The SDK is four files with one dependency (viem):{" "}
-          <span className="mono">lib/sdk/index.ts</span>, <span className="mono">lib/abi.ts</span>,{" "}
-          <span className="mono">lib/witness.ts</span>, <span className="mono">lib/webauthn.ts</span>.
-          Copy them, or point your build at the folder. A runnable example lives in{" "}
-          <span className="mono">examples/monad-app.mjs</span>.
+          Install it rather than copying it:{" "}
+          <span className="mono">npm i @witness/sdk viem</span> — one dependency, ESM and CJS, with type
+          declarations, built from the same modules this page uses, so the product and the integration
+          surface cannot drift. The package lives in{" "}
+          <span className="mono">packages/sdk</span>. Runnable examples:{" "}
+          <span className="mono">examples/monad-app.mjs</span> for the read path, and{" "}
+          <span className="mono">examples/agent-request.mjs</span> for an agent that asks a human and then
+          verifies the payment on-chain itself.
         </p>
       </section>
 

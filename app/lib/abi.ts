@@ -330,6 +330,24 @@ export const demoUsdAbi = [
 ] as const;
 
 /**
+ * The one ERC-8004 surface Witness depends on: who owns an agent id.
+ *
+ * The verifier reads exactly this on-chain before it honours an intent's agentId,
+ * and the request queue reads it too — so a queued request cannot claim an
+ * identity the agent wallet does not hold. Same fragment in both places on
+ * purpose: two different notions of "the agent" would be a bug in the trust story.
+ */
+export const identityRegistryAbi = [
+  {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
+
+/**
  * keccak256("witness.action.transfer") — the transfer domain tag.
  *
  * Derived rather than hardcoded: a literal here could silently drift from the
