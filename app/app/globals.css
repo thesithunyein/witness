@@ -1,48 +1,54 @@
 /*
- * Witness — Warm Monochrome direction.
+ * Witness — poster system.
  *
- * Deliberate choices, per the design brief:
- *  - warm charcoal, not navy: Warm Monochrome specifies warm greys, and a cool
- *    blue base is a different (pitch-deck) language
- *  - ONE brand accent reserved for the approval action
- *  - green/red are semantic STATE tokens only, always paired with an icon and a
- *    label so status is never colour-only
- *  - radius varies by role; a single radius everywhere reads as machine-made
- *  - no decorative gradients, no glassmorphism, no gradient text
+ * What is deliberately reused from the reference design, and why:
+ *  - a FLAT #161616 canvas: no card fills, no shadows, no glass. Structure is
+ *    drawn with 1px hairlines only, so the page reads as printed, not skinned.
+ *  - one display serif, spent in exactly three places (wordmark, the human
+ *    sentence, the verdict). Everything functional is the grotesque.
+ *  - micro-labels: 10–11px, uppercase, wide tracking. They carry the hierarchy
+ *    so headings never have to get loud.
+ *  - ONE accent, used for approval and nothing else. Its signature device is the
+ *    reference's gradient tail on the wordmark, in Witness's own signal amber —
+ *    the structure is borrowed, the identity is not.
+ *  - green/red remain semantic STATE tokens, always paired with an icon and a
+ *    label so status is never colour-only.
+ *  - the entrance choreography: the word rises, then the page settles. Plays
+ *    once; re-renders (the countdown ticks) do not restart it.
  */
 
 :root {
-  /* surfaces */
-  --bg: #17140f;
-  --surface: #201c17;
-  --surface-raised: #262119;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  /* surfaces — one flat field, separated by hairlines */
+  --bg: #161616;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --inset: rgba(255, 255, 255, 0.035);
 
   /* type */
-  --ink: #ece7de;
-  --ink-dim: #a8a29a;
-  --ink-faint: #6f6a62;
+  --ink: #ffffff;
+  --ink-dim: #a3a3a3;
+  --ink-faint: #6e6e6e;
 
-  /* one brand accent: approval */
+  /* the one accent: approval */
   --accent: #e0a13c;
-  --accent-ink: #1a1409;
-  --accent-soft: rgba(224, 161, 60, 0.14);
+  --accent-light: #ffd9a0;
+  --accent-ink: #17130a;
+  --accent-soft: rgba(224, 161, 60, 0.12);
 
-  /* semantic state tokens (never the only signal) */
-  --ok: #6cc48f;
-  --ok-soft: rgba(108, 196, 143, 0.13);
-  --danger: #e5674f;
-  --danger-soft: rgba(229, 103, 79, 0.13);
-  --muted-soft: rgba(255, 255, 255, 0.06);
+  /* semantic state (never the only signal) */
+  --ok: #7ed3a0;
+  --ok-soft: rgba(126, 211, 160, 0.12);
+  --danger: #f0735a;
+  --danger-soft: rgba(240, 115, 90, 0.12);
 
+  --sans: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
+  --display: var(--font-display), "Times New Roman", Times, serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
 
-  /* radius by role */
-  --r-card: 14px;
-  --r-control: 10px;
-  --r-chip: 6px;
+  --reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
+
+  --gutter: 5vw;
 }
 
 * {
@@ -57,31 +63,35 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
-}
-
-body {
-  min-height: 100vh;
-  background-image: radial-gradient(
-    1100px 500px at 50% -20%,
-    rgba(224, 161, 60, 0.055),
-    transparent 70%
-  );
+  text-rendering: optimizeLegibility;
 }
 
 .shell {
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 56px 24px 96px;
+  padding: clamp(28px, 4.4dvh, 56px) var(--gutter) 96px;
 }
 
-/* --- header: one hero fact, not a slogan --- */
+/* --- micro-label: the workhorse of the hierarchy --- */
 
-.top {
+.micro {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+/* --- masthead --- */
+
+.masthead {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 36px;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
 }
 
 .brand {
@@ -90,96 +100,192 @@ body {
   gap: 12px;
 }
 
+/* the asterisk mark: drawn, not typed */
 .mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: linear-gradient(150deg, var(--accent), #8a6220);
-  display: grid;
-  place-items: center;
-  color: var(--accent-ink);
-  font-weight: 700;
-  font-size: 15px;
+  width: 22px;
+  height: 22px;
   flex: none;
+  color: var(--ink);
 }
 
-.wordmark {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  font-size: 12.5px;
-  color: var(--ink-faint);
-  margin-top: 2px;
-}
-
-/* --- panels --- */
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  padding: 20px;
-}
-
-.panel + .panel {
-  margin-top: 16px;
-}
-
-.panel-title {
-  font-size: 11px;
+.brand-name {
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--ink-faint);
-  margin: 0 0 14px;
-  font-weight: 600;
+  letter-spacing: 0.24em;
 }
 
-/* --- the permission receipt: the only elevated surface --- */
+.masthead-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* the reference's white pill: a factual readout, not a claim */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--ink);
+  color: #161616;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #161616;
+  opacity: 0.45;
+}
+
+/* --- hero: the wordmark, then two quiet lines of copy --- */
+
+.hero {
+  padding: clamp(30px, 7dvh, 76px) 0 clamp(26px, 5dvh, 56px);
+}
+
+.hero-word {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(64px, 15.5vw, 232px);
+  line-height: 0.84;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* while the entrance runs, the mask hides the word below its baseline */
+.hero-word__mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+.hero-word__inner {
+  display: block;
+}
+
+.hero-word__white {
+  color: var(--ink);
+}
+
+/* the borrowed device: gradient tail, Witness's own accent */
+.hero-word__accent {
+  background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: clamp(18px, 3.4dvh, 34px);
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.hero-foot p {
+  max-width: 46ch;
+  line-height: 1.7;
+}
+
+.hero-foot__right {
+  text-align: right;
+}
+
+/* --- sections: numbered, hairline-ruled --- */
+
+.section {
+  border-top: 1px solid var(--line);
+  padding: clamp(22px, 3.6dvh, 40px) 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: clamp(16px, 2.6dvh, 26px);
+}
+
+/* the trailing chip always sits on the right edge, whatever the title length */
+.section-head > .chip {
+  margin-left: auto;
+}
+
+.section-num {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  margin: 0;
+}
+
+/* --- the permission receipt: hairline frame, no card fill --- */
 
 .receipt {
-  background: var(--surface-raised);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-card);
-  padding: 22px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  padding: clamp(20px, 3.2dvh, 34px);
 }
 
+/* the human sentence, set in the display serif — the page's second voice */
 .receipt-sentence {
-  font-size: 19px;
-  line-height: 1.45;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(24px, 3.4vw, 42px);
+  line-height: 1.16;
   letter-spacing: -0.01em;
-  margin: 0 0 6px;
-}
-
-.receipt-sub {
-  font-size: 13.5px;
-  color: var(--ink-dim);
-  margin: 0 0 18px;
+  margin: 0 0 8px;
 }
 
 .receipt-sentence em {
   font-style: normal;
-  font-weight: 600;
   color: var(--accent);
 }
 
-/* --- disclosure: technical proof, subordinate --- */
+.receipt-sub {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  margin: 0 0 22px;
+}
+
+/* --- disclosure: technical proof, subordinate, monospaced --- */
 
 .disclosure {
   border-top: 1px solid var(--line);
-  margin-top: 18px;
-  padding-top: 14px;
+  margin: 22px 0 0;
+  padding-top: 16px;
   display: grid;
-  grid-template-columns: 128px 1fr;
-  gap: 8px 16px;
+  grid-template-columns: 148px 1fr;
+  gap: 9px 18px;
   font-size: 12.5px;
 }
 
 .disclosure dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
+  padding-top: 2px;
 }
 
 .disclosure dd {
@@ -199,25 +305,41 @@ body {
   align-items: center;
 }
 
+.steps {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
 button {
   font: inherit;
-  font-size: 13.5px;
-  font-weight: 550;
-  border-radius: var(--r-control);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-radius: 999px;
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink);
-  padding: 10px 16px;
+  padding: 12px 22px;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+  transition: background-color 160ms var(--soft), border-color 160ms var(--soft),
+    color 160ms var(--soft), opacity 160ms var(--soft);
 }
 
 button:hover:not(:disabled) {
-  background: var(--muted-soft);
+  background: var(--inset);
+  border-color: var(--ink-dim);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button:disabled {
-  opacity: 0.42;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -225,11 +347,11 @@ button.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
-  font-weight: 650;
 }
 
 button.primary:hover:not(:disabled) {
-  background: #eab04f;
+  background: var(--accent-light);
+  border-color: var(--accent-light);
 }
 
 button.danger:hover:not(:disabled) {
@@ -237,17 +359,17 @@ button.danger:hover:not(:disabled) {
   border-color: var(--danger);
 }
 
-/* --- status chips: colour + icon + label, never colour alone --- */
+/* --- status: colour + icon + label, never colour alone --- */
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: var(--r-chip);
-  padding: 3px 9px;
-  font-size: 11.5px;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -256,28 +378,28 @@ button.danger:hover:not(:disabled) {
 .chip.ok {
   color: var(--ok);
   background: var(--ok-soft);
-  border-color: rgba(108, 196, 143, 0.28);
+  border-color: rgba(126, 211, 160, 0.3);
 }
 
 .chip.bad {
   color: var(--danger);
   background: var(--danger-soft);
-  border-color: rgba(229, 103, 79, 0.28);
+  border-color: rgba(240, 115, 90, 0.3);
 }
 
 .chip.warn {
   color: var(--accent);
   background: var(--accent-soft);
-  border-color: rgba(224, 161, 60, 0.28);
+  border-color: rgba(224, 161, 60, 0.3);
 }
 
 .chip.idle {
   color: var(--ink-dim);
-  background: var(--muted-soft);
+  background: var(--inset);
   border-color: var(--line);
 }
 
-/* --- feed --- */
+/* --- the record --- */
 
 .feed {
   list-style: none;
@@ -288,8 +410,8 @@ button.danger:hover:not(:disabled) {
 .entry {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 13px 0;
+  gap: 14px;
+  padding: 15px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -305,20 +427,20 @@ button.danger:hover:not(:disabled) {
 .entry-reason {
   font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 
 .entry-detail {
   font-size: 12.5px;
   color: var(--ink-dim);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .entry-hash {
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--ink-faint);
-  margin-top: 5px;
+  margin-top: 6px;
   word-break: break-all;
 }
 
@@ -328,33 +450,27 @@ a {
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--accent-light);
 }
 
-/* --- the blocked verdict, sized for a projected demo --- */
+/* --- the verdict: the one loud moment on the page --- */
 
 .verdict {
-  border-radius: var(--r-card);
-  padding: 18px 20px;
-  margin-bottom: 16px;
-  border: 1px solid transparent;
-}
-
-.verdict.bad {
-  background: var(--danger-soft);
-  border-color: rgba(229, 103, 79, 0.35);
-}
-
-.verdict.ok {
-  background: var(--ok-soft);
-  border-color: rgba(108, 196, 143, 0.35);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: clamp(22px, 4dvh, 46px) 0;
+  margin: 0;
 }
 
 .verdict-label {
-  font-size: 26px;
-  font-weight: 700;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(46px, 9vw, 132px);
+  line-height: 0.9;
   letter-spacing: -0.02em;
-  margin: 0 0 4px;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  animation: reveal-up 900ms var(--reveal) both;
 }
 
 .verdict.bad .verdict-label {
@@ -366,9 +482,11 @@ a:hover {
 }
 
 .verdict-note {
-  font-size: 14px;
-  color: var(--ink);
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  max-width: 62ch;
   margin: 0;
+  line-height: 1.65;
 }
 
 /* --- numeric readouts --- */
@@ -382,12 +500,15 @@ a:hover {
 .kv {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 14px;
+  gap: 8px 16px;
   font-size: 13px;
   align-items: baseline;
 }
 
 .kv dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
 }
 
@@ -411,29 +532,122 @@ a:hover {
 .note {
   font-size: 12.5px;
   color: var(--ink-faint);
-  line-height: 1.6;
+  line-height: 1.65;
+  max-width: 78ch;
 }
 
 .err {
-  border: 1px solid rgba(229, 103, 79, 0.35);
+  border-left: 2px solid var(--danger);
   background: var(--danger-soft);
-  color: var(--ink);
-  border-radius: var(--r-control);
-  padding: 12px 14px;
+  padding: 13px 16px;
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
-.steps {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
+/* --- entrance: word rises, then the page settles. Plays once. --- */
+
+@keyframes reveal-up {
+  from {
+    transform: translateY(115%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes settle-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes settle-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.masthead {
+  animation: settle-fade 620ms var(--soft) 100ms both;
+}
+
+.hero-word__inner {
+  animation: reveal-up 1150ms var(--reveal) 240ms both;
+}
+
+.hero-foot {
+  animation: settle-up 720ms var(--soft) 900ms both;
+}
+
+.section {
+  animation: settle-up 720ms var(--soft) both;
+}
+
+/* explicit, because the hero is also a <section> and would take slot 1 */
+.section--1 {
+  animation-delay: 1020ms;
+}
+
+.section--2 {
+  animation-delay: 1120ms;
+}
+
+.section--3 {
+  animation-delay: 1220ms;
+}
+
+.shell > .note {
+  animation: settle-up 720ms var(--soft) 1340ms both;
+}
+
+/* the verdict arrives when the chain answers, so it reveals on mount */
+.verdict {
+  animation: settle-fade 520ms var(--soft) both;
+}
+
+/* --- narrow --- */
+
+@media (max-width: 760px) {
+  .hero-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .hero-foot__right {
+    text-align: left;
+  }
+
+  .disclosure {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .disclosure dd {
+    margin-bottom: 10px;
+  }
+
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
     transition: none !important;
-    animation: none !important;
   }
 }

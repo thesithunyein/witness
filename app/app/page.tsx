@@ -192,7 +192,7 @@ export default function Page() {
       if (j.ok) {
         setVerdict({
           ok: true,
-          label: "VERIFIED",
+          label: "Verified",
           note: "The human approved this exact action. The agent executed it.",
         });
         log({
@@ -205,7 +205,7 @@ export default function Page() {
       } else {
         setVerdict({
           ok: false,
-          label: "BLOCKED",
+          label: "Blocked",
           note: REASON_MESSAGES[j.reason] ?? j.detail ?? "Rejected.",
         });
         log({ tone: "bad", title: `Blocked — ${j.reason}`, detail: j.detail });
@@ -239,7 +239,7 @@ export default function Page() {
 
       setVerdict({
         ok: !!j.ok,
-        label: j.ok ? "EXECUTED" : "BLOCKED",
+        label: j.ok ? "Executed" : "Blocked",
         note: j.ok
           ? "Unexpected: the transfer went through."
           : `${REASON_MESSAGES[j.reason] ?? "Rejected."} Attempted ${INJECTED}.00 DUSD, approved ${APPROVED}.00.`,
@@ -275,7 +275,7 @@ export default function Page() {
       log({ tone: "info", title: "Revoked", detail: "The human withdrew this permission", hash: j.txHash });
       setVerdict({
         ok: false,
-        label: "REVOKED",
+        label: "Revoked",
         note: "This permission can no longer be used. Try the approved action again.",
       });
     } catch (e) {
@@ -303,15 +303,19 @@ export default function Page() {
   if (configError) {
     return (
       <main className="shell">
-        <Header />
-        <div className="err">
+        <Masthead />
+        <Hero />
+        <div className="err" style={{ marginTop: 28 }}>
           <strong>Not configured.</strong> {configError}
         </div>
-        <div className="panel">
-          <p className="panel-title">Wiring this up</p>
-          <p className="note">
-            The app reads its contract addresses from the manifest the deploy script writes. Deploy the
-            stack, then set the server environment:
+        <section className="section section--1">
+          <div className="section-head">
+            <span className="section-num">01</span>
+            <p className="section-title">Wiring this up</p>
+          </div>
+          <p className="note" style={{ marginBottom: 16 }}>
+            The app reads its contract addresses from the manifest the deploy script writes. Deploy
+            the stack, then set the server environment:
           </p>
           <pre className="mono note" style={{ whiteSpace: "pre-wrap" }}>
 {`cd contracts
@@ -322,33 +326,41 @@ WITNESS_CHAIN_ID=10143
 WITNESS_OPERATOR_PRIVATE_KEY=0x...   # drives the demo agent
 WITNESS_RELAYER_PRIVATE_KEY=0x...    # registers/revokes permissions`}
           </pre>
-        </div>
+        </section>
       </main>
     );
   }
 
   return (
     <main className="shell">
-      <Header />
+      <Masthead identityEnforced={config?.identityEnforced} chainId={config?.chainId} />
+      <Hero />
 
       {platformOk === false && (
         <div className="err">
-          This browser reports no platform authenticator. Witness needs a device passkey
-          (Touch ID, Windows Hello, or a security key) to produce the approval.
+          This browser reports no platform authenticator. Witness needs a device passkey (Touch ID,
+          Windows Hello, or a security key) to produce the approval.
         </div>
       )}
       {err && <div className="err">{err}</div>}
 
-      {/* --- 1. what the human has authorized --- */}
-      <div className="panel">
-        <p className="panel-title">Active permission</p>
+      {/* --- 01. what the human has authorized --- */}
+      <section className="section section--1">
+        <div className="section-head">
+          <span className="section-num">01</span>
+          <p className="section-title">Active permission</p>
+          <span className={`chip ${status.tone}`}>
+            <span aria-hidden>
+              {status.tone === "ok" ? "✓" : status.tone === "bad" ? "✕" : "•"}
+            </span>
+            {status.label}
+          </span>
+        </div>
 
         {!intent ? (
-          <>
-            <p className="receipt-sentence" style={{ fontSize: 16 }}>
-              No permission registered yet.
-            </p>
-            <p className="note">
+          <div className="receipt">
+            <p className="receipt-sentence">No permission registered yet.</p>
+            <p className="receipt-sub">
               Registering creates a passkey and stores its public key on-chain as the authority for
               this permission. Nothing can move in your name without a signature from it.
             </p>
@@ -361,86 +373,79 @@ WITNESS_RELAYER_PRIVATE_KEY=0x...    # registers/revokes permissions`}
                 {busy === "create" ? "Enrolling passkey…" : "Create permission with passkey"}
               </button>
             </div>
-          </>
+          </div>
         ) : (
-          <>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
-              <div className="kv">
-                <dt>Agent</dt>
-                <dd>Research Agent #17</dd>
-                <dt>Status</dt>
-                <dd>
-                  <span className={`chip ${status.tone}`}>
-                    <span aria-hidden>{status.tone === "ok" ? "✓" : status.tone === "bad" ? "✕" : "•"}</span>
-                    {status.label}
-                  </span>
-                </dd>
-                <dt>Expires</dt>
-                <dd className="countdown">
-                  {intent.revoked || intent.consumed ? "—" : countdown(remaining)}
-                </dd>
-              </div>
+          <div className="receipt">
+            {/* the human sentence, in the display serif: the page's second voice */}
+            <p className="receipt-sentence">
+              Allow Research Agent to transfer up to <em>{APPROVED}.00 DUSD</em>
+            </p>
+            <p className="receipt-sub">One use only. Expires in 10 minutes.</p>
+
+            <div className="steps">
+              <button
+                className="primary"
+                onClick={approveAndExecute}
+                disabled={busy !== null || !intent || intent.revoked || intent.consumed}
+              >
+                {busy === "approve" ? "Waiting for passkey…" : "Approve with passkey"}
+              </button>
+              <button onClick={runInjection} disabled={busy !== null}>
+                {busy === "attack" ? "Attempting…" : "Simulate prompt injection"}
+              </button>
               <button className="danger" onClick={revoke} disabled={busy !== null || intent.revoked}>
                 {busy === "revoke" ? "Revoking…" : "Revoke access"}
               </button>
             </div>
 
-            {/* the hero: one elevated surface, human sentence first */}
-            <div className="receipt">
-              <p className="receipt-sentence">
-                Allow Research Agent to transfer up to <em>{APPROVED}.00 DUSD</em>
-              </p>
-              <p className="receipt-sub">One use only. Expires in 10 minutes.</p>
-
-              <div className="steps">
-                <button
-                  className="primary"
-                  onClick={approveAndExecute}
-                  disabled={busy !== null || !intent || intent.revoked || intent.consumed}
-                >
-                  {busy === "approve" ? "Waiting for passkey…" : "Approve with passkey"}
-                </button>
-                <button onClick={runInjection} disabled={busy !== null}>
-                  {busy === "attack" ? "Attempting…" : "Simulate prompt injection"}
-                </button>
-              </div>
-
-              <dl className="disclosure">
-                <dt>Intent</dt>
-                <dd>#{intentId?.toString()}</dd>
-                <dt>Permission cap</dt>
-                <dd>{fmt(intent.maxAmount)} DUSD</dd>
-                <dt>Agent wallet</dt>
-                <dd>{config ? config.contracts.AgentExecutor : ""}</dd>
-                <dt>ERC-8004 binding</dt>
-                <dd>{config?.identityEnforced ? "enforced" : "not configured"}</dd>
-                <dt>Relying party</dt>
-                <dd>{config?.rpId}</dd>
-                <dt>Passkey</dt>
-                <dd>{enrolled ? "enrolled in this browser" : "already enrolled"}</dd>
-              </dl>
-            </div>
-
-            <p className="note" style={{ marginTop: 14 }}>
-              &ldquo;Simulate prompt injection&rdquo; runs the same agent against the same contract,
-              asking for {INJECTED}.00 DUSD to a different address, with no approval to present. The
-              refusal is a reverted on-chain transaction, not a client-side check.
-            </p>
-          </>
+            <dl className="disclosure">
+              <dt>Intent</dt>
+              <dd>#{intentId?.toString()}</dd>
+              <dt>Expires</dt>
+              <dd className="countdown">
+                {intent.revoked || intent.consumed ? "—" : countdown(remaining)}
+              </dd>
+              <dt>Permission cap</dt>
+              <dd>{fmt(intent.maxAmount)} DUSD</dd>
+              <dt>Agent wallet</dt>
+              <dd>{config ? config.contracts.AgentExecutor : ""}</dd>
+              <dt>ERC-8004 binding</dt>
+              <dd>{config?.identityEnforced ? "enforced" : "not configured"}</dd>
+              <dt>Relying party</dt>
+              <dd>{config?.rpId}</dd>
+              <dt>Passkey</dt>
+              <dd>{enrolled ? "enrolled in this browser" : "already enrolled"}</dd>
+            </dl>
+          </div>
         )}
-      </div>
 
-      {/* --- 2. the verdict, sized to be read from across a room --- */}
+        {intent && (
+          <p className="note" style={{ marginTop: 18 }}>
+            &ldquo;Simulate prompt injection&rdquo; runs the same agent against the same contract,
+            asking for {INJECTED}.00 DUSD to a different address, with no approval to present. The
+            refusal is a reverted on-chain transaction, not a client-side check.
+          </p>
+        )}
+      </section>
+
+      {/* --- 02. the verdict: the one loud moment, sized for a room --- */}
       {verdict && (
-        <div className={`verdict ${verdict.ok ? "ok" : "bad"}`}>
+        <section className={`verdict ${verdict.ok ? "ok" : "bad"}`} role="status" aria-live="polite">
+          <div className="section-head">
+            <span className="section-num">02</span>
+            <p className="section-title">Verdict — decided on-chain</p>
+          </div>
           <p className="verdict-label">{verdict.label}</p>
           <p className="verdict-note">{verdict.note}</p>
-        </div>
+        </section>
       )}
 
-      {/* --- 3. the record --- */}
-      <div className="panel">
-        <p className="panel-title">Live action feed</p>
+      {/* --- 03. the record --- */}
+      <section className={`section ${verdict ? "section--3" : "section--2"}`}>
+        <div className="section-head">
+          <span className="section-num">{verdict ? "03" : "02"}</span>
+          <p className="section-title">Live action feed</p>
+        </div>
         {entries.length === 0 ? (
           <p className="note">Nothing yet. Register a permission, then approve one action.</p>
         ) : (
@@ -468,9 +473,9 @@ WITNESS_RELAYER_PRIVATE_KEY=0x...    # registers/revokes permissions`}
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      <p className="note" style={{ marginTop: 18 }}>
+      <p className="note" style={{ marginTop: 24 }}>
         The passkey is the authority. This app relays gas only, so no wallet or testnet funds are
         needed to try it — and the relayed key cannot approve anything, because it does not hold the
         passkey.
@@ -479,18 +484,62 @@ WITNESS_RELAYER_PRIVATE_KEY=0x...    # registers/revokes permissions`}
   );
 }
 
-function Header() {
+/** The asterisk mark: drawn rather than typed, so it never depends on a font. */
+function Mark() {
   return (
-    <div className="top">
+    <svg className="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
+        <line x1="12" y1="1.5" x2="12" y2="22.5" />
+        <line x1="1.5" y1="12" x2="22.5" y2="12" />
+        <line x1="4.6" y1="4.6" x2="19.4" y2="19.4" />
+        <line x1="19.4" y1="4.6" x2="4.6" y2="19.4" />
+      </g>
+    </svg>
+  );
+}
+
+function Masthead({ chainId, identityEnforced }: { chainId?: number; identityEnforced?: boolean }) {
+  return (
+    <header className="masthead">
       <div className="brand">
-        <div className="mark">W</div>
-        <div>
-          <div className="wordmark">Witness</div>
-          <div className="tagline">
-            An agent can prove who it is. Witness proves what the human authorized.
-          </div>
-        </div>
+        <Mark />
+        <span className="brand-name">Witness</span>
       </div>
-    </div>
+      <div className="masthead-right">
+        <p className="micro">{identityEnforced ? "ERC-8004 enforced" : "ERC-8004 not configured"}</p>
+        <span className="pill">
+          <span className="pill__dot" aria-hidden />
+          {chainId ? (chainId === 143 ? "Monad · 143" : "Monad testnet · 10143") : "Connecting…"}
+        </span>
+      </div>
+    </header>
+  );
+}
+
+/** The wordmark: one display face, one gradient tail, nothing else. */
+function Hero() {
+  return (
+    <section className="hero">
+      <h1 className="hero-word" aria-label="Witness">
+        <span className="hero-word__mask">
+          <span className="hero-word__inner">
+            <span className="hero-word__white">WIT</span>
+            <span className="hero-word__accent">NESS</span>
+          </span>
+        </span>
+      </h1>
+      <div className="hero-foot">
+        <p className="micro">
+          An agent can prove who it is.
+          <br />
+          Witness proves what the human actually authorized.
+        </p>
+        <p className="micro hero-foot__right">
+          Every rejection returns a reason.
+          <br />
+          Not a bare revert.
+        </p>
+      </div>
+    </section>
   );
 }

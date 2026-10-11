@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Address } from "viem";
+import { DEPLOYMENT as BAKED } from "./deployment.generated";
 
 export type Deployment = {
   chainId: number;
@@ -19,31 +20,39 @@ export type Deployment = {
 };
 
 /**
- * Server-only. Loads the manifest written by `forge script script/Deploy.s.sol`
- * so no contract address is ever hand-copied into the app or trusted from the
- * client.
+ * Loads the deployment configuration.
  *
- * Deliberately read at request time rather than imported: importing a JSON file
- * that does not exist yet would fail the build before the contracts are deployed.
+ * Two sources, one order of preference:
+ *
+ *   1. Local development — the manifest file written by `forge script`
+ *      (`contracts/deployments/<chainId>.json`), so a fresh deploy is picked up
+ *      immediately without a rebuild.
+ *   2. Deployed serverless (Vercel) — the manifest baked into this bundle at
+ *      build time by `bun run build-worker.mjs`. On Vercel, `../contracts` is
+ *      outside the function's file-tracing root, so the file is simply not
+ *      there at runtime; without the baked copy /api/config would 503.
  */
 export function loadDeployment(): Deployment {
-  const chainId = Number(process.env.WITNESS_CHAIN_ID ?? 10143);
+  const chainId = Number(process.env.WITNESS_CHAIN_ID ?? BAKED.chainId);
   const path = resolve(process.cwd(), "..", "contracts", "deployments", `${chainId}.json`);
 
-  if (!existsSync(path)) {
-    throw new Error(
-      `No deployment manifest at ${path}. Deploy first: ` +
-        `cd contracts && forge script script/Deploy.s.sol --rpc-url <rpc> --broadcast`
-    );
+  if (existsSync(path)) {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as Deployment;
+    if (Number(parsed.chainId) !== chainId) {
+      throw new Error(
+        `Manifest chain id ${parsed.chainId} does not match WITNESS_CHAIN_ID ${chainId}.`
+      );
+    }
+    return parsed;
   }
 
-  const parsed = JSON.parse(readFileSync(path, "utf8")) as Deployment;
-  if (Number(parsed.chainId) !== chainId) {
+  const baked = BAKED as unknown as Deployment;
+  if (Number(baked.chainId) !== chainId) {
     throw new Error(
-      `Manifest chain id ${parsed.chainId} does not match WITNESS_CHAIN_ID ${chainId}.`
+      `Baked deployment chain id ${baked.chainId} does not match WITNESS_CHAIN_ID ${chainId}.`
     );
   }
-  return parsed;
+  return baked;
 }
 
 /** The agent runtime's key. Server-side only; never reaches the browser. */
