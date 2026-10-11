@@ -68,7 +68,7 @@ export const publicClient = (chainId: number): PublicClient =>
  * How deep the raw revert bytes sit depends on the call path: viem's
  * `simulateContract` errors carry them around depth 5, while a `writeContract`
  * estimation failure carries them around depth 7. The bound must cover the
- * deepest real chain — an earlier limit of 6 silently collapsed every refusal
+ * deepest real chain, an earlier limit of 6 silently collapsed every refusal
  * into "Reverted", which is exactly the unhelpful outcome this function exists
  * to prevent. The WeakSet guards against a cyclic `cause` chain.
  */

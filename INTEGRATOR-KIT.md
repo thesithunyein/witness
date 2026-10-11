@@ -1,4 +1,4 @@
-# Integrator kit — getting one third party to actually use this
+# Integrator kit, getting one third party to actually use this
 
 **Status: this is the part I cannot do for you.** Everything here is ready to send;
 sending it needs a human with a Discord account. Outreach is a day of your time and
@@ -15,14 +15,14 @@ scores the whole category.
 
 ## 1. What counts as an integration (aim for the smallest version)
 
-Pick whichever is easiest for them — all three are real, and in order of how much
+Pick whichever is easiest for them, all three are real, and in order of how much
 they cost the other team:
 
 | Level | What they do | Cost to them | Evidence to record |
 |---|---|---|---|
-| **L3 — full** | Their contract calls `authorizeAndConsume` before releasing value | Days | A tx on Monadscan from *their* contract, plus a line in their README |
-| **L2 — gated call** | Their backend asks Witness before an action proceeds, e.g. a 402 flow that requires a payer authorization | An afternoon | A log line / a screenshot of the refusal with the typed `Reason` |
-| **L1 — verified read** | They run `examples/monad-app.mjs` against the deployed stack and it works | 15 minutes | Their name in the README, and a quote |
+| **L3, full** | Their contract calls `authorizeAndConsume` before releasing value | Days | A tx on Monadscan from *their* contract, plus a line in their README |
+| **L2, gated call** | Their backend asks Witness before an action proceeds, e.g. a 402 flow that requires a payer authorization | An afternoon | A log line / a screenshot of the refusal with the typed `Reason` |
+| **L1, verified read** | They run `examples/monad-app.mjs` against the deployed stack and it works | 15 minutes | Their name in the README, and a quote |
 
 L1 is not a joke and it is not "fake": it is a third party confirming, on their own
 machine, that the integration surface works. Get one L1 before you spend a day
@@ -33,7 +33,7 @@ chasing an L3.
 ## 2. The offer (say exactly this, then do it)
 
 > I built a small passkey-approval layer for agent payments on Monad. It answers one
-> question: **did a human authorize *this* action, right now** — verifiable by the
+> question: **did a human authorize *this* action, right now**, verifiable by the
 > contract that's being paid, not by the agent.
 >
 > It's five lines in your contract:
@@ -60,7 +60,7 @@ The last sentence is the whole pitch. It is also the thing that makes people rep
 |---|---|---|
 | Monad Discord → `#builders` / dev channels | Anyone posting about agents, x402, paid APIs, or vault automation | They already have the problem, and they are in the room |
 | The hackathon's own Discord/Telegram | Teams building agent tooling or DeFi agents | Peer teams, easiest to trade integrations with |
-| x402 / paid-endpoint builders | Projects charging per request | They need a payer authorization their server can verify — the closest fit |
+| x402 / paid-endpoint builders | Projects charging per request | They need a payer authorization their server can verify, the closest fit |
 | ERC-8004 explorers and marketplaces | Anyone indexing the identity registry | Their listings prove identity; authorization is the missing half |
 | Monad DeFi teams with agent vaults | Router/vault repos | The gate belongs in their contract, which is exactly the integration |
 
@@ -77,25 +77,25 @@ the one function to add" is not comparable.
 
 ### A. To a team with a paid API / x402 flow
 
-> Hey — saw your per-call pricing setup. I'm building Witness on Monad: it lets the
+> Hey, saw your per-call pricing setup. I'm building Witness on Monad: it lets the
 > **server** verify that a human actually authorized a specific payment (passkey-
 > signed, bound to that exact amount and recipient), instead of trusting the payer's
 > client to respect its own spend cap.
 >
 > Integrating it is one call in the path you already have, before you release the
-> resource. I'll write that patch against your repo if you link it — 15 minutes for me,
+> resource. I'll write that patch against your repo if you link it, 15 minutes for me,
 > and you can throw it away if it doesn't fit.
 >
 > Live demo costs you nothing to look at (no wallet, no funds): https://witness.sithunyein.com
 
 ### B. To a Monad DeFi / vault team
 
-> Hi — your vault takes agent signatures. I built the missing check: proof that a
+> Hi, your vault takes agent signatures. I built the missing check: proof that a
 > **human** approved this specific transaction, verifiable inside your vault so a
 > prompt-injected agent can't route around it.
 >
 > One call: `checkAndConsume(intentId, actionType, digest, amount, msg.sender, assertion)`
-> — reverts with a typed reason (`OverLimit`, `Expired`, `AlreadyConsumed`).
+>, reverts with a typed reason (`OverLimit`, `Expired`, `AlreadyConsumed`).
 >
 > If you link the repo I'll open the PR myself. If it's a bad fit for your flow I'd
 > genuinely rather hear that than guess.
@@ -109,13 +109,13 @@ the one function to add" is not comparable.
 > doesn't own, and the permission is one-time use. Contract-verified, not
 > client-side.
 >
-> Happy to do the integration myself — send the repo, and tell me no if the shape is
+> Happy to do the integration myself, send the repo, and tell me no if the shape is
 > wrong for you.
 
-### Follow-up (send once, 5–7 days later, then stop)
+### Follow-up (send once, 5-7 days later, then stop)
 
 > Following up once: I integrated Witness into a demo vault so you can see the exact
-> patch shape — [link]. If it's not useful, no reply needed, I'll stop here.
+> patch shape, [link]. If it's not useful, no reply needed, I'll stop here.
 
 Two messages maximum. If they say no, record it in the README's "what we heard" line
 only if they agreed to be named.
@@ -124,10 +124,10 @@ only if they agreed to be named.
 
 ## 5. What to send in the first message (nothing more)
 
-1. https://witness.sithunyein.com — the product, 30 seconds to understand
-2. https://witness.sithunyein.com/integrate — the developer surface, with a live preflight
-3. `packages/sdk` (`npm i @witness/sdk`) — so they can see it is a package, not a paste
-4. [THREAT-MODEL.md](THREAT-MODEL.md) — **send this one to engineers only.** The
+1. https://witness.sithunyein.com, the product, 30 seconds to understand
+2. https://witness.sithunyein.com/integrate, the developer surface, with a live preflight
+3. `packages/sdk` (`npm i @witness/sdk`), so they can see it is a package, not a paste
+4. [THREAT-MODEL.md](THREAT-MODEL.md), **send this one to engineers only.** The
    honest limits section is why they will read the rest
 
 Do not send a deck. Do not send a roadmap. Engineers reply to a diff.
@@ -136,7 +136,7 @@ Do not send a deck. Do not send a roadmap. Engineers reply to a diff.
 
 ## 6. What to ask for in return
 
-Ask for all three in the same message, before they integrate — it is much harder to
+Ask for all three in the same message, before they integrate, it is much harder to
 ask afterwards:
 
 1. **A named mention**: "Witness" + a link in their README, or one sentence in a
@@ -169,10 +169,10 @@ submission.
 
 ## 8. Checklist
 
-- [ ] Pick 10 specific repos/people from the lists in §3 — not channels, projects
+- [ ] Pick 10 specific repos/people from the lists in §3, not channels, projects
 - [ ] Send template A/B/C to each, personalised with one concrete detail from *their* code
 - [ ] Offer the PR in every message
 - [ ] Log each send (date, who, which level you offered)
-- [ ] Follow up once after 5–7 days, then stop
+- [ ] Follow up once after 5-7 days, then stop
 - [ ] Convert the first yes into an artifact in §7
 - [ ] Update the README table with the artifact, not the promise

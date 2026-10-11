@@ -8,10 +8,10 @@
  *
  * The loop is four real steps:
  *
- *   1. POST /api/requests   — the agent asks, with a real recipient and amount.
- *   2. The human decides    — in the browser, with a passkey, in the app.
- *   3. GET  /api/requests/:id — the agent polls until the request is decided.
- *   4. Verify on-chain      — the agent does NOT trust the response. It reads the
+ *   1. POST /api/requests  , the agent asks, with a real recipient and amount.
+ *   2. The human decides   , in the browser, with a passkey, in the app.
+ *   3. GET  /api/requests/:id, the agent polls until the request is decided.
+ *   4. Verify on-chain     , the agent does NOT trust the response. It reads the
  *                             transaction receipt from Monad and only reports a
  *                             payment when the chain says one happened.
  *
@@ -29,7 +29,7 @@
  *   node examples/agent-request.mjs --url https://witness.sithunyein.com --wait 180
  *
  * The default recipient comes from the deployment manifest's `payee`, which the
- * deploy script records — so the demo pays a real, on-chain-visible merchant
+ * deploy script records, so the demo pays a real, on-chain-visible merchant
  * rather than a placeholder address nobody controls.
  */
 
@@ -121,7 +121,7 @@ const INTENT_REGISTRY_ABI = [
     inputs: [{ name: "intentId", type: "uint256" }],
     // The full struct, in declaration order. A partial tuple here would decode
     // the wrong fields (viem reads positionally) and report a policy hash as a
-    // boolean — which is exactly what an earlier version of this script did.
+    // boolean, which is exactly what an earlier version of this script did.
     outputs: [
       {
         name: "",
@@ -213,7 +213,7 @@ async function main() {
   const intent = await intentById(intentId);
   if (!active) {
     console.error(`Permission #${intentId} is not active (used, withdrawn or expired).`);
-    console.error("Create a fresh one in the app — a one-time permission cannot be reused.");
+    console.error("Create a fresh one in the app, a one-time permission cannot be reused.");
     process.exit(1);
   }
   console.log(`limit      ${mon(intent.maxAmount)}   agent wallet ${intent.agentWallet}`);
@@ -247,7 +247,7 @@ async function main() {
   }
 
   let request = sent.json.request;
-  log(`request sent to the app: ${SERVICE} — ${mon(amountWei)} to ${RECIPIENT}`);
+  log(`request sent to the app: ${SERVICE}, ${mon(amountWei)} to ${RECIPIENT}`);
   if (sent.json.agentIdentity === "verified") log("the app confirmed this agent owns the claimed ERC-8004 id");
   if (sent.json.agentIdentity === "unverified") log(`identity not checked: ${sent.json.note}`);
 
@@ -297,7 +297,7 @@ async function main() {
 /** Never take the server's word for it: read the receipt from Monad. */
 async function reportApproved(decision) {
   log(`the app reports: approved  (${decision.explorer ?? `${explorer}/tx/${decision.txHash}`})`);
-  log("verifying on-chain — the queue is a notification, not a receipt…");
+  log("verifying on-chain, the queue is a notification, not a receipt…");
 
   let receipt;
   try {
@@ -314,7 +314,7 @@ async function reportApproved(decision) {
   }
 
   console.log("");
-  console.log("PAID — confirmed by the chain, not by the app.");
+  console.log("PAID, confirmed by the chain, not by the app.");
   console.log(`  tx        ${decision.txHash}`);
   console.log(`  block     ${receipt.blockNumber}`);
   console.log(`  explorer  ${decision.explorer ?? `${explorer}/tx/${decision.txHash}`}`);
@@ -326,8 +326,8 @@ async function reportApproved(decision) {
 function reportRefused(decision) {
   const headline =
     decision.status === "blocked"
-      ? "REFUSED — the human did not approve it."
-      : "REFUSED — the contract would not allow it.";
+      ? "REFUSED, the human did not approve it."
+      : "REFUSED, the contract would not allow it.";
   console.log(headline);
   if (decision.reason) console.log(`  reason    ${decision.reason}`);
   if (decision.reasonCode !== undefined && decision.reasonCode !== null) {

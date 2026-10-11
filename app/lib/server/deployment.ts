@@ -25,7 +25,7 @@ export type Deployment = {
   safeFunding: string;
   /**
    * ERC-8004 binding, written by the deploy script. These are optional so a
-   * manifest from an older deploy still loads — the app then reports the binding
+   * manifest from an older deploy still loads, the app then reports the binding
    * as not enforced rather than claiming an enforcement that is not there.
    */
   agentName?: string;
@@ -41,10 +41,10 @@ export type Deployment = {
  *
  * Two sources, one order of preference:
  *
- *   1. Local development — the manifest file written by `forge script`
+ *   1. Local development, the manifest file written by `forge script`
  *      (`contracts/deployments/<chainId>.json`), so a fresh deploy is picked up
  *      immediately without a rebuild.
- *   2. Deployed serverless (Vercel) — the manifest baked into this bundle at
+ *   2. Deployed serverless (Vercel), the manifest baked into this bundle at
  *      build time by `bun run build-worker.mjs`. On Vercel, `../contracts` is
  *      outside the function's file-tracing root, so the file is simply not
  *      there at runtime; without the baked copy /api/config would 503.

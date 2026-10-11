@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * Called by the page after the human has decided and the transaction has been
  * submitted through `/api/agent`. Ordering matters: the decision is recorded
  * *after* the chain has spoken, never before. If the recording fails, the human's
- * decision still happened and is still on-chain — the agent simply has to look at
+ * decision still happened and is still on-chain, the agent simply has to look at
  * the chain, which is where the truth lives anyway.
  *
  * This endpoint cannot approve anything. POSTing `{"status":"approved"}` here

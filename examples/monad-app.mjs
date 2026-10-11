@@ -6,7 +6,7 @@
  * the deployed contracts, reads the human's permission, asks the contract for the
  * digest of the action it wants to take, and preflights that action. Everything it
  * prints comes from the chain, so running it against a live deployment is a real
- * check of the integration surface — not a mock.
+ * check of the integration surface, not a mock.
  *
  * Run it:
  *
@@ -207,7 +207,7 @@ const REASON = [
 ];
 
 /**
- * keccak256("witness.action.transfer.native") — see WitnessAction.sol.
+ * keccak256("witness.action.transfer.native"), see WitnessAction.sol.
  * Derived rather than hardcoded, so it cannot drift from the contract constant.
  */
 const NATIVE_ACTION_TYPE = keccak256(toBytes("witness.action.transfer.native"));
@@ -223,7 +223,7 @@ const [argIntent, argAmount, argTo] = process.argv.slice(2);
 /**
  * Read a getter that may not exist yet.
  *
- * A deployed contract and the source in this repo can be at different revisions —
+ * A deployed contract and the source in this repo can be at different revisions,
  * "the deployment is older than the source" is a real state that an integration has
  * to survive rather than crash on, and a missing getter is the signal for it.
  */
@@ -236,7 +236,7 @@ async function safeRead(args) {
 }
 
 async function main() {
-  console.log(`\nWitness integration check — ${chain.name} (${chain.id})`);
+  console.log(`\nWitness integration check, ${chain.name} (${chain.id})`);
   console.log(`  manifest    ${manifestPath}`);
   console.log(`  DemoSafe    ${DemoSafe}`);
   console.log(`  verifier    ${WitnessVerifier}`);
@@ -269,10 +269,10 @@ async function main() {
   console.log(
     `  config locked        ${
       locked === undefined
-        ? "unknown — this deployed verifier predates the lock; re-deploy the stack"
+        ? "unknown, this deployed verifier predates the lock; re-deploy the stack"
         : locked
           ? "yes (identity binding and accepted origin are immutable)"
-          : "NO — still mutable"
+          : "NO, still mutable"
     }`
   );
   console.log(`  your origin must be  ${origin ?? "?"}  (a passkey from any other origin is refused)`);
@@ -353,7 +353,7 @@ async function main() {
     // 4. Preflight. No assertion is available here (that requires the human's
     //    browser), so the semantic checks answer and the signature check is the only
     //    negative. Against a used/expired/over-limit permission the reason is already
-    //    the real one — which is the point of preflighting before you submit.
+    //    the real one, which is the point of preflighting before you submit.
     const code = await client.readContract({
       address: WitnessVerifier,
       abi: witnessVerifierAbi,

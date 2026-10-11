@@ -1,5 +1,5 @@
 /**
- * @witness/sdk — the integration surface for third-party Monad apps.
+ * @witness/sdk, the integration surface for third-party Monad apps.
  *
  * Witness lets a human approve one specific action with a passkey, and lets the
  * counterparty that holds the value verify that approval on-chain. This client
@@ -101,7 +101,7 @@ export type WitnessConfig = {
 /**
  * The minimal write capability the SDK needs. A viem `WalletClient` satisfies it,
  * and so does any object with an `account` and a `writeContract` that returns a
- * transaction hash — which keeps the SDK from forcing a specific wallet stack.
+ * transaction hash, which keeps the SDK from forcing a specific wallet stack.
  */
 export type ContractWriter = {
   account: unknown;
@@ -248,7 +248,7 @@ export class WitnessClient {
    *
    * Pass the real assertion to get a full answer including the signature check.
    * Without one the semantic checks still report honestly (expiry, cap, agent,
-   * revocation) and the signature check is the only thing that comes back negative —
+   * revocation) and the signature check is the only thing that comes back negative,
    * which is exactly the "is this permission still usable" question a UI asks.
    */
   async checkAuthorization(
@@ -287,7 +287,7 @@ export class WitnessClient {
 
   /**
    * Register a permission. Enrollment happens first, because the passkey's public
-   * key IS the authority the permission names — P-256 supports no public key
+   * key IS the authority the permission names, P-256 supports no public key
    * recovery, so a permission without an enrolled key could never be satisfied.
    */
   async createIntent(params: CreateIntentParams): Promise<CreateIntentResult> {
@@ -363,7 +363,7 @@ export class WitnessClient {
   /**
    * Ask the human to approve this exact action. The challenge is the on-chain
    * digest, so the signature the human produces covers the recipient, the amount,
-   * the asset, this contract and this chain — nothing less.
+   * the asset, this contract and this chain, nothing less.
    */
   async requestApproval(request: ActionRequest) {
     const digest = await this.actionDigest(request);

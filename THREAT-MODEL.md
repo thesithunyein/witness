@@ -1,4 +1,4 @@
-# Witness — threat model
+# Witness, threat model
 
 Written to be attacked. Every claim below names the mechanism that enforces it and
 the residual risk that remains, including the ones that are uncomfortable.
@@ -35,7 +35,7 @@ not constrain any contract that chooses not to call it.
 | Funds in `DemoSafe` (MON and the demo ERC-20) | `DemoSafe` contract | Only a call carrying a valid passkey assertion for that exact action |
 | Permission records (`Intent`) | `WitnessIntentRegistry` | Created/revoked by the relayer; **consumed** only by the verifier during a successful authorization |
 | ERC-8004 identity `#2148` | Owned by `AgentExecutor` | The executor's owner via `forwardAsOwner` |
-| The accepted origin (`rpId`, `origin`) | `WitnessVerifier`, **frozen** | Nobody — locked at deployment |
+| The accepted origin (`rpId`, `origin`) | `WitnessVerifier`, **frozen** | Nobody, locked at deployment |
 
 ---
 
@@ -67,21 +67,21 @@ than in the agent's process.
 
 | Attack | Mitigation | Residual risk |
 |---|---|---|
-| **Prompt injection** — the agent is told to send 10× the limit | `DemoSafe` checks the amount against the intent's cap; the digest binds the amount; the call reverts `OverLimit` | None for the cap. The agent can still *ask* for anything, and the human can be social-engineered into approving it |
-| **Replay** — resubmit an approval that already worked | The intent is consumed on the first success; a second attempt reverts `AlreadyConsumed` | None. Proof: `examples/live-e2e.mjs` asserts it against the live deployment |
+| **Prompt injection**, the agent is told to send 10× the limit | `DemoSafe` checks the amount against the intent's cap; the digest binds the amount; the call reverts `OverLimit` | None for the cap. The agent can still *ask* for anything, and the human can be social-engineered into approving it |
+| **Replay**, resubmit an approval that already worked | The intent is consumed on the first success; a second attempt reverts `AlreadyConsumed` | None. Proof: `examples/live-e2e.mjs` asserts it against the live deployment |
 | **Cross-contract / cross-chain replay** | The digest includes the chain id and the calling contract address; the verifier is called by that same contract | None while the verifier is immutable and each counterparty uses its own address |
-| **Cross-asset replay** — use an ERC-20 approval as a MON payment | Separate action tags (`witness.action.transfer` / `…transfer.native`), compared before the signature is checked | None |
-| **Approval captured in transit** — grab the assertion from the network | Ownership: submitting it requires the operator key, and submitting the *same* action twice fails (`AlreadyConsumed`) | Whoever holds the operator key can submit a captured assertion **once** — but only for the exact action the human signed. Reusing it needs the operator key *and* the action to be unspent |
+| **Cross-asset replay**, use an ERC-20 approval as a MON payment | Separate action tags (`witness.action.transfer` / `…transfer.native`), compared before the signature is checked | None |
+| **Approval captured in transit**, grab the assertion from the network | Ownership: submitting it requires the operator key, and submitting the *same* action twice fails (`AlreadyConsumed`) | Whoever holds the operator key can submit a captured assertion **once**, but only for the exact action the human signed. Reusing it needs the operator key *and* the action to be unspent |
 | **Amount or recipient tampering** | Both are inside the signed digest; the verifier recomputes from the calldata | None |
 | **Approval for a different action** | `challenge == digest` is checked explicitly (`ChallengeMismatch`) | None |
 | **Passkey phishing from another origin** | `clientDataJSON.origin` and `rpIdHash` are compared against the values frozen at deployment (`OriginMismatch`, `RpIdMismatch`) | The human can still be tricked on the *real* origin by a convincing request. That is why the screen shows the amount, the recipient and the service as one sentence |
-| **WebAuthn semantic downgrade** — present with `UP` but no `UV` | `NoUserPresence` and `NoUserVerification` are distinct typed failures | None on-chain. Device policies are the device's business |
-| **Wrong ceremony** — registration blob used as an assertion | The `webauthn.get` type is required (`WrongType`) | None |
-| **Signature forgery** | P-256 verified through Monad's native precompile (`0x0100`, EIP-7951) against the public key stored on the intent. `r`/`s` are passed to the precompile unchanged, so validity is the precompile's answer, not this library's | Unaudited implementation. Note the signature is not restricted to low-`s`, so an ECDSA twin exists for any valid signature — harmless here, because a twin covers the *same* digest, and the digest's one-time use (the `consumed` flag) is what stops a second spend, not signature uniqueness |
-| **Identity spoofing** — claim someone else's agent id | `ownerOf(agentId) == intent.agentWallet` against the live registry (`AgentNotRegistered`); the request queue performs the same check on arrival | If no registry is configured, the check is skipped and the app says so. A delegate-call or upgradeable registry could change ownership after the fact — the check is a point-in-time read |
-| **Queue poisoning** — flood requests; queue a fake "approved" decision | Per-permission cap (25) and a global cap (100); identity verified on arrival; a forged decision is a display lie only and cannot move money | **Real:** the decision endpoint is unauthenticated, so a caller can mark a request `approved` with any `txHash`. Nothing is spent by that, and the agent must verify on-chain — `examples/agent-request.mjs` exits non-zero if the receipt is missing or reverted |
+| **WebAuthn semantic downgrade**, present with `UP` but no `UV` | `NoUserPresence` and `NoUserVerification` are distinct typed failures | None on-chain. Device policies are the device's business |
+| **Wrong ceremony**, registration blob used as an assertion | The `webauthn.get` type is required (`WrongType`) | None |
+| **Signature forgery** | P-256 verified through Monad's native precompile (`0x0100`, EIP-7951) against the public key stored on the intent. `r`/`s` are passed to the precompile unchanged, so validity is the precompile's answer, not this library's | Unaudited implementation. Note the signature is not restricted to low-`s`, so an ECDSA twin exists for any valid signature, harmless here, because a twin covers the *same* digest, and the digest's one-time use (the `consumed` flag) is what stops a second spend, not signature uniqueness |
+| **Identity spoofing**, claim someone else's agent id | `ownerOf(agentId) == intent.agentWallet` against the live registry (`AgentNotRegistered`); the request queue performs the same check on arrival | If no registry is configured, the check is skipped and the app says so. A delegate-call or upgradeable registry could change ownership after the fact, the check is a point-in-time read |
+| **Queue poisoning**, flood requests; queue a fake "approved" decision | Per-permission cap (25) and a global cap (100); identity verified on arrival; a forged decision is a display lie only and cannot move money | **Real:** the decision endpoint is unauthenticated, so a caller can mark a request `approved` with any `txHash`. Nothing is spent by that, and the agent must verify on-chain, `examples/agent-request.mjs` exits non-zero if the receipt is missing or reverted |
 | **Server compromise** | Forgeries fail `BadSignature`; state-changing keys cannot approve | The compromised server can drain its own gas, show false information, and (with the operator key) spend an *already-signed* unspent action. Treat the demo keys as demo keys |
-| **Denial of service** — stop the relayer from relaying | Out of scope for the contracts | The intended action becomes unexecutable. Witness is a gate, so failing closed is the safe direction, but an attacker with the relayer key can also *revoke* the permissions it created |
+| **Denial of service**, stop the relayer from relaying | Out of scope for the contracts | The intended action becomes unexecutable. Witness is a gate, so failing closed is the safe direction, but an attacker with the relayer key can also *revoke* the permissions it created |
 | **Grief: registering permissions the human did not ask for** | Only the relayer can create them, and the app's flow always enrolls a fresh passkey | A compromised relayer can create a permission naming its own passkey. `AgentNotRegistered`/cap checks still apply, but the *human* is not the authority on that intent. This is the strongest argument for the workspace note in §6 item 3 |
 
 ---
@@ -119,8 +119,8 @@ than in the agent's process.
 3. **The relayer owns the permissions it creates.** The passkey is the authority
    over funds, but the relayer is `intent.user`, so the relayer can revoke. A
    production design would have the human sign the intent creation too (the
-   contracts already carry the fields for it — `policyHash`, `credentialHash`,
-   `qx`, `qy` — the missing piece is a second WebAuthn ceremony over the intent
+   contracts already carry the fields for it, `policyHash`, `credentialHash`,
+   `qx`, `qy`, the missing piece is a second WebAuthn ceremony over the intent
    itself, which was out of scope for the demo).
 4. **No rate limiting on the app's routes.** `POST /api/intent` and
    `POST /api/agent` will spend the server's gas as fast as a caller can ask.
@@ -155,13 +155,13 @@ default.
 
 **Behavioural evidence.**
 
-- `forge test` — 40 tests, including real P-256 signatures over real digests
+- `forge test`, 40 tests, including real P-256 signatures over real digests
   verified through the real precompile. No crypto is mocked.
-- `node examples/live-e2e.mjs` — four assertions against the *deployed*
+- `node examples/live-e2e.mjs`, four assertions against the *deployed*
   contracts: the approved action moves exactly the approved amount, a replay is
   refused (`AlreadyConsumed`), an unapproved 10× request is refused (`OverLimit`),
   and an unowned ERC-8004 id is refused (`AgentNotRegistered`).
-- `node examples/agent-request.mjs` — an out-of-process agent asks for money,
+- `node examples/agent-request.mjs`, an out-of-process agent asks for money,
   polls for the decision, and then checks the transaction itself on Monad rather
   than believing the app.
 
@@ -177,7 +177,7 @@ difference between a notification and a receipt.
    limits, and separate them into different failure domains.
 3. Have the human sign intent *creation* as well as each action (see §6.3).
 4. Replace the in-memory queue with durable storage that records who asked for
-   what, when, and what the human decided — an audit trail, not a scratchpad.
+   what, when, and what the human decided, an audit trail, not a scratchpad.
 5. Rate-limit and authenticate the app's routes.
 6. Freeze the executor: `setOperator` to a fixed key you cannot change, and stop
    using `forwardAsOwner`.

@@ -24,17 +24,17 @@ import {
 /* --------------------------------------------------------------------------
    What is real here, and what is not.
 
-     REAL   — the request. An agent process POSTs it to /api/requests, and this
+     REAL     the request. An agent process POSTs it to /api/requests, and this
               page renders exactly what arrived. There is no fixture and no
               constant standing in for it: if nobody has asked for anything, the
               screen says so and tells you how to make the agent ask.
-     REAL   — the permission, the passkey enrollment, the approval, and every
+     REAL     the permission, the passkey enrollment, the approval, and every
               refusal. Each is a transaction against the deployed contracts, and
               a refusal is the contract's own typed Reason.
-     HONEST — the queue is process memory on the server. A request can be
+     HONEST   the queue is process memory on the server. A request can be
               delivered by the link the agent prints instead of by a poll; the
               page accepts both and shows the same thing. A decision reported
-              back to the server is a notification, never a receipt — the
+              back to the server is a notification, never a receipt. The
               transaction is the receipt, and the agent checks it on-chain.
    -------------------------------------------------------------------------- */
 const DEFAULT_LIMIT_MON = "0.5";
@@ -458,7 +458,7 @@ export default function Page() {
 
   /**
    * Block: the human does not approve, and the agent's attempt is refused on-chain.
-   * That order matters — the refusal is produced by the contract, not by this UI.
+   * That order matters: the refusal is produced by the contract, not by this UI.
    */
   const block = async () => {
     if (!client || !request || !asked) return;
@@ -472,7 +472,7 @@ export default function Page() {
         setVerdict({
           tone: "bad",
           label: "Unexpected",
-          note: "The action went through without an approval. This should be impossible — report it.",
+          note: "The action went through without an approval. This should be impossible. Report it.",
         });
         return;
       }
@@ -503,7 +503,7 @@ export default function Page() {
   /**
    * Where an injected instruction would send money: the merchant this agent is
    * actually working with, or the deployment's own payee when nothing is queued.
-   * Never a made-up address — the point of the attack is that it is real.
+   * Never a made-up address: the point of the attack is that it is real.
    */
   const injectionTarget = useMemo(
     () => (asked?.to as Address | undefined) ?? config?.payee ?? null,
@@ -535,7 +535,7 @@ export default function Page() {
         tone: result.allowed ? "bad" : "ok",
         label: result.allowed ? "Executed" : "Blocked",
         note: result.allowed
-          ? "The oversized request went through. This should be impossible — report it."
+          ? "The oversized request went through. This should be impossible. Report it."
           : `${plainReason(result)} It asked for ${mon(injectionAmount)} against your ${mon(intent?.maxAmount ?? FALLBACK_LIMIT_WEI)} limit.`,
         reason: result.allowed ? undefined : result.name,
       });
@@ -600,7 +600,7 @@ export default function Page() {
   const remaining = intent ? Math.max(0, intent.expiry === 0n ? Infinity : Number(intent.expiry) - Math.floor(now / 1000)) : Infinity;
 
   /**
-   * Risk is derived from the request against the permission that is on-chain — it
+   * Risk is derived from the request against the permission that is on-chain. It
    * is never asserted. A request above the limit is labelled as such before any
    * passkey prompt, because the human should know the answer the chain will give.
    */
@@ -676,8 +676,8 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
         }
       >
         {/* Rendered unconditionally: the tabs are pure view state, so gating them
-            on the config fetch would grow the bar by a row the moment it resolves
-            — a layout shift on every load, and no navigation while it loads. */}
+            on the config fetch would grow the bar by a row the moment it resolves,
+            which is a layout shift on every load, and leaves no navigation while it loads. */}
         <div className="tabs" role="tablist" aria-label="Sections" onKeyDown={onTabKey}>
           {tabs.map((t) => (
             <button
@@ -839,7 +839,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   <Notice>
                     <strong>This request came from outside this app.</strong> An agent process POSTed
                     it to <span className="mono">/api/requests</span>, and it is rendered here exactly
-                    as it arrived — recipient, amount, and the agent&rsquo;s own words. Nothing on this
+                    as it arrived: recipient, amount, and the agent&rsquo;s own words. Nothing on this
                     screen is a fixture.
                   </Notice>
 
@@ -956,7 +956,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   {injectionTarget
                     ? `${mon(injectionAmount)} is ten times your limit, sent to ${short(injectionTarget)} with no approval attached. `
                     : "Set a permission first, then this sends ten times its limit with no approval attached. "}
-                  The refusal is a reverted transaction from the contract that holds the funds — not a
+                  The refusal is a reverted transaction from the contract that holds the funds, not a
                   check in the agent&rsquo;s code, and not a check in this page.
                 </p>
               </div>
@@ -1035,7 +1035,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
           <p className="note" style={{ marginTop: 26 }}>
             The passkey is the authority. Witness relays gas only, so no wallet and no testnet funds
-            are needed to try it — and the relaying key cannot approve anything, because it does not
+            are needed to try it, and the relaying key cannot approve anything, because it does not
             hold your passkey.
           </p>
         </>
@@ -1101,7 +1101,7 @@ function Notice({ children }: { children: React.ReactNode }) {
  *
  * This state used to be filled with a fixed example request, which made the
  * product look finished and was the least honest thing on the screen. The promise
- * is "your agent asks" — so when nothing has asked, the page says so, and shows
+ * is "your agent asks", so when nothing has asked, the page says so, and shows
  * the one command that makes an agent ask for real.
  */
 function WaitingForAgent({ agentName, queueErr }: { agentName: string; queueErr: string | null }) {
@@ -1228,7 +1228,7 @@ function SetupCard({
 
       <p className="request__sentence">Nothing needs your approval yet.</p>
       <p className="request__sub">
-        Create one permission. It covers a single payment, and your passkey is what approves it — so
+        Create one spend limit. It covers a single payment, and your passkey is what approves it, so
         no one else, including this site, can spend in your name.
       </p>
 
@@ -1299,7 +1299,7 @@ function SecurityDetails({
           <dd>
             {intent
               ? intent.active
-                ? "Active — one use remaining"
+                ? "Active, one use remaining"
                 : intent.consumed
                   ? "Used"
                   : intent.revoked
@@ -1308,19 +1308,19 @@ function SecurityDetails({
               : "No permission registered"}
           </dd>
           <dt>Permission id</dt>
-          <dd>{intent ? `#${intent.intentId.toString()}` : "—"}</dd>
+          <dd>{intent ? `#${intent.intentId.toString()}` : "not registered"}</dd>
           <dt>Spend limit</dt>
-          <dd>{intent ? `${intent.maxAmount.toString()} wei` : "—"}</dd>
+          <dd>{intent ? `${intent.maxAmount.toString()} wei` : "not set"}</dd>
           <dt>Expiry</dt>
           <dd>
             {intent && intent.expiry !== 0n
               ? `${new Date(Number(intent.expiry) * 1000).toISOString()}`
-              : "—"}
+              : "no expiry"}
           </dd>
           <dt>Agent identity</dt>
           <dd>
             ERC-8004 id {config.agentId === "0" ? "not set" : `#${config.agentId}`}
-            {config.identityEnforced ? " — enforced" : " — not enforced"}
+            {config.identityEnforced ? ", enforced" : ", not enforced"}
           </dd>
           <dt>Identity registry</dt>
           <dd>
@@ -1357,7 +1357,7 @@ function SecurityDetails({
           <dt>Passkey</dt>
           <dd>
             {passkey
-              ? `enrolled in this browser — credential ${short(passkey.credentialId, 10, 6)}`
+              ? `enrolled in this browser (credential ${short(passkey.credentialId, 10, 6)})`
               : "not enrolled in this browser"}
           </dd>
           {request ? (
@@ -1385,7 +1385,7 @@ function SecurityDetails({
           ) : (
             <>
               <dt>Request</dt>
-              <dd>none waiting — the agent has not asked for anything</dd>
+              <dd>none waiting, the agent has not asked for anything</dd>
               <dt>Settlement address</dt>
               <dd>
                 {config.payee ? (
@@ -1430,8 +1430,12 @@ function SecurityDetails({
  * account instead: what the agent is allowed to do, whether anything is waiting
  * on the human, and which guarantees the deployment actually enforces.
  *
- * Every tile is derived from the chain's own answers — none of it is asserted
+ * Every tile is derived from the chain's own answers. None of it is asserted
  * in copy, so a stranger reading it learns the real posture of this deployment.
+ *
+ * The copy here is deliberately plain: this is the first screen, and the person
+ * reading it may be a founder, an accountant, or someone who has never seen a
+ * wallet. Jargon belongs behind "Security details", not in front of the decision.
  */
 function DashboardHeader({
   config,
@@ -1442,7 +1446,7 @@ function DashboardHeader({
   config: Config | null;
   intent: IntentRecord | null;
   pendingCount: number;
-  /** Absent while the approvals tab is already open — nothing to jump to. */
+  /** Absent while the approvals tab is already open, so there is nothing to jump to. */
   onJump?: () => void;
 }) {
   const limit = intent ? mon(intent.maxAmount) : null;
@@ -1456,67 +1460,102 @@ function DashboardHeader({
   return (
     <section className="hero" aria-labelledby="dashboard-title">
       <p className="micro">
-        {config ? `Live on Monad · chain ${config.chainId}` : "Reading the deployment…"}
+        {config ? `Live on Monad, chain ${config.chainId}` : "Reading the deployment"}
       </p>
       <h1 className="hero__title" id="dashboard-title">
         Your agent asks. <em>You decide.</em>
       </h1>
       <p className="hero__lede">
-        A passkey signs one exact action — this recipient, this amount, this contract — and the
-        contract that holds the funds checks that signature before anything moves. Nothing here
-        trusts the agent. Nothing here trusts this page either.
+        A software agent can move money for you. This page makes it ask first. One tap of your
+        fingerprint approves one specific payment, and the contract holding your funds checks that
+        approval before anything leaves. An agent that gets tricked by a prompt still cannot pay
+        anyone you did not approve.
       </p>
+
+      <ol className="how">
+        <li className="how__step">
+          <span className="how__num" aria-hidden>
+            1
+          </span>
+          <div>
+            <p className="how__label">The agent asks</p>
+            <p className="how__note">It posts a request right here: who it wants to pay and how much.</p>
+          </div>
+        </li>
+        <li className="how__step">
+          <span className="how__num" aria-hidden>
+            2
+          </span>
+          <div>
+            <p className="how__label">You approve one payment</p>
+            <p className="how__note">
+              Your fingerprint signs that exact amount to that exact address. Nothing else.
+            </p>
+          </div>
+        </li>
+        <li className="how__step">
+          <span className="how__num" aria-hidden>
+            3
+          </span>
+          <div>
+            <p className="how__label">The contract pays</p>
+            <p className="how__note">
+              It verifies your signature on-chain, pays once, and refuses any second attempt.
+            </p>
+          </div>
+        </li>
+      </ol>
 
       <div className="stats">
         <div className="stat">
-          <p className="stat__label">Permission</p>
-          <p className="stat__value">{limit ?? "None yet"}</p>
+          <p className="stat__label">Spending limit</p>
+          <p className="stat__value">{limit ?? "Not set"}</p>
           <p className="stat__hint">
             {intent
               ? intent.active
-                ? `One use, until ${until}`
+                ? `One payment, up to ${until}`
                 : "No longer active"
-              : "Create one so the agent can ask"}
+              : "Set one to let the agent ask"}
           </p>
         </div>
 
         <div className="stat">
-          <p className="stat__label">Waiting on you</p>
+          <p className="stat__label">Requests to review</p>
           <p className="stat__value">{pendingCount}</p>
           <p className="stat__hint">
-            {pendingCount > 0 ? "A request needs a decision" : "No requests pending"}
+            {pendingCount > 0 ? "Waiting for your decision" : "Nothing waiting"}
           </p>
         </div>
 
         <div className="stat">
-          <p className="stat__label">Agent identity</p>
+          <p className="stat__label">Agent verified</p>
           <p
             className={`stat__value ${config?.identityEnforced ? "stat__value--ok" : "stat__value--warn"}`}
           >
-            {config === null ? "—" : config.identityEnforced ? "Enforced" : "Not configured"}
+            {config === null ? "Checking" : config.identityEnforced ? "Yes" : "No"}
           </p>
           <p className="stat__hint">
             {config?.agentId && config.agentId !== "0"
-              ? `Ownership of ERC-8004 #${config.agentId}`
-              : "Ownership checked by the verifier"}
+              ? `Agent #${config.agentId} is owned on-chain`
+              : "Ownership checked on-chain"}
           </p>
         </div>
 
         <div className="stat">
-          <p className="stat__label">Configuration</p>
+          <p className="stat__label">Settings locked</p>
           <p
             className={`stat__value ${config?.configurationLocked ? "stat__value--ok" : "stat__value--warn"}`}
           >
-            {config === null ? "—" : config.configurationLocked ? "Frozen" : "Mutable"}
+            {config === null ? "Checking" : config.configurationLocked ? "Yes" : "No"}
           </p>
-          <p className="stat__hint">Accepted origin and registry, fixed at deploy</p>
+          <p className="stat__hint">Only a new deployment can change them</p>
         </div>
       </div>
 
       {onJump && (
         <div className="hero-foot">
           <button className="primary" onClick={onJump}>
-            Go to the pending request
+            Review the waiting request
           </button>
         </div>
       )}

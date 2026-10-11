@@ -333,7 +333,7 @@ export const demoUsdAbi = [
  * The one ERC-8004 surface Witness depends on: who owns an agent id.
  *
  * The verifier reads exactly this on-chain before it honours an intent's agentId,
- * and the request queue reads it too — so a queued request cannot claim an
+ * and the request queue reads it too, so a queued request cannot claim an
  * identity the agent wallet does not hold. Same fragment in both places on
  * purpose: two different notions of "the agent" would be a bug in the trust story.
  */
@@ -348,7 +348,7 @@ export const identityRegistryAbi = [
 ] as const;
 
 /**
- * keccak256("witness.action.transfer") — the transfer domain tag.
+ * keccak256("witness.action.transfer"), the transfer domain tag.
  *
  * Derived rather than hardcoded: a literal here could silently drift from the
  * constant in WitnessAction.sol and every check would then fail with
@@ -357,7 +357,7 @@ export const identityRegistryAbi = [
 export const TRANSFER_ACTION_TYPE = keccak256(toBytes("witness.action.transfer"));
 
 /**
- * keccak256("witness.action.transfer.native") — the native MON transfer domain tag.
+ * keccak256("witness.action.transfer.native"), the native MON transfer domain tag.
  *
  * One tag per asset class, so an approval to move an ERC-20 cannot be replayed as
  * a MON payment: the action type is inside the signed digest AND compared by the

@@ -1,10 +1,75 @@
 # Changelog
 
-## 2026-10-11 (ui) — the poster became a control panel
+## 2026-10-11 (brand) - one logo, and an interface that matches it
+
+The mark is the winking bear on a lime tile: black on lime, thick rounded shapes,
+and a tile whose corner radius is generous. That is the whole design rule now.
+
+- **One file, four places.** The logo is `app/public/logo.png` (the supplied
+  artwork, trimmed to the tile and squared, so no redrawing of it exists anywhere).
+  Next serves it as the tab icon via `icons.icon`, `build-static.mjs` copies it into
+  the static bundle, `Mark()` in `chrome.tsx` is an `<img>` pointing at it, and the
+  README shows `assets/logo.png`, the same bytes. Before this the bar drew an
+  asterisk and the tab drew a serif W, so the two never agreed.
+- **Lime and ink, from the logo.** The old indigo to teal ramp is gone. Lime is used
+  as a FILL only (primary buttons, the step badges, the avatar tile, the accent rules
+  at the top of cards), always carrying ink on top, exactly as the logo does. Every
+  place lime was previously a text colour now uses `--accent-text`, a dark olive that
+  clears 7:1 on white, because bright lime as body text is unreadable and the logo
+  never does it either.
+- **Rounder everywhere.** Card radius 16 to 22, inner surfaces 11 to 14, and every
+  single-line control is a pill: buttons, the primary action, and the tab row, which
+  became a segmented control. The step badges turned from rounded squares into
+  circles. Display type went to 700, matching the weight of the mark.
+
+Verified in the running app: the bar shows the bear, the tab icon is the same file,
+body text is Inter with Space Grotesk headings, cards are 22px, controls 999px, no
+em dashes in the source or the rendered text, and no horizontal overflow.
+
+## 2026-10-11 (light) - a light surface, plainer words, no em dashes
+
+Five changes to one thing: how the product reads to the person actually using it.
+
+- **Light theme.** Two surfaces (a near-white page and white cards), depth from a
+  hairline plus a two-layer shadow, and the indigo-to-teal ramp used only for fills
+  and display words. Both ramp stops clear 4.5:1 against white text (6.29 and 5.36),
+  and no body copy is set in a gradient. Theme colour and `color-scheme` follow.
+- **Plain words first.** The header opens with a three-step explainer written for
+  someone who has never seen a wallet: the agent asks, you approve one payment, the
+  contract pays. Stat tiles read "Spending limit", "Requests to review", "Agent
+  verified", "Settings locked", and values read "Yes", "No", "Not set" instead of
+  dashes and jargon. The technique still exists, one click behind "Security details".
+- **Em dashes removed** from 38 files: app copy, API comments, README, threat model,
+  security policy, submission and changelog. `contracts/**` is deliberately excluded,
+  because the deployed bytecode embeds a metadata hash derived from the source, so
+  editing a Solidity comment would break the exact-match verification the README
+  points at. A one-rule guard, `scripts/check-style.mjs`, keeps it that way: it fails
+  the build on a stray dash in anything a reader sees, and CI runs it first because it
+  needs no install.
+- **The tab icon exists.** The live site was answering 404 for `/favicon.ico`, so a
+  browser tab showed the blank page glyph. `app/app/icon.svg` is the brand mark now,
+  and Next emits it as `<link rel="icon" type="image/svg+xml">`. The static bundle
+  carries the same mark inline.
+- **The Worker harness works again.** `test-worker.mjs` still posted
+  `expiresInSeconds` while both `/api/intent` hosts had moved to an absolute `expiry`,
+  so the run died on its fourth check and the four security assertions behind it
+  (10x injection refused, unapproved transfer refused, revoke, revoked-then-refused)
+  never executed. Fixed, and all nine checks now pass against a real Monad testnet
+  stack, with real transaction hashes in the output.
+
+Verified on the deployed origin: light background and text colours (page `#f5f6f8`,
+body text `#0d1526`, 16.9:1), `color-scheme: light`, a live `/icon.svg` at
+`image/svg+xml`, all four panels plus the developer page, zero em dashes or en dashes
+in the rendered DOM of either page, no horizontal overflow at 1440px or 390px, and an
+automated contrast scan over every text element in all four panels. Its only flag was
+a code chip on a 10% tinted background, which the scan reads as opaque; composited it
+is 6.2:1.
+
+## 2026-10-11 (ui), the poster became a control panel
 
 The design concept changed; the behaviour did not. Nothing about the contracts, the
 API routes, the SDK or the passkey ceremony is touched here, and the deploying origin
-and `rpId` are unchanged — which is what keeps passkeys enrolled before this commit
+and `rpId` are unchanged, which is what keeps passkeys enrolled before this commit
 valid after it.
 
 - **Navigation moved into a sticky app bar.** All four sections are one click away from
@@ -17,7 +82,7 @@ valid after it.
   configuration is frozen. Every value is read from the chain; none is asserted in copy.
 - **One brand ramp, indigo → cyan**, carries the mark, the amount inside the permission
   sentence, the primary action and the request panel's own frame. Amber, green and red stay
-  strictly semantic — waiting, approved, refused — and still always arrive with an icon and
+  strictly semantic, waiting, approved, refused, and still always arrive with an icon and
   a label rather than as colour alone.
 - **Type is functional now**: Inter for the interface, Space Grotesk for display lines,
   JetBrains Mono for every figure and identifier, all self-hosted by `next/font`. Digits are
@@ -26,26 +91,26 @@ valid after it.
   developer page renders, all three fonts load, no console errors, and no horizontal
   overflow at 1440px or 390px.
 
-## 2026-10-11 (fix) — the SDK builds from a clean install, and formatting is a gate that passes
+## 2026-10-11 (fix), the SDK builds from a clean install, and formatting is a gate that passes
 
 Two things the docs pass exposed, both fixed at the cause.
 
 - **`@witness/sdk` could not emit declarations from a fresh `npm install`**: `tsc` reported
   `TS2742` because the inferred type of `publicClient` named viem's internal module paths.
-  Fixed in the source both packages share — `app/lib/witness.ts` now annotates the return type
-  as viem's public `PublicClient` — so the emitted `dist/types` imports only `"viem"` and an
+  Fixed in the source both packages share, `app/lib/witness.ts` now annotates the return type
+  as viem's public `PublicClient`, so the emitted `dist/types` imports only `"viem"` and an
   integrator can actually resolve it. Verified: `bun run check` and `bun run build` pass, and
   the generated `.d.ts` files were grepped to confirm they reference nothing internal.
 - **Formatting is enforced rather than aspirational.** `.github/workflows/ci.yml` runs
   `forge fmt --check`, which the contracts did not pass, so `forge fmt` was applied across nine
   Solidity files (whitespace only) and `forge test` re-run afterwards: 40 passed, 0 failed.
 
-## 2026-10-11 (docs) — the repository reads like a product, not a scratchpad
+## 2026-10-11 (docs), the repository reads like a product, not a scratchpad
 
 No behaviour changed. This is the front door, and the missing paperwork.
 
 - **README**: status badges (all of them describing something verified, none of them
-  aspirational — including an honest `audit: not yet`), two Mermaid diagrams (the trust
+  aspirational, including an honest `audit: not yet`), two Mermaid diagrams (the trust
   boundaries, and the request→approval→on-chain-verification sequence including the step
   where the agent reads the receipt itself), a full project tree, a security posture table,
   and a *Verifying it yourself* section listing the commands behind every claim.
@@ -56,13 +121,13 @@ No behaviour changed. This is the front door, and the missing paperwork.
   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) (Contributor Covenant 2.1), and
   [SECURITY.md](SECURITY.md) (private advisories, response targets, and the hardening already
   on the list so nobody reports it as a discovery).
-- New: `.github/workflows/ci.yml` — contracts, app types + bundles, and the SDK drift check.
+- New: `.github/workflows/ci.yml`, contracts, app types + bundles, and the SDK drift check.
   **Written but not yet executed on Actions**; the same commands pass locally, and the first
   run is the real test of the workflow itself.
 - Both Mermaid diagrams were parsed with mermaid 11 (the version GitHub renders) rather than
   eyeballed, so they render instead of showing a syntax error to a reviewer.
 
-## 2026-10-11 (later) — the agent actually asks: a real request queue, a real package, a threat model
+## 2026-10-11 (later), the agent actually asks: a real request queue, a real package, a threat model
 
 Three things the previous revision only claimed are now real: the agent asks over
 HTTP, the integration surface is an installable package, and the trust claims are
@@ -76,7 +141,7 @@ checkable by a stranger.
 - **The empty state is honest.** If nothing has asked, the approval screen says so and
   shows the one command that makes an agent ask. It does not invent a request to look
   finished.
-- **`examples/agent-request.mjs`** — the agent as a separate process: it asks, polls
+- **`examples/agent-request.mjs`**, the agent as a separate process: it asks, polls
   `GET /api/requests/:id` for the decision, and then **reads the receipt from Monad
   itself** rather than believing the app. It exits non-zero when the transaction is
   missing, reverted, or unconfirmed. `--over` sends the prompt-injection attack for real.
@@ -88,7 +153,7 @@ checkable by a stranger.
   `Deploy.s.sol` (`DEMO_PAYEE`, defaulting to the deployer). No more `0x1111…1111`.
 - **Delivery survives a cold instance.** The queue is process memory, so the POST also
   returns a link carrying the validated request; the page merges it in. The link is a
-  delivery channel, not a trust channel — approving still needs the passkey.
+  delivery channel, not a trust channel, approving still needs the passkey.
 - **One store, two hosts.** `lib/queue-store.ts` is dependency-free and shared by the
   Next routes and the Cloudflare Worker, so the two deployments cannot disagree about
   what an agent asked for.
@@ -102,7 +167,7 @@ use:
   (so `BigInt(NaN)`), ignored `actionType`, and returned no `intentId`.
 - `/api/agent` scaled the amount a second time (the browser already sends base units),
   which would have made every approval a `ChallengeMismatch`, and only supported the
-  ERC-20 path — the app has used the native MON path since the last revision.
+  ERC-20 path, the app has used the native MON path since the last revision.
 
 Both now mirror the Next routes, including reading `intentId` from the `IntentCreated`
 event rather than predicting it.
@@ -121,12 +186,12 @@ event rather than predicting it.
 - **All five contracts are `exact_match` on Sourcify** (readable on MonadVision),
   verified 2026-10-11. This needs no API key, which is why `contracts/verify.sh`
   defaults to it; Monadscan additionally needs `MONADSCAN_API_KEY`.
-- **`THREAT-MODEL.md`** — actors and their powers, ten attack classes with mitigations
+- **`THREAT-MODEL.md`**, actors and their powers, ten attack classes with mitigations
   *and residual risks*, an explicit out-of-scope list, and the weaknesses ranked. It
   records the uncomfortable ones: `forwardAsOwner` is a live owner-only arbitrary call,
   `setOperator` is not locked, the relayer owns the permissions it creates, and the
   decision endpoint is unauthenticated (a lying display, not a spending path).
-- **`INTEGRATOR-KIT.md`** — outreach: who to contact, three templates, the 15-minute
+- **`INTEGRATOR-KIT.md`**, outreach: who to contact, three templates, the 15-minute
   offer, and the three levels of "integration" that count.
 
 ### Docs
@@ -138,7 +203,7 @@ event rather than predicting it.
   durability boundary and the unauthenticated decision endpoint instead of leaving them
   for a reviewer to find.
 
-## 2026-10-11 — Witness Approvals: consumer experience + real ERC-8004 enforcement
+## 2026-10-11, Witness Approvals: consumer experience + real ERC-8004 enforcement
 
 Two goals: make the product usable by someone who has never used a wallet, and make the on-chain
 configuration something you can actually rely on. Both required changing the deployed stack, so this
@@ -151,7 +216,7 @@ is a redeploy, not a patch.
   and the verifier requires `ownerOf(agentId) == intent.agentWallet`. Previously the registry was
   unset on the live deployment, so the identity check was skipped entirely.
 - **`AgentExecutor.onERC721Received`.** The registry mints with `_safeMint`, so a contract without
-  the receiver hook cannot own an identity — the first broadcast of this revision reverted at
+  the receiver hook cannot own an identity, the first broadcast of this revision reverted at
   registration *after* the token was minted. Found and fixed by running the deploy, then pinned with
   a regression test plus a mock that reproduces the real `_safeMint` behaviour.
 - **Native MON path.** `DemoSafe` gained a second gated outbound path, `executeNative`, with its own
@@ -162,7 +227,7 @@ is a redeploy, not a patch.
   verifier pointer and ownership; `DemoSafe.lockOwnership()` freezes ownership, which the fund path
   never consults anyway. Deployment performs all three.
   Removed `script/SetRelyingParty.s.sol`: after the lock it could only revert. Changing the accepted
-  origin now means deploying a new stack — a visible on-chain action instead of a silent setting.
+  origin now means deploying a new stack, a visible on-chain action instead of a silent setting.
 - **Removed the operator's arbitrary-call hatch.** `AgentExecutor.forward(target, data)` would have
   let a prompt-injected agent process call anything the executor can reach, including transferring
   away its own identity. The only forward is now `forwardAsOwner`, owner-only, used once at setup.
@@ -174,16 +239,16 @@ is a redeploy, not a patch.
 - **40/40 passing** (`forge test`): 24 in `Witness.t.sol`, 16 new in `WitnessHardening.t.sol`
   covering the native path, cross-asset replay, the locks, the missing arbitrary-call surface, and
   the receiver-hook regression.
-- **`examples/live-e2e.mjs`** — a live integration test against the *deployed* contracts, asserting
+- **`examples/live-e2e.mjs`**, a live integration test against the *deployed* contracts, asserting
   four behaviours with real transactions: the approved action moves exactly the approved amount
   (tx `0xf6c0f6d871bab57c81aa9fb8a0a66992b4f5b2dcfa7a2cb99387f9b29e772978`), a replay is refused
   (`AlreadyConsumed`), an unapproved 10× request is refused (`OverLimit`), and an unowned ERC-8004 id
   is refused (`AgentNotRegistered`). 4/4.
 
-### App — consumer experience
+### App, consumer experience
 
 - **Plain language first.** Navigation is now `Approvals / Activity / Agents / Settings`. The approval
-  screen is one sentence — *"Research Agent wants to spend 0.5 MON on Market Data API."* — with
+  screen is one sentence, *"Research Agent wants to spend 0.5 MON on Market Data API."*, with
   Approve and Block. Hashes, addresses, digests, chain ids and the identity id moved behind
   **Security details**.
 - **Honest states.** Risk is derived from the permission on-chain (`Within your limit`,
@@ -197,12 +262,12 @@ is a redeploy, not a patch.
   hidden horizontal scroll. Metadata and copy rewritten user-first (*Witness Approvals*).
 - The SDK now backs the app itself, so the product and the integration surface cannot drift.
 
-### App — developer surface
+### App, developer surface
 
-- **`/integrate`** — the four calls, copy-paste snippets that are the real API, a live preflight that
+- **`/integrate`**, the four calls, copy-paste snippets that are the real API, a live preflight that
   calls the deployed verifier from the browser (verified returning `Expired` then `NoSuchIntent` for
   real), and an explicit list of what the integrator still has to do.
-- **`examples/monad-app.mjs`** — a runnable third-party integration: reads the manifest, reads the
+- **`examples/monad-app.mjs`**, a runnable third-party integration: reads the manifest, reads the
   permission, fetches the digest from the contract, preflights, and prints the exact write path.
   Tolerates a deployment older than the source instead of crashing.
 

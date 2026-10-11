@@ -1,69 +1,73 @@
 /*
- * Witness — instrument panel.
+ * Witness: light control panel.
  *
- * The concept changed here. The previous pass was a printed poster: one flat
- * #161616 field, hairlines, a display serif, one accent. This is the opposite
- * approach — a layered control surface for a thing that moves money.
+ * The dark version was a console. This is the same product for someone opening it
+ * at a desk in daylight, and for the person who has to be persuaded that an agent
+ * is safe to leave running. Light surfaces are less forgiving, so the rules are
+ * stricter here than they were on black:
  *
- * What the system is now:
- *   - DEPTH instead of flatness. Four surface steps (#08090C → #171922) with a
- *     radial glow field and a faint grid behind them, so the page reads as a
- *     console sitting in a room rather than a page printed on paper.
- *   - GLASS for interactive containers: every panel is a translucent gradient
- *     over the surface with an inset top highlight and a soft cast shadow.
- *     Panels are 18px, controls 12px. Corners are never square and never pills.
- *   - ONE brand ramp, indigo → cyan, carried by the wordmark, the primary
- *     action and the live/verified signals. Amber, green and red stay strictly
- *     semantic: waiting, approved, refused. Status is still never colour-only.
- *   - TYPE: Inter for the interface, Space Grotesk for display lines, JetBrains
- *     Mono for every figure and identifier. Micro-labels keep their tracked
- *     uppercase — they are what let the eye skim a dense panel.
- *   - MOTION is short and directional (8–14px settle, 180ms) because this UI
- *     updates under the user's cursor while a countdown runs. Long entrances
- *     would fight the live data.
+ *   - TWO surfaces only: a near-white page (#f5f6f8) and white cards on top of it.
+ *     Depth comes from a hairline plus a two-layer shadow, never from a heavy
+ *     border, and the page never uses pure #fff as its own background.
+ *   - The brand ramp (indigo to teal) is used for fills and for the few large
+ *     display words. Both stops clear 4.5:1 against white text, and no body copy
+ *     is ever set in a gradient: small gradient text is the fastest way to make a
+ *     light UI look cheap.
+ *   - Semantic colour keeps its own tokens and is always paired with an icon and
+ *     a word, so status survives for a colour-blind reader and on a projector.
+ *   - Type: Inter for the interface, Space Grotesk for display lines, JetBrains
+ *     Mono for figures. Micro-labels stay tracked and uppercase, because that is
+ *     what lets a dense panel be skimmed.
+ *   - Motion is short and only marks a change of state.
  *
- * Every class name from the previous system is preserved and restyled, so the
- * page markup did not have to be rewritten to get the new look.
+ * Every class name from the previous systems is preserved, so the page markup did
+ * not have to be rewritten for the theme change.
  */
 
 :root {
-  /* --- surfaces: four steps, deepest last --- */
-  --bg: #08090c;
-  --bg-2: #0d0f14;
-  --bg-3: #12141b;
-  --bg-4: #171922;
-  --bg-deep: #050609;
-  --card: rgba(255, 255, 255, 0.035);
+  /* surfaces */
+  --bg: #f5f6f8;
+  --bg-2: #ffffff;
+  --bg-3: #f1f3f7;
+  --bg-4: #e8ecf3;
+  --bg-deep: #f8fafc;
+  --card: #ffffff;
 
-  /* --- glass: the panel recipe, used everywhere --- */
-  --glass: linear-gradient(155deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.015) 100%);
-  --glass-hover: linear-gradient(155deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.025) 100%);
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --inset: rgba(255, 255, 255, 0.05);
+  /* raised surfaces */
+  --glass: linear-gradient(180deg, #ffffff 0%, #fdfdff 100%);
+  --glass-hover: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
+  --line: rgba(13, 21, 38, 0.1);
+  --line-strong: rgba(13, 21, 38, 0.2);
+  --inset: rgba(13, 21, 38, 0.04);
 
-  /* --- ink: 17.4 / 8.1 / 5.4 on #0d0f14 --- */
-  --ink: #f2f4f8;
-  --ink-dim: #a8aebc;
-  --ink-faint: #8a91a0;
+  /* ink: 16.9 / 6.5 / 5.2 against the page. faint is the small-label colour, so
+     it has to clear 4.5:1, which the previous #68738a missed at 4.41. */
+  --ink: #0d1526;
+  --ink-dim: #4d586b;
+  --ink-faint: #5d6779;
 
-  /* --- the brand ramp --- */
-  --accent: #5c7cff;
-  --accent-light: #8fa6ff;
-  --accent-2: #00e0ff;
-  --accent-2-dim: #00b8d4;
-  --accent-ink: #06121a;
-  --accent-soft: rgba(92, 124, 255, 0.14);
-  --accent-2-soft: rgba(0, 224, 255, 0.12);
-  --ramp: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  /* The brand, taken straight from the logo: a lime tile with ink on it. Lime is
+     a FILL colour, never a text colour, so --accent-text is the readable
+     member of the family for links, labels and numbers. */
+  /* Sampled from the artwork itself (app/public/logo.png): the tile runs from
+     #c9f429 at the light end to #a9f41e at the deep end, and the bear is #0d0d0d. */
+  --accent: #c2f325;
+  --accent-light: #c9f429;
+  --accent-2: #a9f41e;
+  --accent-2-bright: #86ab00;
+  --accent-ink: #0d0d0d;
+  --accent-text: #4b6100;
+  --accent-soft: rgba(194, 243, 37, 0.24);
+  --accent-2-soft: rgba(194, 243, 37, 0.18);
+  --ramp: linear-gradient(135deg, #c9f429 0%, #a9f41e 100%);
 
-  /* --- semantic state, never the only signal --- */
-  --ok: #00d68f;
-  --ok-soft: rgba(0, 214, 143, 0.12);
-  --danger: #ff5c6b;
-  --danger-soft: rgba(255, 92, 107, 0.12);
-  --warn: #ffb020;
-  --warn-soft: rgba(255, 176, 32, 0.12);
+  /* semantic state, never the only signal */
+  --ok: #047857;
+  --ok-soft: rgba(4, 120, 87, 0.1);
+  --danger: #b42318;
+  --danger-soft: rgba(180, 35, 24, 0.08);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.1);
 
   --sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
   --display: var(--font-display), "Space Grotesk", var(--sans);
@@ -72,12 +76,16 @@
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
   --decide: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --radius: 18px;
-  --radius-sm: 12px;
+  /* The logo is a thick ribbon with round ends on a rounded tile, so every
+     corner in the product is generous and every single-line control is a pill. */
+  --radius: 22px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
   --gutter: 5vw;
 
-  --shadow: 0 22px 44px -28px rgba(0, 0, 0, 0.9), 0 2px 8px -4px rgba(0, 0, 0, 0.6);
-  --shadow-lift: 0 30px 60px -30px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow: 0 1px 2px rgba(13, 21, 38, 0.06), 0 10px 26px -14px rgba(13, 21, 38, 0.18);
+  --shadow-lift: 0 1px 2px rgba(13, 21, 38, 0.07), 0 18px 40px -22px rgba(13, 21, 38, 0.22);
+  --shadow-sm: 0 1px 2px rgba(13, 21, 38, 0.07);
 }
 
 * {
@@ -97,8 +105,9 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The glow field + grid sit behind everything and never scroll with content,
-   so the page keeps its depth at any scroll position. */
+/* Two very soft tints and a hairline grid, both fixed, so the page keeps its
+   shape while content scrolls over it. Kept under 8% opacity: on a light page,
+   background art competes with the content the moment it gets any stronger. */
 body::before,
 body::after {
   content: "";
@@ -110,22 +119,21 @@ body::after {
 
 body::before {
   background:
-    radial-gradient(900px 520px at 12% -6%, rgba(92, 124, 255, 0.18), transparent 68%),
-    radial-gradient(720px 460px at 96% 4%, rgba(0, 224, 255, 0.1), transparent 66%),
-    radial-gradient(1100px 700px at 50% 118%, rgba(92, 124, 255, 0.08), transparent 70%);
+    radial-gradient(760px 420px at 8% -8%, rgba(194, 243, 37, 0.26), transparent 70%),
+    radial-gradient(680px 380px at 98% 2%, rgba(140, 200, 10, 0.16), transparent 72%);
 }
 
 body::after {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(1200px 700px at 50% 0%, #000 0%, transparent 78%);
-  -webkit-mask-image: radial-gradient(1200px 700px at 50% 0%, #000 0%, transparent 78%);
+    linear-gradient(rgba(13, 21, 38, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13, 21, 38, 0.035) 1px, transparent 1px);
+  background-size: 68px 68px;
+  mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
+  -webkit-mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
 }
 
 ::selection {
-  background: rgba(92, 124, 255, 0.35);
+  background: rgba(79, 70, 229, 0.18);
   color: var(--ink);
 }
 
@@ -135,25 +143,25 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-deep);
+  background: var(--bg-3);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #22252f;
+  background: #cbd3e1;
   border-radius: 999px;
-  border: 2px solid var(--bg-deep);
+  border: 2px solid var(--bg-3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2e323e;
+  background: #b3bdcd;
 }
 
 .shell {
   position: relative;
   z-index: 1;
-  max-width: 1200px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: clamp(20px, 3dvh, 34px) var(--gutter) 108px;
+  padding: clamp(18px, 3dvh, 30px) var(--gutter) 104px;
 }
 
 /* --- micro-label: the workhorse of the hierarchy --- */
@@ -162,7 +170,7 @@ body::after {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
   color: var(--ink-faint);
   margin: 0;
 }
@@ -181,20 +189,20 @@ body::after {
 }
 
 /* =========================================================================
-   App bar — the only navigation, and it is sticky
+   App bar: the only navigation, and it follows the reader
    ========================================================================= */
 
 .appbar {
   position: sticky;
   top: 0;
   z-index: 30;
-  margin: 0 0 clamp(18px, 3dvh, 30px);
+  margin: 0 0 clamp(16px, 2.6dvh, 26px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: linear-gradient(155deg, rgba(23, 25, 34, 0.86) 0%, rgba(13, 15, 20, 0.9) 100%);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.95);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -202,17 +210,17 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 13px 16px;
+  gap: 14px;
+  padding: 12px 16px;
 }
 
 .appbar__nav {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 10px;
+  padding: 6px 12px;
   border-top: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--bg-2);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -230,23 +238,31 @@ body::after {
   min-width: 0;
 }
 
-/* the asterisk mark: drawn, not typed, and now lit by the ramp */
+/* The mark IS the logo file (public/logo.png), the same one the tab icon and the
+   README show, so the three cannot drift apart. */
 .mark {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   flex: none;
-  padding: 4px;
+  display: block;
   border-radius: 9px;
-  color: var(--ink);
-  background: var(--ramp);
-  box-shadow: 0 6px 18px -8px rgba(92, 124, 255, 0.9);
+  box-shadow: 0 8px 18px -10px rgba(120, 150, 0, 0.8);
+  transition: transform 200ms var(--decide);
+}
+
+.brand:hover .mark {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+.brand:active .mark {
+  transform: scale(0.97);
 }
 
 .brand-name {
   font-family: var(--display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
   white-space: nowrap;
 }
 
@@ -254,7 +270,7 @@ body::after {
   display: block;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -272,23 +288,22 @@ body::after {
   align-items: center;
   gap: 7px;
   border-radius: 999px;
-  padding: 7px 14px;
+  padding: 7px 13px;
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--accent-2);
+  color: var(--accent-text);
   background: var(--accent-2-soft);
-  border: 1px solid rgba(0, 224, 255, 0.28);
+  border: 1px solid rgba(160, 190, 0, 0.4);
 }
 
 .pill__dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-2);
-  box-shadow: 0 0 10px rgba(0, 224, 255, 0.9);
+  background: var(--accent-2-bright);
   animation: pulse-dot 2.6s var(--soft) infinite;
 }
 
@@ -298,131 +313,187 @@ body::after {
     opacity: 1;
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.3;
   }
 }
 
-/* --- tabs: now nav items inside the app bar --- */
+/* --- nav: a pill segmented control, sized for a thumb --- */
 
 .tabs {
   display: flex;
-  gap: 6px;
+  gap: 3px;
   align-items: center;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--bg-3);
+  box-shadow: inset 0 1px 2px rgba(13, 21, 38, 0.05);
 }
 
 .tab {
   appearance: none;
   background: none;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   color: var(--ink-dim);
-  padding: 10px 14px;
-  margin: 8px 0;
+  padding: 8px 15px;
+  margin: 0;
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
   cursor: pointer;
   white-space: nowrap;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  transition: background-color 160ms var(--soft), color 160ms var(--soft),
-    border-color 160ms var(--soft);
+  /* The global button carries a lift shadow; inside the segmented control that
+     reads as four outlined capsules, which is not what a segmented control is. */
+  box-shadow: none;
+  transition: background-color 150ms var(--soft), color 150ms var(--soft),
+    border-color 150ms var(--soft), box-shadow 150ms var(--soft);
 }
 
 .tab:hover {
   color: var(--ink);
-  background: var(--inset);
+  background: rgba(13, 21, 38, 0.05);
 }
 
 .tab[aria-selected="true"] {
   color: var(--ink);
-  border-color: rgba(92, 124, 255, 0.4);
-  background: linear-gradient(155deg, rgba(92, 124, 255, 0.22), rgba(0, 224, 255, 0.08));
-  box-shadow: 0 6px 18px -12px rgba(92, 124, 255, 0.9);
+  border-color: var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
 }
 
 .tab:focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
 .tab__count {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--accent-2);
-  background: var(--accent-2-soft);
+  color: var(--accent-text);
+  background: var(--accent-soft);
   border-radius: 999px;
   padding: 1px 6px;
 }
 
 /* =========================================================================
-   Dashboard header — replaces the poster hero
+   Header: what the account is allowed to do, before anything else
    ========================================================================= */
 
 .hero {
-  margin-bottom: clamp(18px, 3dvh, 28px);
+  margin-bottom: clamp(16px, 2.4dvh, 24px);
 }
 
 .hero__title {
   font-family: var(--display);
-  font-weight: 600;
-  font-size: clamp(30px, 4.6vw, 52px);
-  line-height: 1.04;
+  font-weight: 700;
+  font-size: clamp(28px, 4.2vw, 46px);
+  line-height: 1.05;
   letter-spacing: -0.03em;
   margin: 0 0 10px;
-  max-width: 20ch;
+  max-width: 24ch;
 }
 
 .hero__title em {
   font-style: normal;
-  background: var(--ramp);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent-text);
 }
 
 .hero__lede {
-  font-size: 15px;
+  font-size: 15.5px;
   color: var(--ink-dim);
-  max-width: 62ch;
+  max-width: 68ch;
   margin: 0;
+  line-height: 1.6;
 }
 
 .hero-foot {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
-/* --- bento stat tiles --- */
+/* --- three steps, in plain words, for a first-time reader --- */
+
+.how {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: clamp(14px, 2.2dvh, 20px);
+}
+
+.how__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  padding: 13px 14px;
+  min-width: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.how__num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 5px 12px -7px rgba(79, 70, 229, 0.95);
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--ramp);
+}
+
+.how__label {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.how__note {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+/* --- the state of the account --- */
 
 .stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: clamp(16px, 2.6dvh, 24px);
+  gap: 10px;
+  margin-top: clamp(14px, 2.2dvh, 20px);
 }
 
 .stat {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--glass);
-  padding: 14px 15px;
+  background: var(--bg-2);
+  padding: 13px 14px;
   min-width: 0;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  box-shadow: var(--shadow-sm);
 }
 
 .stat__label {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   color: var(--ink-faint);
-  margin: 0 0 8px;
+  margin: 0 0 7px;
 }
 
 .stat__value {
@@ -445,9 +516,10 @@ body::after {
 }
 
 .stat__hint {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--ink-faint);
   margin: 6px 0 0;
+  line-height: 1.45;
 }
 
 /* =========================================================================
@@ -455,14 +527,14 @@ body::after {
    ========================================================================= */
 
 .section {
-  margin-bottom: clamp(16px, 2.6dvh, 24px);
+  margin-bottom: clamp(14px, 2.2dvh, 20px);
 }
 
 .section-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: clamp(12px, 2dvh, 18px);
+  margin-bottom: clamp(11px, 1.8dvh, 16px);
 }
 
 .section-head > .chip,
@@ -473,45 +545,43 @@ body::after {
 .section-num {
   font-family: var(--mono);
   font-size: 10px;
-  letter-spacing: 0.12em;
-  color: var(--accent-2);
-  border: 1px solid rgba(0, 224, 255, 0.28);
+  letter-spacing: 0.1em;
+  color: var(--accent-text);
+  border: 1px solid rgba(160, 190, 0, 0.4);
   background: var(--accent-2-soft);
-  border-radius: 7px;
-  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  padding: 3px 9px;
 }
 
 .section-title {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.15em;
   color: var(--ink-dim);
   margin: 0;
 }
 
 /* =========================================================================
-   The request: the one thing the human must decide
+   The request: the one thing the human has to decide
    ========================================================================= */
 
-/* The one panel that is allowed to glow: it is the decision, and it should be
-   the brightest thing on the page. The ramp runs along its top edge. */
 .request {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(92, 124, 255, 0.38);
+  border: 1px solid rgba(160, 190, 0, 0.45);
   border-radius: var(--radius);
-  padding: clamp(20px, 3.2dvh, 32px);
-  background: linear-gradient(160deg, #171a24 0%, #0b0d12 100%);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 30px 70px -42px rgba(92, 124, 255, 0.85);
+  padding: clamp(18px, 3dvh, 30px);
+  background: var(--bg-2);
+  box-shadow: var(--shadow-lift);
 }
 
+/* the ramp marks the decision and nothing else */
 .request::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 2px;
+  height: 3px;
   background: var(--ramp);
 }
 
@@ -519,54 +589,50 @@ body::after {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: clamp(14px, 2.4dvh, 20px);
+  margin-bottom: clamp(13px, 2.2dvh, 19px);
 }
 
 .agent-avatar {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 13px;
-  border: 1px solid rgba(92, 124, 255, 0.4);
-  background: linear-gradient(150deg, rgba(92, 124, 255, 0.22), rgba(0, 224, 255, 0.08));
-  color: var(--accent-2);
-  box-shadow: 0 8px 22px -14px rgba(92, 124, 255, 0.9);
+  border-radius: 14px;
+  border: 1px solid rgba(160, 190, 0, 0.4);
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .agent-avatar--lg {
-  width: 52px;
-  height: 52px;
-  border-radius: 15px;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
 }
 
 .request__sentence {
   font-family: var(--display);
-  font-weight: 500;
-  font-size: clamp(24px, 3.4vw, 38px);
-  line-height: 1.14;
+  font-weight: 700;
+  font-size: clamp(23px, 3.2vw, 36px);
+  line-height: 1.15;
   letter-spacing: -0.025em;
   margin: 0 0 8px;
-  max-width: 26ch;
+  max-width: 28ch;
 }
 
-/* the amount is the decision, so it wears the ramp */
+/* the amount is the decision, so it is the one coloured word */
 .request__sentence em {
   font-style: normal;
-  font-weight: 600;
-  background: var(--ramp);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent-text);
   white-space: nowrap;
 }
 
 .request__sub {
   font-size: 14px;
   color: var(--ink-dim);
-  margin: 0 0 clamp(16px, 2.6dvh, 24px);
-  max-width: 66ch;
+  margin: 0 0 clamp(15px, 2.4dvh, 22px);
+  max-width: 70ch;
+  line-height: 1.6;
 }
 
 /* --- fact tiles --- */
@@ -576,13 +642,13 @@ body::after {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding: 0;
-  margin: 0 0 clamp(18px, 2.6dvh, 24px);
+  margin: 0 0 clamp(16px, 2.4dvh, 22px);
 }
 
 .fact {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-deep);
   padding: 12px 13px;
   min-width: 0;
 }
@@ -591,7 +657,7 @@ body::after {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   color: var(--ink-faint);
   margin-bottom: 7px;
 }
@@ -608,7 +674,7 @@ body::after {
   font-size: 14px;
 }
 
-/* --- the human's two decisions --- */
+/* --- the two decisions --- */
 
 .decide {
   display: flex;
@@ -627,7 +693,7 @@ button.block {
 
 button.block:hover:not(:disabled) {
   background: var(--danger-soft);
-  border-color: rgba(255, 92, 107, 0.55);
+  border-color: rgba(180, 35, 24, 0.4);
   color: var(--danger);
 }
 
@@ -637,58 +703,64 @@ button.block:hover:not(:disabled) {
 
 button {
   font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.008em;
+  border-radius: var(--radius-pill);
+  padding-inline: 22px;
   border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--bg-2);
   color: var(--ink);
-  padding: 12px 18px;
+  padding: 12px 22px;
   min-height: 44px;
   cursor: pointer;
-  transition: background-color 180ms var(--soft), border-color 180ms var(--soft),
-    color 180ms var(--soft), transform 120ms var(--soft), box-shadow 180ms var(--soft);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 160ms var(--soft), border-color 160ms var(--soft),
+    color 160ms var(--soft), transform 110ms var(--soft), box-shadow 160ms var(--soft);
 }
 
 button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.085);
+  background: var(--bg-3);
   border-color: var(--ink-faint);
   transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 
 button:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
 }
 
+/* Lime is a fill, so it is not a usable focus ring on a white page: the dark
+   member of the family marks the focused control instead. */
 button:focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
 button:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
-/* the primary action carries the ramp and a real glow */
 button.primary {
   background: var(--ramp);
   border-color: transparent;
   color: var(--accent-ink);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 14px 30px -16px rgba(92, 124, 255, 0.95);
+  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.5) inset, 0 10px 22px -12px rgba(150, 180, 0, 0.85);
 }
 
 button.primary:hover:not(:disabled) {
-  filter: brightness(1.07);
+  filter: brightness(1.04) saturate(1.05);
   border-color: transparent;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 18px 40px -16px rgba(0, 224, 255, 0.8);
+  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.55) inset, 0 14px 28px -12px rgba(120, 150, 0, 0.75);
 }
 
 button.danger:hover:not(:disabled) {
   background: var(--danger-soft);
-  border-color: rgba(255, 92, 107, 0.5);
+  border-color: rgba(180, 35, 24, 0.4);
   color: var(--danger);
 }
 
@@ -710,11 +782,11 @@ button.danger:hover:not(:disabled) {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 /* =========================================================================
-   Status: colour + icon + label, never colour alone
+   Status: colour plus an icon plus a word, never colour alone
    ========================================================================= */
 
 .chip,
@@ -726,7 +798,7 @@ button.danger:hover:not(:disabled) {
   padding: 5px 11px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -736,27 +808,27 @@ button.danger:hover:not(:disabled) {
 .state--ok {
   color: var(--ok);
   background: var(--ok-soft);
-  border-color: rgba(0, 214, 143, 0.32);
+  border-color: rgba(4, 120, 87, 0.24);
 }
 
 .chip.bad,
 .state--bad {
   color: var(--danger);
   background: var(--danger-soft);
-  border-color: rgba(255, 92, 107, 0.32);
+  border-color: rgba(180, 35, 24, 0.24);
 }
 
 .chip.warn,
 .state--wait {
   color: var(--warn);
   background: var(--warn-soft);
-  border-color: rgba(255, 176, 32, 0.32);
+  border-color: rgba(180, 83, 9, 0.24);
 }
 
 .chip.idle,
 .state--quiet {
   color: var(--ink-dim);
-  background: var(--inset);
+  background: var(--bg-3);
   border-color: var(--line);
 }
 
@@ -764,7 +836,7 @@ button.danger:hover:not(:disabled) {
    CREATEINTENT, which is a different word. */
 code.state {
   text-transform: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   font-size: 11.5px;
   color: var(--ink);
 }
@@ -778,19 +850,19 @@ code.state {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--glass);
-  padding: clamp(18px, 2.6dvh, 26px);
+  padding: clamp(16px, 2.4dvh, 24px);
   box-shadow: var(--shadow-lift);
 }
 
 .card + .card {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .card__head {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .card__title {
@@ -805,9 +877,10 @@ code.state {
   font-size: 13px;
   color: var(--ink-dim);
   margin: 4px 0 0;
+  line-height: 1.5;
 }
 
-/* --- rows: activity, permissions, checks --- */
+/* --- rows --- */
 
 .rows {
   list-style: none;
@@ -819,10 +892,10 @@ code.state {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 14px 12px;
+  padding: 13px 12px;
   border-radius: var(--radius-sm);
   border-bottom: 1px solid var(--line);
-  transition: background-color 160ms var(--soft);
+  transition: background-color 150ms var(--soft);
 }
 
 .row:last-child {
@@ -830,7 +903,7 @@ code.state {
 }
 
 .row:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-3);
 }
 
 .row__main {
@@ -850,6 +923,7 @@ code.state {
   color: var(--ink-dim);
   margin: 4px 0 0;
   overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .row__time {
@@ -872,7 +946,7 @@ code.state {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 14px 0;
+  padding: 13px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -906,47 +980,47 @@ code.state {
 }
 
 /* =========================================================================
-   Verdict — the one loud moment, and it glows
+   Verdict: the one moment that is allowed to be large
    ========================================================================= */
 
 .verdict,
 .verdict-card {
   position: relative;
-  border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: var(--glass);
-  padding: clamp(20px, 3.4dvh, 34px);
-  margin-bottom: 14px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  padding: clamp(18px, 3dvh, 30px);
+  margin-bottom: 12px;
   overflow: hidden;
-  animation: settle-up 320ms var(--decide) both;
+  box-shadow: var(--shadow-lift);
+  animation: settle-up 300ms var(--decide) both;
 }
 
 .verdict::before,
 .verdict-card::before {
   content: "";
   position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 2px;
+  inset: 0 0 auto 0;
+  height: 3px;
   background: var(--ramp);
 }
 
 .verdict.ok::before,
 .verdict-card--ok::before {
-  background: linear-gradient(90deg, var(--ok), transparent 70%);
+  background: var(--ok);
 }
 
 .verdict.bad::before,
 .verdict-card--bad::before {
-  background: linear-gradient(90deg, var(--danger), transparent 70%);
+  background: var(--danger);
 }
 
 .verdict-label,
 .verdict-card__label {
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(32px, 4.4vw, 54px);
-  line-height: 1.02;
+  font-size: clamp(30px, 4.2vw, 50px);
+  line-height: 1.03;
   letter-spacing: -0.035em;
   margin: 6px 0 10px;
 }
@@ -954,26 +1028,24 @@ code.state {
 .verdict.ok .verdict-label,
 .verdict-card--ok .verdict-card__label {
   color: var(--ok);
-  text-shadow: 0 0 34px rgba(0, 214, 143, 0.35);
 }
 
 .verdict.bad .verdict-label,
 .verdict-card--bad .verdict-card__label {
   color: var(--danger);
-  text-shadow: 0 0 34px rgba(255, 92, 107, 0.35);
 }
 
 .verdict-note,
 .verdict-card__note {
   font-size: 14px;
   color: var(--ink-dim);
-  max-width: 64ch;
+  max-width: 68ch;
   margin: 0;
   line-height: 1.65;
 }
 
 .verdict-card__actions {
-  margin-top: 20px;
+  margin-top: 18px;
 }
 
 /* =========================================================================
@@ -983,14 +1055,14 @@ code.state {
 .field {
   display: grid;
   gap: 7px;
-  margin-bottom: 16px;
+  margin-bottom: 15px;
 }
 
 .field label {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   color: var(--ink-faint);
 }
 
@@ -1000,31 +1072,31 @@ code.state {
   font-family: var(--mono);
   font-size: 14px;
   color: var(--ink);
-  background: var(--bg-deep);
-  border: 1px solid var(--line);
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   min-height: 46px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) inset;
-  transition: border-color 160ms var(--soft), box-shadow 160ms var(--soft);
+  transition: border-color 150ms var(--soft), box-shadow 150ms var(--soft);
 }
 
 .field input:hover,
 .field select:hover {
-  border-color: var(--line-strong);
+  border-color: var(--ink-faint);
 }
 
 .field input:focus-visible,
 .field select:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) inset, 0 0 0 3px rgba(92, 124, 255, 0.18);
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px rgba(75, 97, 0, 0.2);
 }
 
 .field__hint {
   font-size: 12px;
   color: var(--ink-faint);
   margin: 0;
+  line-height: 1.5;
 }
 
 .field-grid {
@@ -1034,14 +1106,14 @@ code.state {
 }
 
 /* =========================================================================
-   Disclosure — the technical proof stays available, and subordinate
+   Technical detail: available, and clearly subordinate
    ========================================================================= */
 
 .disclosure,
 .disclosure-block {
   border-top: 1px solid var(--line);
-  margin: 20px 0 0;
-  padding-top: 16px;
+  margin: 18px 0 0;
+  padding-top: 14px;
 }
 
 .disclosure {
@@ -1073,7 +1145,7 @@ details.security > summary {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   color: var(--ink-dim);
   min-height: 44px;
   display: flex;
@@ -1082,12 +1154,12 @@ details.security > summary {
   border-radius: var(--radius-sm);
   padding: 0 10px;
   margin: 0 -10px;
-  transition: background-color 160ms var(--soft), color 160ms var(--soft);
+  transition: background-color 150ms var(--soft), color 150ms var(--soft);
 }
 
 details.security > summary:hover {
   color: var(--ink);
-  background: var(--inset);
+  background: var(--bg-3);
 }
 
 details.security > summary::-webkit-details-marker {
@@ -1097,16 +1169,16 @@ details.security > summary::-webkit-details-marker {
 details.security > summary::before {
   content: "+";
   font-family: var(--mono);
-  color: var(--accent-2);
+  color: var(--accent);
   font-size: 13px;
 }
 
 details.security[open] > summary::before {
-  content: "−";
+  content: "\2212";
 }
 
 details.security > summary:focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -1115,7 +1187,7 @@ details.security > summary:focus-visible {
   grid-template-columns: 168px 1fr;
   gap: 10px 18px;
   font-size: 12.5px;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
 }
 
 .tech-list dt {
@@ -1162,27 +1234,27 @@ details.security > summary:focus-visible {
 }
 
 /* =========================================================================
-   Notices, empty states, copy
+   Notices, empty states, links
    ========================================================================= */
 
 .note {
   font-size: 13px;
   color: var(--ink-faint);
-  line-height: 1.7;
-  max-width: 80ch;
+  line-height: 1.65;
+  max-width: 82ch;
 }
 
 .notice {
   position: relative;
-  border: 1px solid rgba(255, 176, 32, 0.28);
+  border: 1px solid rgba(180, 83, 9, 0.24);
   border-radius: var(--radius-sm);
-  background: linear-gradient(150deg, rgba(255, 176, 32, 0.1), rgba(255, 176, 32, 0.03));
-  padding: 13px 16px;
+  background: var(--warn-soft);
+  padding: 12px 15px;
   font-size: 13px;
   color: var(--ink-dim);
-  line-height: 1.65;
-  margin: 0 0 18px;
-  max-width: 84ch;
+  line-height: 1.6;
+  margin: 0 0 16px;
+  max-width: 86ch;
 }
 
 .notice strong {
@@ -1191,12 +1263,12 @@ details.security > summary:focus-visible {
 }
 
 .err {
-  border: 1px solid rgba(255, 92, 107, 0.35);
+  border: 1px solid rgba(180, 35, 24, 0.3);
   border-radius: var(--radius-sm);
-  background: linear-gradient(150deg, rgba(255, 92, 107, 0.12), rgba(255, 92, 107, 0.03));
-  padding: 13px 16px;
+  background: var(--danger-soft);
+  padding: 12px 15px;
   font-size: 13px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .err strong {
@@ -1204,32 +1276,34 @@ details.security > summary:focus-visible {
 }
 
 a {
-  color: var(--accent-light);
+  color: var(--accent-text);
   text-decoration: none;
   text-underline-offset: 3px;
-  transition: color 160ms var(--soft);
+  transition: color 150ms var(--soft);
 }
 
 a:hover {
-  color: var(--accent-2);
+  color: var(--ink);
   text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
 }
 
 /* =========================================================================
-   Integration page — the developer surface
+   Developer page
    ========================================================================= */
 
 .integrate-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: 1fr;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .integrate-step {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--glass);
+  background: var(--bg-2);
   padding: 16px;
   min-width: 0;
   box-shadow: var(--shadow-lift);
@@ -1243,14 +1317,12 @@ a:hover {
   overflow: hidden;
 }
 
-/* a hairline of the ramp across the top of every snippet */
 .code::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 1px;
+  height: 2px;
   background: var(--ramp);
-  opacity: 0.5;
 }
 
 .code pre {
@@ -1269,18 +1341,15 @@ a:hover {
   bottom: 10px;
   /* kept at the 40px touch-target floor the rest of the system uses */
   min-height: 40px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   font-size: 11.5px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
   color: var(--ink);
-  backdrop-filter: blur(6px);
 }
 
 .code__copy:hover {
-  border-color: rgba(0, 224, 255, 0.5);
-  color: var(--accent-2);
+  border-color: var(--accent-text);
+  color: var(--accent-text);
 }
 
 @media (min-width: 1024px) {
@@ -1290,14 +1359,13 @@ a:hover {
 }
 
 /* =========================================================================
-   Entrance — short and directional. It plays once; the countdown ticks must
-   not restart it, so only containers with no live text carry a delay.
+   Motion: short, state-marking only
    ========================================================================= */
 
 @keyframes settle-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -1315,34 +1383,38 @@ a:hover {
 }
 
 .appbar {
-  animation: settle-fade 400ms var(--soft) both;
+  animation: settle-fade 380ms var(--soft) both;
 }
 
 .hero {
-  animation: settle-up 480ms var(--decide) 60ms both;
+  animation: settle-up 440ms var(--decide) 50ms both;
 }
 
 .stats {
-  animation: settle-up 480ms var(--decide) 120ms both;
+  animation: settle-up 440ms var(--decide) 110ms both;
 }
 
 .section--1 {
-  animation: settle-up 480ms var(--decide) 170ms both;
+  animation: settle-up 440ms var(--decide) 150ms both;
 }
 
 .section--2 {
-  animation: settle-up 480ms var(--decide) 220ms both;
+  animation: settle-up 440ms var(--decide) 200ms both;
 }
 
 .section--3 {
-  animation: settle-up 480ms var(--decide) 270ms both;
+  animation: settle-up 440ms var(--decide) 250ms both;
 }
 
 /* =========================================================================
    Narrow screens
    ========================================================================= */
 
-@media (max-width: 900px) {
+@media (max-width: 980px) {
+  .how {
+    grid-template-columns: 1fr;
+  }
+
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1351,10 +1423,6 @@ a:hover {
 @media (max-width: 760px) {
   .appbar__top {
     flex-wrap: wrap;
-  }
-
-  .brand-name {
-    font-size: 14px;
   }
 
   .disclosure {
@@ -1398,17 +1466,17 @@ a:hover {
   }
 }
 
-/* 390px is a real phone width, and a nav that hides its own last item is worse
-   than a tighter nav: the padding and tracking come down so SETTINGS stays on
-   screen instead of behind a horizontal scroll nobody discovers. */
+/* 390px is a real phone width, and navigation that hides its own last item is
+   worse than tighter navigation: the padding comes down so the last tab stays
+   on screen instead of behind a scroll nobody discovers. */
 @media (max-width: 430px) {
   .appbar__nav {
-    padding: 0 8px;
+    padding: 5px 8px;
     gap: 2px;
   }
 
   .tab {
-    padding: 10px 10px;
+    padding: 8px 11px;
     font-size: 11.5px;
     letter-spacing: 0;
   }
@@ -1421,9 +1489,10 @@ a:hover {
 /* On touch there is no hover, so hover styling must not be the only feedback. */
 @media (hover: none) {
   button:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.045);
+    background: var(--bg-2);
     border-color: var(--line-strong);
     transform: none;
+    box-shadow: var(--shadow-sm);
   }
 
   .tab:hover,

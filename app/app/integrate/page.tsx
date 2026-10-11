@@ -14,7 +14,7 @@ import { AppBar } from "@/components/chrome";
  * The integration page.
  *
  * The point of this page is to be copy-pasteable, so the snippets below are the
- * real API — every call in the "Steps" section is a method of the SDK the app
+ * real API, every call in the "Steps" section is a method of the SDK the app
  * itself uses. Nothing here is illustrative-only: the preflight panel at the
  * bottom runs `checkAuthorization` against the live deployment, so an integrator
  * can see a genuine typed reason before wiring anything up.
@@ -150,7 +150,7 @@ export default function Integrate() {
    * A real preflight against the deployed verifier. No assertion is supplied, so
    * the semantic checks (does it exist, is it revoked, expired, used, over the
    * ceiling, wrong agent) answer honestly and the signature check is the only
-   * thing that comes back negative — which is the question an integrator is
+   * thing that comes back negative, which is the question an integrator is
    * actually asking here: "is this permission still usable, and if not, why?"
    */
   const runCheck = async () => {
@@ -238,7 +238,7 @@ export default function Integrate() {
         </ul>
         <p className="note" style={{ marginTop: 16 }}>
           Install it rather than copying it:{" "}
-          <span className="mono">npm i @witness/sdk viem</span> — one dependency, ESM and CJS, with type
+          <span className="mono">npm i @witness/sdk viem</span>. One dependency, ESM and CJS, with type
           declarations, built from the same modules this page uses, so the product and the integration
           surface cannot drift. The package lives in{" "}
           <span className="mono">packages/sdk</span>. Runnable examples:{" "}
@@ -251,7 +251,7 @@ export default function Integrate() {
       <section className="section">
         <div className="section-head">
           <span className="section-num">03</span>
-          <p className="section-title">Try the preflight — live</p>
+          <p className="section-title">Try the preflight (live)</p>
         </div>
         <p className="note" style={{ marginBottom: 16 }}>
           This calls <span className="mono">WitnessVerifier.check</span> on the deployed testnet
@@ -383,7 +383,7 @@ export default function Integrate() {
               <p className="row__meta">
                 Passkeys are bound to a relying party, so a deployment for{" "}
                 <span className="mono">app.example.com</span> needs its own verifier with that rp id.
-                A mismatch fails every prompt — the most common way this integration breaks.
+                A mismatch fails every prompt, the most common way this integration breaks.
               </p>
             </div>
           </li>

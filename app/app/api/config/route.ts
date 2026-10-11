@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * so a visitor cannot redirect the app at arbitrary contracts.
  *
  * `rpId`/`origin` are what the passkey is bound to. They MUST match the origin
- * judges actually visit, or every passkey prompt fails — the most common way a
+ * judges actually visit, or every passkey prompt fails, the most common way a
  * WebAuthn demo dies during judging.
  */
 export async function GET() {

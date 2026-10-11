@@ -4,7 +4,7 @@
 // Android Keystore) are not guaranteed to normalise S into the lower half of the
 // curve order, so roughly half of all real WebAuthn signatures can have s > n/2.
 // If the precompile rejected those, a live passkey demo would fail intermittently
-// at random — the worst possible failure mode for a judged demo.
+// at random, the worst possible failure mode for a judged demo.
 //
 // Method: take a known-good low-S signature, derive the equally-valid high-S form
 // (s' = n - s), and ask the real chain about both.

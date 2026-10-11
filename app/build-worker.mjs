@@ -7,7 +7,7 @@
  * never reads the filesystem and no contract address is ever hand-copied.
  *
  * The same manifest the contracts were deployed with supplies rpId/origin, so the
- * site and the on-chain verifier can only agree or fail loudly — never silently
+ * site and the on-chain verifier can only agree or fail loudly, never silently
  * disagree.
  *
  *   WITNESS_CHAIN_ID=10143 bun run build-worker.mjs

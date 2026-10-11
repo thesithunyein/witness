@@ -7,6 +7,7 @@
   "scripts": {
     "gen:assertion": "node scripts/gen-assertion.mjs",
     "probe:p256": "node scripts/probe-p256.mjs",
+    "check:style": "node scripts/check-style.mjs",
     "test:contracts": "cd contracts && forge test"
   },
   "dependencies": {

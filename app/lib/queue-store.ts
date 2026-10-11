@@ -14,7 +14,7 @@
  *
  *   1. `POST /api/requests` also returns a delivery token carrying the validated
  *      request, so a browser's next poll missing a cold instance does not lose the
- *      request — see `encodeRequestToken`.
+ *      request, see `encodeRequestToken`.
  *   2. The canonical record of a decision is the chain. The map can be wiped,
  *      filled, or lost and no money can move: only a passkey signature can do
  *      that, and the counterparty verifies it on-chain.
@@ -115,7 +115,7 @@ export function decide(id: string, decision: RequestDecision): AgentRequest | un
  *
  * Called after a decision lands, so a stale request cannot sit in the queue
  * looking actionable after the permission it belongs to has been used or
- * withdrawn. This is presentation hygiene, not enforcement — the chain already
+ * withdrawn. This is presentation hygiene, not enforcement, the chain already
  * refuses the second attempt with `AlreadyConsumed` or `Revoked`.
  */
 export function retireSiblings(intentId: string, exceptId: string, reason: string): number {

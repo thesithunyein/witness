@@ -8,7 +8,7 @@
  *   dist/index.cjs    CommonJS, for a Node app that is not ready to move
  *   dist/types/*.d.ts declarations, so TypeScript sees the real API
  *
- * The JS is bundled by Bun with `viem` external — viem is a peer dependency, and
+ * The JS is bundled by Bun with `viem` external, viem is a peer dependency, and
  * bundling a second copy of it would give an integrator two `createPublicClient`s
  * with different internals, which fails in ways that look like their bug.
  *

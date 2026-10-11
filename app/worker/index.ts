@@ -1,5 +1,5 @@
 /**
- * Witness — Cloudflare Worker server for the deployed site.
+ * Witness, Cloudflare Worker server for the deployed site.
  *
  * The deployed app is a static bundle of the page component plus this Worker.
  * This file implements exactly the three routes the page calls:
@@ -94,7 +94,7 @@ const publicClient = () =>
  * Without this, the page can refresh the intent and read pre-transaction state:
  * a just-revoked permission would briefly look active and a fresh intent could
  * not be found yet. Monad's fast blocks make it a real race, not a theoretical
- * one — the test harness hit it. A write that mined but reverted is a genuine
+ * one, the test harness hit it. A write that mined but reverted is a genuine
  * failure and throws, so nothing is reported as successful without being real.
  */
 async function confirm(hash: Hex): Promise<void> {
@@ -174,7 +174,7 @@ type CreateBody = {
   maxAmount: string;
   /**
    * Absolute unix seconds, not a duration. Absolute, because the digest the human
-   * signs contains the resolved expiry — a relative value would make the signed
+   * signs contains the resolved expiry, a relative value would make the signed
    * number depend on when the request happened to be read.
    */
   expiry: string;

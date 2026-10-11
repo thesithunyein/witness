@@ -1,7 +1,7 @@
 # Contributing
 
 Witness is a small, opinionated codebase. The fastest way to get a change merged is
-to make the claim it touches **checkable** — a failing test, a transaction hash, or a
+to make the claim it touches **checkable**, a failing test, a transaction hash, or a
 trace beats an argument every time.
 
 ## Before you start
@@ -18,18 +18,24 @@ cd app && bun install          # the product
 cd contracts && forge build    # the contracts
 ```
 
-## The three checks that must pass
+## The checks that must pass
 
 ```bash
 cd contracts && forge test                 # 40 tests, real P-256 signatures
 cd app && bunx tsc --noEmit                # types
 cd app && bun run build-worker.mjs         # the Worker bundle must build
 cd packages/sdk && bun run check           # the SDK must not lag the app
+node scripts/check-style.mjs               # no em dashes in prose or copy
 ```
+
+`check-style.mjs` is a one-rule guard: nothing a reader sees may contain an em dash
+or an en dash. `contracts/**` is exempt, because the deployed bytecode embeds a
+metadata hash derived from the Solidity source, so editing a comment there would
+change a fresh rebuild and break the exact-match verification the README points at.
 
 If you change any route's request or response shape, change **both** hosts: the Next
 routes in `app/app/api/**` and the Worker in `app/worker/index.ts`. They had drifted
-before, and the failure mode was silent until someone used the second deployment —
+before, and the failure mode was silent until someone used the second deployment,
 that is exactly what this rule exists to prevent.
 
 If you change the deployed contracts' behaviour, the address manifest, or the
@@ -42,7 +48,7 @@ talking to a stack the source no longer describes.
 - **Breaking a claim.** A test that shows the digest binding, the replay guard, the
   identity check or the one-time consumption can be bypassed.
 - **Filling in the threat model.** An attack class it does not list, with its
-  residual risk — including attacks you cannot fix.
+  residual risk, including attacks you cannot fix.
 - **Integration experience.** A report from a real app that tried to integrate, even
   (especially) if the API did not fit.
 - **Docs that are wrong.** If the README says something the code does not do, that is
@@ -81,7 +87,7 @@ It is the place to prove something "on-chain" rather than "on an anvil fork".
 
 ## Deployment changes
 
-Anything that publishes — a contract deploy, an app redeploy, a published site —
+Anything that publishes, a contract deploy, an app redeploy, a published site,
 should be recorded in the README's live table and in `CHANGELOG.md`, with the
 evidence (a transaction hash, an `/api/config` response, a verification job id).
 "This is deployed" without an artifact is not a status.

@@ -43,7 +43,7 @@ export type AgentRequest = {
   agentId: string;
   /** Display name for the agent, from its ERC-8004 metadata where available. */
   agentName: string;
-  /** What the payment is for — the merchant's name, in the agent's words. */
+  /** What the payment is for, the merchant's name, in the agent's words. */
   service: string;
   /** Optional: why the agent wants this, in its own words. */
   note?: string;
@@ -237,8 +237,8 @@ export const pendingRequest = (list: AgentRequest[]): AgentRequest | null =>
  * Fold a decision into the page's own copy of a request.
  *
  * The page applies the decision locally the moment the chain has spoken, and the
- * server is told afterwards. If the server has already forgotten the request — a
- * recycled instance — the human still sees the outcome that actually happened,
+ * server is told afterwards. If the server has already forgotten the request, a
+ * recycled instance, the human still sees the outcome that actually happened,
  * because the transaction is the record and this is only the display.
  */
 export function withDecision(

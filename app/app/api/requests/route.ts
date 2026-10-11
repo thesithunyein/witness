@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  *     passkey can, and the counterparty verifies it on-chain.
  *   - It does not trust the caller. `service`, `note` and `agentName` are rendered
  *     as the agent's own words. `to` and `amount` are treated as an untrusted
- *     proposal that becomes binding only where it belongs — inside the digest the
+ *     proposal that becomes binding only where it belongs, inside the digest the
  *     human's passkey signs.
  *
  * The one claim that can be checked without the human is identity, so it is

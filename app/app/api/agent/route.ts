@@ -125,7 +125,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     // The contract already decided why this was refused. Surface that reason
-    // instead of a generic failure — it is the difference between the user
+    // instead of a generic failure, it is the difference between the user
     // seeing "transaction failed" and "that exceeds what you approved".
     const decoded = decodeUnauthorized(err);
     const message = err instanceof Error ? err.message : String(err);

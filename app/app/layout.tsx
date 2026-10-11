@@ -5,7 +5,7 @@ import "./globals.css";
 /**
  * Three faces, each with one job:
  *
- *   Inter           the interface — labels, body, buttons
+ *   Inter           the interface, labels, body, buttons
  *   Space Grotesk   display lines: the dashboard title, the permission
  *                   sentence, the verdict. Geometric, not decorative.
  *   JetBrains Mono  every figure and identifier: amounts, addresses, hashes,
@@ -33,11 +33,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Witness Approvals — your agent asks, you decide",
+  // The tab icon is public/logo.png, the same file the app bar and the README use.
+  icons: { icon: "/logo.png" },
+  title: "Witness Approvals: your agent asks, you decide",
   description:
     "Before an AI agent spends your money, you approve that exact action with a passkey. Enforced on Monad.",
   openGraph: {
-    title: "Witness Approvals — your agent asks, you decide",
+    title: "Witness Approvals: your agent asks, you decide",
     description:
       "A passkey-signed, one-time permission for one exact action, checked by the contract that holds the funds. Monad testnet.",
     type: "website",
@@ -45,8 +47,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08090c",
-  colorScheme: "dark",
+  // Matches the page background so the browser chrome does not band against it.
+  themeColor: "#f5f6f8",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

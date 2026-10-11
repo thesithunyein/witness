@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  *
  * What this returns is a *notification*, not a receipt: it is unsigned server
  * memory, and anything on the network can claim to be it. The receipt is the
- * transaction hash, which the agent checks for itself on Monad — see
+ * transaction hash, which the agent checks for itself on Monad, see
  * `examples/agent-request.mjs`, which refuses to report success on this response
  * alone. That distinction is the whole reason a queue like this can be allowed to
  * be untrusted: it never carries authority, only news.

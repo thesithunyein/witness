@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
- * Exercises the Worker's handlers directly under bun — including real testnet
- * transactions — before any deploy. This is the fast feedback loop; the
+ * Exercises the Worker's handlers directly under bun, including real testnet
+ * transactions, before any deploy. This is the fast feedback loop; the
  * deployed preview (workerd) is the authoritative check.
  *
  *   cd app && bun run test-worker.mjs
@@ -24,7 +24,7 @@ if (existsSync(envPath)) {
 
 const key = fileEnv.DEPLOYER_PRIVATE_KEY;
 if (!key) {
-  console.error("DEPLOYER_PRIVATE_KEY missing from ../.env — cannot run write tests.");
+  console.error("DEPLOYER_PRIVATE_KEY missing from ../.env, cannot run write tests.");
   process.exit(1);
 }
 
@@ -53,7 +53,7 @@ let failures = 0;
 const check = (name, cond, detail) => {
   const ok = !!cond;
   if (!ok) failures++;
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  — ${detail}` : ""}`);
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` , ${detail}` : ""}`);
 };
 
 // 1. health
@@ -76,7 +76,9 @@ const createRes = await (
     agentWallet: config.contracts.AgentExecutor,
     agentId: "0",
     maxAmount: "1",
-    expiresInSeconds: 600,
+    // Absolute unix seconds, matching /api/intent (and the SDK, which does this
+    // conversion itself). A relative value here is rejected with a 400.
+    expiry: String(Math.floor(Date.now() / 1000) + 600),
     // Not a usable P-256 point on purpose: registration stores it; verification
     // is what tests the key, and the rejection paths below do that.
     qx: "1",

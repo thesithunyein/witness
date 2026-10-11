@@ -3,7 +3,7 @@
 **An agent can prove who it is. Witness proves what the human actually authorized.**
 
 Your agent asks to spend money. The human approves *that exact action* with a
-passkey. Your contract verifies the approval on-chain before it moves anything —
+passkey. Your contract verifies the approval on-chain before it moves anything,
 without trusting the agent, and without asking the human to hold a wallet.
 
 ```
@@ -11,7 +11,7 @@ npm i @witness/sdk viem
 ```
 
 Used by the reference app at [witness.sithunyein.com](https://witness.sithunyein.com),
-which imports this package's source directly — so the product and the integration
+which imports this package's source directly, so the product and the integration
 surface cannot drift apart.
 
 ## What it does
@@ -23,7 +23,7 @@ surface cannot drift apart.
 | cannot retry | one use only | moves the money, or reverts with a typed reason |
 
 The digest binds the chain id, your contract, the permission, the recipient and
-the amount. Change any one of them and the signature no longer applies — so an
+the amount. Change any one of them and the signature no longer applies, so an
 approval cannot be replayed against a different contract, a different chain, or a
 different number.
 
@@ -69,7 +69,7 @@ if (!result.allowed) {
 
 ### Verifying instead of spending
 
-If you are the counterparty — the API being paid, the vault, the marketplace —
+If you are the counterparty, the API being paid, the vault, the marketplace,
 you do not need this client's write path at all. You need one call:
 
 ```solidity
@@ -83,11 +83,11 @@ which reports the same typed reasons without spending anything.
 
 ## Transports
 
-- `{ kind: "relayer", baseUrl? }` — a server route registers permissions and
+- `{ kind: "relayer", baseUrl? }`, a server route registers permissions and
   submits agent actions, so a user needs **no wallet and no testnet funds**. The
   relayer pays gas and can never approve anything: approving needs the passkey,
   which never leaves the human's device. This is what the reference app uses.
-- `{ kind: "wallet", writer }` — you hold a wallet client (browser wallet, KMS).
+- `{ kind: "wallet", writer }`, you hold a wallet client (browser wallet, KMS).
   Anything with `account` and `writeContract` satisfies the `ContractWriter` type;
   the SDK does not force a wallet stack.
 
@@ -113,7 +113,7 @@ which reports the same typed reasons without spending anything.
   the system working, but it is the most common way a first integration breaks.
 - **Witness constrains only what consults it.** A contract that never calls the
   verifier is not protected by it. The check has to live in the counterparty that
-  holds the value — that is the design, not an oversight.
+  holds the value, that is the design, not an oversight.
 - **`agentId` is enforced only when your deployment configures a registry.** When
   it does not, the binding is skipped, and this SDK reports the same typed reasons
   the chain does rather than claiming an enforcement that is not happening.

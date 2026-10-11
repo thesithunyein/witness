@@ -30,8 +30,8 @@ discussions, and dismissing a report of any of the above.
 
 ## Scope
 
-This applies in all project spaces — issues, pull requests, discussions, commit
-messages, code comments — and when representing the project in public.
+This applies in all project spaces, issues, pull requests, discussions, commit
+messages, code comments, and when representing the project in public.
 
 ## Reporting
 

@@ -3,22 +3,19 @@
  *
  * The navigation lives in the app bar now, so it has to be one component: the
  * product page puts its tabs in it, the developer page puts a single link back.
- * It is presentation only — no state, no hooks — so either page can render it.
+ * It is presentation only, no state, no hooks, so either page can render it.
  */
 import type { ReactNode } from "react";
 
-/** The wordmark's mark: a drawn asterisk, lit by the brand ramp. */
+/**
+ * The mark: the logo file itself, not a redrawing of it.
+ *
+ * public/logo.png is the same file the tab icon (`icons.icon` in layout.tsx),
+ * the static bundle and the README all point at, so the tab, the bar and the
+ * README cannot drift apart.
+ */
 export function Mark() {
-  return (
-    <svg className="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <g stroke="currentColor" strokeWidth="2" strokeLinecap="square">
-        <line x1="12" y1="2.5" x2="12" y2="21.5" />
-        <line x1="2.5" y1="12" x2="21.5" y2="12" />
-        <line x1="5.3" y1="5.3" x2="18.7" y2="18.7" />
-        <line x1="18.7" y1="5.3" x2="5.3" y2="18.7" />
-      </g>
-    </svg>
-  );
+  return <img className="mark" src="/logo.png" alt="" width={30} height={30} />;
 }
 
 export function AppBar({

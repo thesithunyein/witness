@@ -57,6 +57,8 @@ if (!result.success) {
 // The HTML shell links /styles.css and /main.js; keep those names stable.
 copyFileSync(resolve(appRoot, "static/index.html"), resolve(outDir, "index.html"));
 copyFileSync(resolve(appRoot, "app/globals.css"), resolve(outDir, "styles.css"));
+// The favicon is the same file Next serves from public/, not a second copy.
+copyFileSync(resolve(appRoot, "public/logo.png"), resolve(outDir, "logo.png"));
 
 for (const o of result.outputs) {
   const name = o.path.split(/[\\/]/).pop();

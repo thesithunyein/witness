@@ -3,7 +3,7 @@
  * Live end-to-end integration test against the deployed Monad testnet contracts.
  *
  * The Foundry suite proves the protocol against a simulated chain. This proves the
- * DEPLOYED stack behaves the same way, on a real chain, with real transactions —
+ * DEPLOYED stack behaves the same way, on a real chain, with real transactions,
  * which is a different claim, and the one a user actually relies on.
  *
  * What it does, in order:
@@ -66,7 +66,7 @@ const client = createPublicClient({ chain, transport: http() });
 const envFile = readFileSync(resolve(ROOT, ".env"), "utf8");
 const envKey = envFile.match(/DEPLOYER_PRIVATE_KEY=(0x[0-9a-fA-F]{64})/);
 if (!envKey) {
-  console.error("DEPLOYER_PRIVATE_KEY not found in .env — cannot run the live test.");
+  console.error("DEPLOYER_PRIVATE_KEY not found in .env, cannot run the live test.");
   process.exit(1);
 }
 const account = privateKeyToAccount(envKey[1]);
@@ -295,11 +295,11 @@ async function attempt(intentId, to, amount, assertion) {
 const results = [];
 const check = (name, pass, detail) => {
   results.push({ name, pass, detail });
-  console.log(`  ${pass ? "PASS" : "FAIL"}  ${name}${detail ? `  — ${detail}` : ""}`);
+  console.log(`  ${pass ? "PASS" : "FAIL"}  ${name}${detail ? ` , ${detail}` : ""}`);
 };
 
 async function main() {
-  console.log(`\nLive end-to-end test — ${chain.name} (${chain.id})`);
+  console.log(`\nLive end-to-end test, ${chain.name} (${chain.id})`);
   console.log(`  deployer  ${account.address}`);
   console.log(`  executor  ${C.AgentExecutor}`);
   console.log(`  safe      ${C.DemoSafe}`);
@@ -317,7 +317,7 @@ async function main() {
   const toBefore = await client.getBalance({ address: recipient });
   console.log(`\n  safe holds ${formatUnits(safeBefore, 18)} MON; recipient holds ${formatUnits(toBefore, 18)}`);
   if (safeBefore < LIMIT) {
-    console.error("  the safe has no native MON to move — fund it first");
+    console.error("  the safe has no native MON to move, fund it first");
     process.exit(1);
   }
 
