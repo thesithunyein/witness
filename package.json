@@ -1,0 +1,14 @@
+{
+  "name": "witness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Witness — proof-of-intent layer for AI agents (Monad)",
+  "scripts": {
+    "gen:assertion": "node scripts/gen-assertion.mjs",
+    "probe:p256": "node scripts/probe-p256.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0"
+  }
+}

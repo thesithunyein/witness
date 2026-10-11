@@ -1,0 +1,12 @@
+node_modules/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+.env
+.env.*
+!.env.example
+app/.next/
+app/out/
+app/node_modules/
+.DS_Store
+Thumbs.db
