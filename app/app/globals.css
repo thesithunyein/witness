@@ -1,0 +1,439 @@
+/*
+ * Witness — Warm Monochrome direction.
+ *
+ * Deliberate choices, per the design brief:
+ *  - warm charcoal, not navy: Warm Monochrome specifies warm greys, and a cool
+ *    blue base is a different (pitch-deck) language
+ *  - ONE brand accent reserved for the approval action
+ *  - green/red are semantic STATE tokens only, always paired with an icon and a
+ *    label so status is never colour-only
+ *  - radius varies by role; a single radius everywhere reads as machine-made
+ *  - no decorative gradients, no glassmorphism, no gradient text
+ */
+
+:root {
+  /* surfaces */
+  --bg: #17140f;
+  --surface: #201c17;
+  --surface-raised: #262119;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+
+  /* type */
+  --ink: #ece7de;
+  --ink-dim: #a8a29a;
+  --ink-faint: #6f6a62;
+
+  /* one brand accent: approval */
+  --accent: #e0a13c;
+  --accent-ink: #1a1409;
+  --accent-soft: rgba(224, 161, 60, 0.14);
+
+  /* semantic state tokens (never the only signal) */
+  --ok: #6cc48f;
+  --ok-soft: rgba(108, 196, 143, 0.13);
+  --danger: #e5674f;
+  --danger-soft: rgba(229, 103, 79, 0.13);
+  --muted-soft: rgba(255, 255, 255, 0.06);
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+
+  /* radius by role */
+  --r-card: 14px;
+  --r-control: 10px;
+  --r-chip: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background-image: radial-gradient(
+    1100px 500px at 50% -20%,
+    rgba(224, 161, 60, 0.055),
+    transparent 70%
+  );
+}
+
+.shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 56px 24px 96px;
+}
+
+/* --- header: one hero fact, not a slogan --- */
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(150deg, var(--accent), #8a6220);
+  display: grid;
+  place-items: center;
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 15px;
+  flex: none;
+}
+
+.wordmark {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+/* --- panels --- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 20px;
+}
+
+.panel + .panel {
+  margin-top: 16px;
+}
+
+.panel-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+  margin: 0 0 14px;
+  font-weight: 600;
+}
+
+/* --- the permission receipt: the only elevated surface --- */
+
+.receipt {
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.receipt-sentence {
+  font-size: 19px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+
+.receipt-sub {
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  margin: 0 0 18px;
+}
+
+.receipt-sentence em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* --- disclosure: technical proof, subordinate --- */
+
+.disclosure {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 8px 16px;
+  font-size: 12.5px;
+}
+
+.disclosure dt {
+  color: var(--ink-faint);
+}
+
+.disclosure dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-dim);
+  word-break: break-all;
+}
+
+/* --- controls --- */
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+button {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--muted-soft);
+}
+
+button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #eab04f;
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* --- status chips: colour + icon + label, never colour alone --- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-chip);
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.chip.ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: rgba(108, 196, 143, 0.28);
+}
+
+.chip.bad {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: rgba(229, 103, 79, 0.28);
+}
+
+.chip.warn {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(224, 161, 60, 0.28);
+}
+
+.chip.idle {
+  color: var(--ink-dim);
+  background: var(--muted-soft);
+  border-color: var(--line);
+}
+
+/* --- feed --- */
+
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.entry-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-reason {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.entry-detail {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  margin-top: 3px;
+}
+
+.entry-hash {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 5px;
+  word-break: break-all;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- the blocked verdict, sized for a projected demo --- */
+
+.verdict {
+  border-radius: var(--r-card);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+}
+
+.verdict.bad {
+  background: var(--danger-soft);
+  border-color: rgba(229, 103, 79, 0.35);
+}
+
+.verdict.ok {
+  background: var(--ok-soft);
+  border-color: rgba(108, 196, 143, 0.35);
+}
+
+.verdict-label {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.verdict.bad .verdict-label {
+  color: var(--danger);
+}
+
+.verdict.ok .verdict-label {
+  color: var(--ok);
+}
+
+.verdict-note {
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* --- numeric readouts --- */
+
+.countdown {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.kv dt {
+  color: var(--ink-faint);
+}
+
+.kv dd {
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.dim {
+  color: var(--ink-dim);
+}
+
+.faint {
+  color: var(--ink-faint);
+}
+
+.note {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+}
+
+.err {
+  border: 1px solid rgba(229, 103, 79, 0.35);
+  background: var(--danger-soft);
+  color: var(--ink);
+  border-radius: var(--r-control);
+  padding: 12px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.steps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

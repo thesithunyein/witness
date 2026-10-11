@@ -104,6 +104,25 @@ verdict: P256 PRECOMPILE LIVE AND VALIDATING
 The `sha256` control call is there on purpose: without it, an endpoint that silently fails to
 execute precompiles at all would look identical to a rejecting precompile.
 
+### High-S signatures are accepted (this would otherwise break a live demo)
+
+Platform authenticators are not guaranteed to normalise `s` into the lower half of the curve order,
+so roughly half of all real WebAuthn signatures can arrive with `s > n/2`. If the precompile rejected
+those, a passkey demo would fail at random.
+
+```bash
+node scripts/probe-highs.mjs
+```
+
+```
+low-S  signature : ACCEPT
+high-S signature : ACCEPT
+verdict: precompile accepts BOTH S forms -> platform authenticators work regardless of normalisation
+```
+
+Verified on both Monad mainnet and testnet. The client therefore does **not** need to normalise `S`
+before submitting.
+
 ---
 
 ## Quickstart
