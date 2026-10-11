@@ -24,10 +24,10 @@
   --line-strong: rgba(255, 255, 255, 0.2);
   --inset: rgba(255, 255, 255, 0.035);
 
-  /* type */
+  /* type — all three clear WCAG AA on #161616 (18.1 / 7.2 / 5.2) */
   --ink: #ffffff;
   --ink-dim: #a3a3a3;
-  --ink-faint: #6e6e6e;
+  --ink-faint: #8c8c8c;
 
   /* the one accent: approval */
   --accent: #e0a13c;
@@ -322,10 +322,18 @@ button {
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink);
-  padding: 12px 22px;
+  /* 13px vertical keeps every control at or above the 40px touch target */
+  padding: 13px 22px;
+  min-height: 40px;
   cursor: pointer;
   transition: background-color 160ms var(--soft), border-color 160ms var(--soft),
-    color 160ms var(--soft), opacity 160ms var(--soft);
+    color 160ms var(--soft), opacity 160ms var(--soft), transform 90ms var(--soft);
+}
+
+/* Pressed feedback, 90ms in and back out: cheap, and its absence reads as a
+   dead control. */
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:hover:not(:disabled) {
@@ -649,5 +657,600 @@ a:hover {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     transition: none !important;
+  }
+}
+
+/* =========================================================================
+   Product surfaces
+   Added with the consumer-facing IA. Same system: flat field, hairlines,
+   micro-labels, one accent, and green/red reserved for real state.
+   ========================================================================= */
+
+/* --- tab bar: the app's only navigation --- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: clamp(20px, 3dvh, 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--ink-faint);
+  padding: 12px 14px;
+  margin-bottom: -1px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 44px;
+  transition: color 120ms var(--soft), border-color 120ms var(--soft);
+}
+
+.tab:hover {
+  color: var(--ink-dim);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.tab__count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+
+/* --- the approval request: the one thing the human must decide --- */
+
+.request {
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  padding: clamp(20px, 3.2dvh, 34px);
+}
+
+.request__agent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: clamp(14px, 2.4dvh, 22px);
+}
+
+/* A drawn glyph, not clip art: the agent's mark is a four-point asterisk, the
+   same family as the brand. No robots, no shields. */
+.agent-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--accent);
+}
+
+.agent-avatar--lg {
+  width: 52px;
+  height: 52px;
+}
+
+.request__sentence {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(26px, 3.8vw, 46px);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  max-width: 22ch;
+}
+
+.request__sentence em {
+  font-style: normal;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.request__sub {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0 0 clamp(18px, 2.8dvh, 26px);
+}
+
+/* --- fact rows: amount, expiry, risk --- */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+  margin-bottom: clamp(18px, 2.8dvh, 26px);
+}
+
+.fact dt {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.fact dd.mono {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+/* --- the human's two decisions --- */
+
+.decide {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.decide__primary {
+  flex: 1 1 240px;
+}
+
+/* Block is a real decision, not a lesser one: it gets a full-size control. */
+button.block {
+  flex: 0 1 auto;
+}
+
+button.block:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* --- verdict: the one loud moment --- */
+
+.verdict-card {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: clamp(22px, 4dvh, 44px) 0;
+  animation: settle-fade 520ms var(--soft) both;
+}
+
+.verdict-card__label {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(40px, 8vw, 112px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  animation: reveal-up 900ms var(--reveal) both;
+}
+
+.verdict-card--ok .verdict-card__label {
+  color: var(--ok);
+}
+
+.verdict-card--bad .verdict-card__label {
+  color: var(--danger);
+}
+
+.verdict-card__note {
+  font-size: 14px;
+  color: var(--ink-dim);
+  max-width: 60ch;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.verdict-card__actions {
+  margin-top: 22px;
+}
+
+/* --- plain list rows: activity, permissions, agents --- */
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row__title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+
+.row__meta {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  margin: 4px 0 0;
+}
+
+.row__time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+/* --- state chips --- */
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 4px 11px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* A code identifier is not a status: `createIntent` must not render as
+   CREATEINTENT, which is a different word. Anywhere a code element borrows the
+   pill styling, it keeps its own casing. */
+code.state {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.state--ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: rgba(126, 211, 160, 0.3);
+}
+
+.state--bad {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: rgba(240, 115, 90, 0.3);
+}
+
+.state--wait {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(224, 161, 60, 0.3);
+}
+
+.state--quiet {
+  color: var(--ink-dim);
+  background: var(--inset);
+  border-color: var(--line);
+}
+
+/* --- cards for agents / settings --- */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: clamp(18px, 2.6dvh, 26px);
+}
+
+.card + .card {
+  margin-top: 14px;
+}
+
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.card__sub {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  margin: 3px 0 0;
+}
+
+/* --- form controls: the permission the human grants --- */
+
+.field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.field input,
+.field select {
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  padding: 12px 14px;
+  min-height: 44px;
+  transition: border-color 120ms var(--soft);
+}
+
+.field input:hover,
+.field select:hover {
+  border-color: var(--ink-faint);
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.field__hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+/* --- security details: everything technical lives behind here --- */
+
+.disclosure-block {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 16px;
+}
+
+details.security > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+details.security > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.security > summary::before {
+  content: "+";
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+details.security[open] > summary::before {
+  content: "−";
+}
+
+details.security > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tech-list {
+  display: grid;
+  grid-template-columns: 168px 1fr;
+  gap: 10px 18px;
+  font-size: 12.5px;
+  margin: 12px 0 0;
+}
+
+.tech-list dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  padding-top: 2px;
+}
+
+.tech-list dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  word-break: break-all;
+}
+
+/* --- inline notice: honest about what is real and what is a fixture --- */
+
+.notice {
+  border-left: 2px solid var(--accent);
+  padding: 10px 0 10px 14px;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  margin: 0 0 20px;
+  max-width: 78ch;
+}
+
+.notice strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.section-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+@media (max-width: 620px) {
+  .facts {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-list {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .tech-list dd {
+    margin-bottom: 10px;
+  }
+
+  .decide__primary {
+    flex: 1 1 100%;
+  }
+
+  button.block {
+    width: 100%;
+  }
+}
+
+/* On touch there is no hover, so hover styling must not be the only feedback. */
+@media (hover: none) {
+  button:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--line-strong);
+  }
+}
+
+
+/* --- integration page: the copy-paste surface ------------------------------ */
+
+.integrate-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+  margin-bottom: 22px;
+}
+
+.integrate-step {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 18px;
+  min-width: 0;
+}
+
+.code {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  overflow: hidden;
+}
+
+.code pre {
+  margin: 0;
+  padding: 16px 16px 44px;
+  overflow-x: auto;
+  font-size: 0.76rem;
+  line-height: 1.65;
+  color: var(--ink);
+  tab-size: 2;
+}
+
+.code__copy {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  min-height: 32px;
+  padding: 6px 14px;
+  font-size: 0.74rem;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+}
+
+.code__copy:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.code__copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1024px) {
+  .code pre {
+    font-size: 0.8rem;
+  }
+}
+
+/* --- narrow screens: fit the four tabs without a hidden horizontal scroll ---
+   375px is a required breakpoint, and a tab bar that scrolls sideways hides its
+   own last item. At this width the labels fit if the padding and tracking come
+   down, so they do rather than leaving SETTINGS off-screen. */
+
+@media (max-width: 420px) {
+  .tab {
+    padding: 12px 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .tabs {
+    justify-content: space-between;
+    overflow-x: visible;
+  }
+
+  .masthead-right .micro {
+    display: none;
   }
 }

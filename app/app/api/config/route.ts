@@ -14,6 +14,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const d = loadDeployment();
+    const zero = "0x0000000000000000000000000000000000000000";
+    const identityConfigured = d.erc8004IdentityRegistry !== zero;
+    const agentId = d.agentId ? BigInt(d.agentId) : 0n;
+
     return NextResponse.json(
       {
         chainId: d.chainId,
@@ -21,9 +25,18 @@ export async function GET() {
         origin: d.origin,
         contracts: d.contracts,
         erc8004IdentityRegistry: d.erc8004IdentityRegistry,
-        // Surfaced so the UI can state plainly whether it is wired to real
-        // passkey verification or running without an identity registry.
-        identityEnforced: d.erc8004IdentityRegistry !== "0x0000000000000000000000000000000000000000",
+        agentName: d.agentName ?? "Research Agent",
+        agentURI: d.agentURI ?? null,
+        agentId: agentId.toString(),
+        /**
+         * Enforcement is only real when a registry is configured AND the intent
+         * names a non-zero agent id. Both are surfaced so the UI can state plainly
+         * which of those is true rather than implying the stronger case.
+         */
+        identityEnforced: identityConfigured && agentId !== 0n,
+        configurationLocked: d.configurationLocked ?? false,
+        explorer:
+          d.chainId === 143 ? "https://monadscan.com" : "https://testnet.monadscan.com",
       },
       { headers: { "cache-control": "no-store" } }
     );

@@ -17,6 +17,17 @@ export type Deployment = {
   };
   erc8004IdentityRegistry: Address;
   safeFunding: string;
+  /**
+   * ERC-8004 binding, written by the deploy script. These are optional so a
+   * manifest from an older deploy still loads — the app then reports the binding
+   * as not enforced rather than claiming an enforcement that is not there.
+   */
+  agentName?: string;
+  agentURI?: string;
+  /** The minted identity id. "0" means no identity was registered. */
+  agentId?: string;
+  /** True once the trust-critical configuration was frozen at deployment. */
+  configurationLocked?: boolean;
 };
 
 /**

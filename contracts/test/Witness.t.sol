@@ -61,10 +61,10 @@ contract WitnessTest is Test {
         registry.setVerifier(address(verifier));
 
         safe = new DemoSafe(address(verifier), address(dusd));
-        agent = new AgentExecutor(address(safe), operatorKey);
+        agent = new AgentExecutor(payable(address(safe)), operatorKey);
 
         // A second agent, to prove approvals are bound to one specific agent.
-        rogueAgent = new AgentExecutor(address(safe), operatorKey);
+        rogueAgent = new AgentExecutor(payable(address(safe)), operatorKey);
 
         dusd.mint(address(this), SAFE_FUNDING);
         dusd.approve(address(safe), type(uint256).max);

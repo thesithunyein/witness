@@ -31,10 +31,16 @@ contract WitnessVerifier is IWitnessVerifier {
     string public rpId;
     string public origin;
 
+    /// @dev Once true, the two security-critical settings above can never change
+    ///      again. See `lockConfiguration`.
+    bool public configurationLocked;
+
     error NotOwner();
+    error Locked();
 
     event IdentityRegistrySet(address indexed identityRegistry);
     event RelyingPartySet(string rpId, string origin);
+    event ConfigurationLocked(address indexed identityRegistry, string rpId, string origin);
     event Verified(
         uint256 indexed intentId,
         address indexed actor,
@@ -55,6 +61,7 @@ contract WitnessVerifier is IWitnessVerifier {
     }
 
     function setIdentityRegistry(address identityRegistry_) external onlyOwner {
+        if (configurationLocked) revert Locked();
         identityRegistry = identityRegistry_;
         emit IdentityRegistrySet(identityRegistry_);
     }
@@ -65,9 +72,32 @@ contract WitnessVerifier is IWitnessVerifier {
         external
         onlyOwner
     {
+        if (configurationLocked) revert Locked();
         rpId = rpId_;
         origin = origin_;
         emit RelyingPartySet(rpId_, origin_);
+    }
+
+    /// @notice Permanently freeze the identity binding and the relying party.
+    ///
+    /// @dev Both setters are trust-critical, and neither needs to keep working
+    ///      after setup:
+    ///
+    ///        - `identityRegistry` decides whether the ERC-8004 ownership check
+    ///          runs at all. While it is mutable, the admin could silently disable
+    ///          the identity requirement on every existing permission.
+    ///        - `rpId` / `origin` decide which web origins' assertions are
+    ///          accepted. While mutable, the admin could point them at an origin
+    ///          the human never intended to authorize from.
+    ///
+    ///      So deployment calls this once, and the deployed configuration becomes
+    ///      immutable. The verifier stays upgradeable only in the sense that a new
+    ///      one can be deployed and the registry pointed at it — a visible, on-chain
+    ///      action, not a silent settings change.
+    function lockConfiguration() external onlyOwner {
+        if (configurationLocked) revert Locked();
+        configurationLocked = true;
+        emit ConfigurationLocked(identityRegistry, rpId, origin);
     }
 
     function intentRegistry() external view returns (address) {

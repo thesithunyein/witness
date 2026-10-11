@@ -22,9 +22,9 @@ const display = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Witness — proof-of-intent for AI agents",
+  title: "Witness Approvals — your agent asks, you decide",
   description:
-    "An AI agent can prove who it is with ERC-8004. Witness proves what the human actually authorized.",
+    "Before an AI agent spends your money, you approve that exact action with a passkey. Enforced on Monad.",
 };
 
 export const viewport: Viewport = {

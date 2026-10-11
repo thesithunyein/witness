@@ -29,8 +29,13 @@ library WitnessAction {
         "WitnessAction(uint256 chainId,address domain,uint256 intentId,bytes32 actionType,address token,address to,uint256 amount)"
     );
 
-    /// @dev Domain tag for asset transfers.
+    /// @dev Domain tag for ERC-20 transfers.
     bytes32 internal constant TRANSFER = keccak256("witness.action.transfer");
+
+    /// @dev Domain tag for native-currency (MON) transfers. A separate tag means an
+    ///      approval to move an ERC-20 can never be replayed as a native payment,
+    ///      even if both happen to use the same amount and recipient.
+    bytes32 internal constant TRANSFER_NATIVE = keccak256("witness.action.transfer.native");
 
     function hash(
         uint256 chainId,
@@ -57,5 +62,18 @@ library WitnessAction {
         uint256 amount
     ) internal pure returns (bytes32) {
         return hash(chainId, domain, intentId, TRANSFER, token, to, amount);
+    }
+
+    /// @dev Native transfers still fill the digest's `token` slot, with the zero
+    ///      address as the asset tag. That keeps one hash format for both paths, so
+    ///      a browser, a test, and a wallet all reproduce the digest identically.
+    function nativeHash(
+        uint256 chainId,
+        address domain,
+        uint256 intentId,
+        address to,
+        uint256 amount
+    ) internal pure returns (bytes32) {
+        return hash(chainId, domain, intentId, TRANSFER_NATIVE, address(0), to, amount);
     }
 }

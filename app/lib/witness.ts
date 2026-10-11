@@ -22,6 +22,10 @@ export type Deployment = {
   deployer: Address;
   rpId: string;
   origin: string;
+  agentName?: string;
+  agentURI?: string;
+  /** ERC-8004 token id the agent acts under. 0 means the binding is not enforced. */
+  agentId?: string;
   contracts: {
     DemoUSD: Address;
     WitnessIntentRegistry: Address;
@@ -31,6 +35,8 @@ export type Deployment = {
   };
   erc8004IdentityRegistry: Address;
   safeFunding: string;
+  /** True once deployment froze the trust-critical settings on-chain. */
+  configurationLocked?: boolean;
 };
 
 // NOTE: loading the deployment manifest touches the filesystem, so it lives in

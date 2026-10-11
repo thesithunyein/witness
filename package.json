@@ -6,9 +6,16 @@
   "description": "Witness — proof-of-intent layer for AI agents (Monad)",
   "scripts": {
     "gen:assertion": "node scripts/gen-assertion.mjs",
-    "probe:p256": "node scripts/probe-p256.mjs"
+    "probe:p256": "node scripts/probe-p256.mjs",
+    "test:contracts": "cd contracts && forge test"
   },
   "dependencies": {
     "@noble/curves": "^2.4.0"
+  },
+  "engines": {
+    "node": ">=20.11 <25"
+  },
+  "devDependencies": {
+    "viem": "^2.57.4"
   }
 }

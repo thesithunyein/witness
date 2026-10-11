@@ -169,6 +169,23 @@ export const intentRegistryAbi = [
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
   },
+  {
+    // Read back from the receipt rather than guessing: the id is assigned inside
+    // the transaction, and the event carries it exactly.
+    type: "event",
+    name: "IntentCreated",
+    inputs: [
+      { name: "intentId", type: "uint256", indexed: true },
+      { name: "user", type: "address", indexed: true },
+      { name: "agentWallet", type: "address", indexed: true },
+      { name: "agentId", type: "uint256", indexed: false },
+      { name: "actionType", type: "bytes32", indexed: false },
+      { name: "maxAmount", type: "uint256", indexed: false },
+      { name: "expiry", type: "uint64", indexed: false },
+      { name: "policyHash", type: "bytes32", indexed: false },
+      { name: "credentialHash", type: "bytes32", indexed: false },
+    ],
+  },
 ] as const;
 
 export const demoSafeAbi = [
@@ -189,8 +206,54 @@ export const demoSafeAbi = [
     outputs: [{ name: "", type: "bytes32" }],
   },
   {
+    // The native path uses its own action tag, so an ERC-20 approval can never be
+    // replayed as a MON payment even at an identical amount and recipient.
+    type: "function",
+    name: "nativeActionHash",
+    stateMutability: "view",
+    inputs: [
+      { name: "intentId", type: "uint256" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "execute",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "intentId", type: "uint256" },
+      { name: "expectedActionHash", type: "bytes32" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+      ...assertionComponents,
+    ],
+    outputs: [{ name: "actionHash_", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "executeNative",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "intentId", type: "uint256" },
+      { name: "expectedActionHash", type: "bytes32" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+      ...assertionComponents,
+    ],
+    outputs: [{ name: "actionHash_", type: "bytes32" }],
+  },
+  {
     type: "function",
     name: "balance",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "nativeBalance",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
@@ -208,6 +271,18 @@ export const agentExecutorAbi = [
   {
     type: "function",
     name: "executeTransfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "intentId", type: "uint256" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+      ...assertionComponents,
+    ],
+    outputs: [{ name: "actionHash", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "executeTransferNative",
     stateMutability: "nonpayable",
     inputs: [
       { name: "intentId", type: "uint256" },
@@ -262,3 +337,14 @@ export const demoUsdAbi = [
  * ActionTypeMismatch for no visible reason.
  */
 export const TRANSFER_ACTION_TYPE = keccak256(toBytes("witness.action.transfer"));
+
+/**
+ * keccak256("witness.action.transfer.native") — the native MON transfer domain tag.
+ *
+ * One tag per asset class, so an approval to move an ERC-20 cannot be replayed as
+ * a MON payment: the action type is inside the signed digest AND compared by the
+ * verifier before any signature is checked.
+ */
+export const TRANSFER_NATIVE_ACTION_TYPE = keccak256(
+  toBytes("witness.action.transfer.native")
+);

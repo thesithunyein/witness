@@ -16,8 +16,10 @@ type Assertion = {
 
 type Body = {
   intentId: string;
+  /** Which outbound path to attempt. Each has its own action tag on-chain. */
+  kind?: "transfer" | "native";
   to: Address;
-  /** Human-readable amount in whole DUSD; scaled server-side. */
+  /** Base units (wei) as a decimal string. */
   amount: string;
   /**
    * A real passkey assertion when the human approved this action, or null when
@@ -35,27 +37,24 @@ const EMPTY_ASSERTION: Assertion = {
   s: "0",
 };
 
-const toWei = (whole: string): bigint => {
-  const [intPart, fracPart = ""] = whole.split(".");
-  const frac = (fracPart + "0".repeat(18)).slice(0, 18);
-  return BigInt(intPart) * 10n ** 18n + BigInt(frac);
-};
-
 /**
  * The caller is an untrusted agent, so every field is checked before it is used.
- * Without this, a malformed request threw out of `toWei`/`BigInt` and became an
- * opaque 500; a bad request is a 400 with a reason.
+ * Without this, a malformed request threw out of `BigInt` and became an opaque
+ * 500; a bad request is a 400 with a reason.
  */
 function invalid(body: Body | null | undefined): string | null {
   if (!body || typeof body !== "object") return "a JSON body is required";
   if (typeof body.intentId !== "string" || !/^\d+$/.test(body.intentId)) {
     return "intentId must be the decimal string of an integer";
   }
+  if (body.kind !== undefined && body.kind !== "transfer" && body.kind !== "native") {
+    return 'kind must be "transfer" or "native"';
+  }
   if (typeof body.to !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(body.to)) {
     return "to must be a 20-byte hex address";
   }
-  if (typeof body.amount !== "string" || !/^\d+(\.\d+)?$/.test(body.amount)) {
-    return "amount must be a decimal string in whole DUSD";
+  if (typeof body.amount !== "string" || !/^\d+$/.test(body.amount)) {
+    return "amount must be a decimal string in base units";
   }
   const a = body.assertion;
   if (a && (typeof a.r !== "string" || !/^\d+$/.test(a.r) || !/^\d+$/.test(a.s))) {
@@ -65,18 +64,18 @@ function invalid(body: Body | null | undefined): string | null {
 }
 
 export async function POST(req: Request) {
-  let body: Body | null;
+  let parsed: Body | null;
   try {
-    body = (await req.json()) as Body;
+    parsed = (await req.json()) as Body;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid JSON body" }, { status: 400 });
   }
 
-  const problem = invalid(body);
+  const problem = invalid(parsed);
   if (problem) {
     return NextResponse.json({ ok: false, error: problem }, { status: 400 });
   }
-  const request = body as Body;
+  const body = parsed as Body;
 
   let deployment;
   let key: Hex;
@@ -94,13 +93,12 @@ export async function POST(req: Request) {
   const chain = deployment.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET;
   const wallet = createWalletClient({ account, chain, transport: http() });
 
-  const amount = toWei(request.amount);
-  const assertion = request.assertion
+  const assertion = body.assertion
     ? {
-        authenticatorData: request.assertion.authenticatorData,
-        clientDataJSON: request.assertion.clientDataJSON,
-        r: BigInt(request.assertion.r),
-        s: BigInt(request.assertion.s),
+        authenticatorData: body.assertion.authenticatorData,
+        clientDataJSON: body.assertion.clientDataJSON,
+        r: BigInt(body.assertion.r),
+        s: BigInt(body.assertion.s),
       }
     : {
         authenticatorData: EMPTY_ASSERTION.authenticatorData,
@@ -109,12 +107,14 @@ export async function POST(req: Request) {
         s: 0n,
       };
 
+  const native = body.kind === "native";
+
   try {
     const hash = await wallet.writeContract({
       address: deployment.contracts.AgentExecutor,
       abi: agentExecutorAbi,
-      functionName: "executeTransfer",
-      args: [BigInt(request.intentId), request.to, amount, assertion],
+      functionName: native ? "executeTransferNative" : "executeTransfer",
+      args: [BigInt(body.intentId), body.to, BigInt(body.amount), assertion],
     });
 
     return NextResponse.json({

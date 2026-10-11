@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { createWalletClient, http, keccak256, toBytes, type Hex } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  decodeEventLog,
+  http,
+  keccak256,
+  toBytes,
+  type Hex,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { intentRegistryAbi, TRANSFER_ACTION_TYPE } from "@/lib/abi";
+import { intentRegistryAbi, TRANSFER_ACTION_TYPE, TRANSFER_NATIVE_ACTION_TYPE } from "@/lib/abi";
 import { MONAD_MAINNET, MONAD_TESTNET } from "@/lib/witness";
 import { loadDeployment, relayerKey } from "@/lib/server/deployment";
 
@@ -21,27 +29,42 @@ type CreateBody = {
   action: "create";
   agentWallet: string;
   agentId?: string;
+  /** Domain tag of the action being permitted. Defaults to the ERC-20 transfer tag. */
+  actionType?: string;
   maxAmount: string;
-  expiresInSeconds: number;
+  /** Absolute unix seconds. */
+  expiry: string;
+  policy?: Record<string, unknown> | null;
+  credentialId: string;
   qx: string;
   qy: string;
-  credentialId: string;
 };
 
 type RevokeBody = { action: "revoke"; intentId: string };
 
-const toWei = (whole: string): bigint => {
-  const [intPart, fracPart = ""] = whole.split(".");
-  const frac = (fracPart + "0".repeat(18)).slice(0, 18);
-  return BigInt(intPart) * 10n ** 18n + BigInt(frac);
+const ACTION_TYPES: Record<string, Hex> = {
+  [TRANSFER_ACTION_TYPE]: TRANSFER_ACTION_TYPE,
+  [TRANSFER_NATIVE_ACTION_TYPE]: TRANSFER_NATIVE_ACTION_TYPE,
 };
+
+/** Only action types this deployment enforces are accepted, so a caller cannot
+ *  register a permission for a tag no counterparty will ever check. */
+function resolveActionType(raw: string | undefined): Hex | null {
+  if (!raw) return TRANSFER_ACTION_TYPE;
+  const lower = raw.toLowerCase();
+  for (const known of Object.keys(ACTION_TYPES)) {
+    if (known.toLowerCase() === lower) return known as Hex;
+  }
+  return null;
+}
 
 function client() {
   const deployment = loadDeployment();
   const account = privateKeyToAccount(relayerKey());
   const chain = deployment.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET;
   const wallet = createWalletClient({ account, chain, transport: http() });
-  return { deployment, wallet };
+  const pub = createPublicClient({ chain, transport: http() });
+  return { deployment, wallet, pub };
 }
 
 export async function POST(req: Request) {
@@ -53,18 +76,30 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { deployment, wallet } = client();
+    const { deployment, wallet, pub } = client();
 
     if (body.action === "create") {
-      const expiry = BigInt(Math.floor(Date.now() / 1000) + body.expiresInSeconds);
+      const actionType = resolveActionType(body.actionType);
+      if (!actionType) {
+        return NextResponse.json({ ok: false, error: "unsupported action type" }, { status: 400 });
+      }
+      if (!/^\d+$/.test(body.maxAmount ?? "") || !/^\d+$/.test(body.expiry ?? "")) {
+        return NextResponse.json(
+          { ok: false, error: "maxAmount and expiry must be decimal strings" },
+          { status: 400 }
+        );
+      }
+
+      const expiry = BigInt(body.expiry);
       const policyHash = keccak256(
         toBytes(
           JSON.stringify({
             v: 1,
             agent: body.agentWallet,
             maxAmount: body.maxAmount,
-            expiry: expiry.toString(),
-            scope: "transfer",
+            expiry: body.expiry,
+            scope: actionType === TRANSFER_NATIVE_ACTION_TYPE ? "native" : "transfer",
+            ...(body.policy ?? {}),
           })
         )
       ) as Hex;
@@ -76,8 +111,8 @@ export async function POST(req: Request) {
         args: [
           body.agentWallet as Hex,
           BigInt(body.agentId ?? "0"),
-          TRANSFER_ACTION_TYPE,
-          toWei(body.maxAmount),
+          actionType,
+          BigInt(body.maxAmount),
           expiry,
           policyHash,
           keccak256(toBytes(body.credentialId)),
@@ -86,7 +121,30 @@ export async function POST(req: Request) {
         ],
       });
 
-      return NextResponse.json({ ok: true, txHash: hash });
+      // Read the assigned id from the receipt's event rather than predicting it:
+      // predicting from `nextIntentId` races with any concurrent registration.
+      const receipt = await pub.waitForTransactionReceipt({ hash });
+      let intentId: string | undefined;
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== deployment.contracts.WitnessIntentRegistry.toLowerCase()) {
+          continue;
+        }
+        try {
+          const decoded = decodeEventLog({
+            abi: intentRegistryAbi,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === "IntentCreated") {
+            intentId = (decoded.args as { intentId: bigint }).intentId.toString();
+            break;
+          }
+        } catch {
+          // Not one of ours; keep looking.
+        }
+      }
+
+      return NextResponse.json({ ok: true, txHash: hash, intentId });
     }
 
     if (body.action === "revoke") {

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {WebAuthn} from "./libraries/WebAuthn.sol";
 import {DemoSafe} from "./DemoSafe.sol";
+import {IERC721Receiver} from "./interfaces/IERC721Receiver.sol";
 
 /// @title AgentExecutor
 /// @notice The on-chain identity of the AI agent, and its entry point for acting.
@@ -18,7 +19,15 @@ import {DemoSafe} from "./DemoSafe.sol";
 ///      The `operator` is the off-chain key (the agent process) allowed to drive
 ///      this executor. The operator can trigger an action, but it can never
 ///      manufacture the human's approval: that requires the passkey.
-contract AgentExecutor {
+///
+/// @dev Deliberately absent: any operator-callable arbitrary-call function.
+///      An earlier revision exposed `forward(target, data)` for the operator, which
+///      would have let a prompt-injected agent process call anything this contract
+///      can reach — including transferring away its own ERC-8004 identity. That is
+///      precisely the class of unapproved action Witness exists to prevent, so the
+///      only remaining entry point is `forwardAsOwner`, usable once at setup before
+///      the operator is ever in play.
+contract AgentExecutor is IERC721Receiver {
     DemoSafe public immutable demoSafe;
     address public owner;
     address public operator;
@@ -31,7 +40,8 @@ contract AgentExecutor {
     error NotAuthorized();
     error NotOwner();
 
-    constructor(address demoSafe_, address operator_) {
+    /// @dev `payable` because DemoSafe now accepts native MON (it has a receive()).
+    constructor(address payable demoSafe_, address operator_) {
         demoSafe = DemoSafe(demoSafe_);
         owner = msg.sender;
         operator = operator_;
@@ -48,7 +58,7 @@ contract AgentExecutor {
         emit OperatorSet(operator_);
     }
 
-    /// @notice Attempt to move value out of the safe on behalf of the human.
+    /// @notice Attempt to move ERC-20 value out of the safe on the human's behalf.
     /// @dev Succeeds only when the assertion is a genuine passkey signature over
     ///      this exact action. There is no privileged path: `msg.sender` here is
     ///      the AgentExecutor itself once DemoSafe is reached, so the Witness check
@@ -64,23 +74,47 @@ contract AgentExecutor {
         demoSafe.execute(intentId, actionHash, to, amount, assertion);
     }
 
-    /// @notice Passthrough so this contract (not an operator EOA) can own an
-    ///         ERC-8004 agent identity, keeping identity and authority aligned.
-    /// @dev Low-level by design: the ERC-8004 registry ABI has variants across
-    ///      versions, and hardcoding a signature we have not verified against the
-    ///      deployed registry would be worse than forwarding calldata verbatim.
-    function forward(address target, bytes calldata callData)
+    /// @notice Attempt to move native MON out of the safe on the human's behalf.
+    /// @dev Same guarantee as `executeTransfer`, against a different action tag, so
+    ///      an ERC-20 approval can never be replayed as a native payment.
+    function executeTransferNative(
+        uint256 intentId,
+        address to,
+        uint256 amount,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.nativeActionHash(intentId, to, amount);
+        emit TransferAttempted(intentId, msg.sender, actionHash, to, amount);
+        demoSafe.executeNative(intentId, actionHash, to, amount, assertion);
+    }
+
+    /// @notice Accept the ERC-8004 identity token when the registry mints it.
+    ///
+    /// @dev Required, and not a formality: the ERC-8004 Identity Registry mints the
+    ///      agent identity with `_safeMint`, so a contract that does not implement
+    ///      this hook cannot own an agent identity at all — the registration reverts
+    ///      after the token has already been minted. That is exactly what happened
+    ///      on the first deployment attempt of this revision, and it is why this
+    ///      hook is here rather than being left out as an unused surface.
+    ///
+    ///      Deliberately unrestricted: receiving an NFT grants this contract no
+    ///      authority over anything, and every outbound path still requires a
+    ///      human passkey signature. Restricting it to one registry address would
+    ///      make the agent identity undeletable and the executor un-upgradable for
+    ///      no security gain.
+    function onERC721Received(address, address, uint256, bytes calldata)
         external
-        onlyOperator
-        returns (bytes memory)
+        pure
+        returns (bytes4)
     {
-        (bool ok, bytes memory ret) = target.call(callData);
-        require(ok, "AgentExecutor: forward failed");
-        return ret;
+        return IERC721Receiver.onERC721Received.selector;
     }
 
     /// @notice Controller-level forward, for one-time setup like registering the
-    ///         agent identity (which the operator should not be able to redo).
+    ///         agent identity (which the operator must not be able to redo).
+    /// @dev Low-level by design: the ERC-8004 registry ABI has variants across
+    ///      versions, and hardcoding a signature we have not verified against the
+    ///      deployed registry would be worse than forwarding calldata verbatim.
     function forwardAsOwner(address target, bytes calldata callData)
         external
         returns (bytes memory)

@@ -38,6 +38,7 @@ contract WitnessIntentRegistry {
     error InvalidAgent();
     error ExpiryInPast();
     error AlreadyRevoked();
+    error Locked();
 
     event IntentCreated(
         uint256 indexed intentId,
@@ -53,10 +54,14 @@ contract WitnessIntentRegistry {
     event IntentRevoked(uint256 indexed intentId, address indexed user, uint64 atTime);
     event IntentConsumed(uint256 indexed intentId, address indexed agentWallet, uint64 atTime);
     event VerifierSet(address indexed verifier);
+    event ConfigurationLocked(address indexed verifier, address indexed owner);
 
     uint256 public nextIntentId = 1;
     address public owner;
     address public verifier;
+
+    /// @dev Once true, the verifier pointer and the owner can never change again.
+    bool public configurationLocked;
 
     mapping(uint256 => Intent) private _intents;
 
@@ -73,12 +78,28 @@ contract WitnessIntentRegistry {
     /// @dev Set once by the deployer. Kept updatable so the verifier can be
     ///      replaced without orphaning existing receipts, but only by the owner.
     function setVerifier(address verifier_) external onlyOwner {
+        if (configurationLocked) revert Locked();
         verifier = verifier_;
         emit VerifierSet(verifier_);
     }
 
     function transferOwnership(address newOwner) external onlyOwner {
+        if (configurationLocked) revert Locked();
         owner = newOwner;
+    }
+
+    /// @notice Permanently freeze the verifier pointer and ownership.
+    ///
+    /// @dev The verifier is the only address allowed to mark a permission consumed.
+    ///      A mutable pointer is therefore a denial-of-service surface: a malicious
+    ///      admin could point it at a contract that burns every active permission.
+    ///      After setup there is no reason to change it, so deployment freezes it.
+    ///      Human-facing authority is unaffected — `revokeIntent` is gated on the
+    ///      intent's own author (`it.user`), never on the owner.
+    function lockConfiguration() external onlyOwner {
+        if (configurationLocked) revert Locked();
+        configurationLocked = true;
+        emit ConfigurationLocked(verifier, owner);
     }
 
     /// @notice Register a permission. The caller becomes the authorizing human.
