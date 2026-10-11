@@ -49,7 +49,7 @@ const bytesToBigInt = (b: Uint8Array): bigint =>
  * WebAuthn requires the challenge as bytes. We pass the canonical action digest
  * directly, so the signature covers exactly the action being authorized.
  */
-const hexToBytes = (hex: `0x${string}`): Uint8Array => {
+const hexToBytes = (hex: `0x${string}`): Uint8Array<ArrayBuffer> => {
   const h = hex.slice(2);
   const out = new Uint8Array(h.length / 2);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(h.slice(i * 2, i * 2 + 2), 16);

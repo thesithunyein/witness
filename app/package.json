@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:static": "bun run build-static.mjs",
+    "build:worker": "bun run build-worker.mjs",
+    "test:worker": "bun run test-worker.mjs"
   },
   "dependencies": {
     "next": "^15.5.4",

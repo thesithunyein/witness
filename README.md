@@ -20,6 +20,36 @@ human ──────────────▶ intent receipt ────�
 
 ---
 
+## Live
+
+| Environment | URL |
+|---|---|
+| production | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
+| preview | https://site-00aa824871a54fa780926606463225c5.freebuff.page |
+
+Deployed on **Monad testnet (10143)**. Judges need no wallet and no funds: registration and gas are
+relayed by the server, and the approval is a passkey on the visitor's own device. The relay key can
+never approve anything — approval requires the enrolled passkey, which never leaves the user's
+device.
+
+> **Relying party binding.** The verifier stores the `rpId`/`origin` it enforces (the deployed
+> hostname). If the host changes, one command updates the chain and the app manifest together —
+> they can never drift:
+>
+> ```bash
+> cd contracts
+> set -a && source ../.env && set +a
+> RP_ID=new-host.example ORIGIN=https://new-host.example \
+>   forge script script/SetRelyingParty.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast
+> cd ../app && bun run build-worker.mjs && # redeploy
+> ```
+>
+> This is not hypothetical: the first deploy here used a hostname guessed from the project id, and
+> Chrome rejected the passkey with *"the relying party ID is not a registrable domain suffix of the
+> current domain"*. Always bind to the hostname the platform actually serves.
+
+---
+
 ## Why this is a primitive, not a feature
 
 A check that lives inside the agent's own code proves nothing — the agent could simply not call it.
@@ -150,6 +180,30 @@ forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broad
 The deploy writes `contracts/deployments/<chainId>.json`, so no address is ever hand-copied into
 the app.
 
+### The deployed app is a static bundle + a Worker (not Next SSR)
+
+The site serves the same page component Next renders, bundled as static assets, plus a small
+Cloudflare Worker that owns `/api/*` (config, relayed intent registration/revocation, and the
+agent's execution attempt). No Node server is needed in production, and the Worker bundle is built
+with `target: browser`, so any Node-only import fails the build instead of failing at the edge.
+
+```bash
+cd app
+bun install
+bunx tsc --noEmit        # typechecks the page, the worker, and the build scripts
+bun run build-static.mjs # -> app/out        (index.html, main.js, styles.css)
+bun run build-worker.mjs # -> app/worker-dist (bakes deployments/<chainId>.json into the bundle)
+bun run test-worker.mjs  # drives the worker handlers against testnet: real intents, real refusals
+```
+
+The Worker answers `/healthz` with its chain, rpId, origin and `hostMatchesOrigin`, so a hostname
+mismatch is visible immediately instead of surfacing as a mysterious failed passkey prompt. It
+waits for transaction receipts before responding, so the UI never renders pre-transaction state.
+
+Secrets live only in the server environment: `WITNESS_OPERATOR_PRIVATE_KEY` (drives the agent) and
+`WITNESS_RELAYER_PRIVATE_KEY` (registers/revokes permissions). Both may be the same key; neither can
+approve an action.
+
 ### Tests
 
 ```
@@ -256,11 +310,20 @@ contracts/
     Witness.t.sol               24 end-to-end tests
     vectors/                    generated real assertion fixture
   script/Deploy.s.sol           deploy + write manifest
+  script/SetRelyingParty.s.sol  change rpId/origin on-chain AND in the manifest
 scripts/
   gen-assertion.mjs             generate a real WebAuthn assertion
   sign-action.mjs               sign an arbitrary digest (used by tests)
   probe-p256.mjs                prove the Monad precompile is live
-app/                            demo UI (passkey approval flow)
+app/                            the deployed site: static bundle + Worker
+  app/                          Next.js dev server for UI iteration
+  lib/                          shared client code + ABI fragments (single source of truth)
+  static/                       HTML shell + entry for the static bundle
+  worker/                       the deployed server: /api/* + asset fallback
+  build-static.mjs              bundle the page -> out/
+  build-worker.mjs              bundle the worker, bake the deployment manifest
+  test-worker.mjs               exercise the worker handlers against testnet
+  site.manifest.json            deploy manifest (worker + assets)
 ```
 
 ## License

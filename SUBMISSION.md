@@ -2,116 +2,97 @@
 
 Status of every deliverable, and exactly what remains. Written to be picked up cold.
 
-Repo: **https://github.com/thesithunyein/witness** (public, `main`)
-Commits: `372da59` contracts · `d42e8a5` app + probes · author *Sithu Nyein <sithunyein.mailto@gmail.com>*
+Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sithu Nyein*.
+
+| Environment | URL |
+|---|---|
+| **production (use this as the live link)** | **https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page** |
+| preview | https://site-00aa824871a54fa780926606463225c5.freebuff.page |
+
+Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
+`contracts/deployments/10143.json`; the app reads them from there, never by hand.
 
 ---
 
-## 1. Verified working
+## 1. Verified working — with evidence
+
+### On-chain primitive (both networks)
 
 | Thing | Evidence |
 |---|---|
-| Monad's P256 precompile is live and validating | `node scripts/probe-p256.mjs` → valid sig `ACCEPT`, tampered `reject`, on **both** mainnet (143) and testnet (10143). Includes a `sha256` control call so a silently-broken endpoint can't masquerade as a rejecting one. |
-| High-S signatures accepted | `node scripts/probe-highs.mjs` → both S forms `ACCEPT`. Platform authenticators are not guaranteed to produce low-S, so without this a live passkey demo could fail at random. |
-| 24 contract tests pass | `cd contracts && forge test` — real P-256 signatures over real action digests, verified through the real precompile. No mocking of the cryptography. |
-| Deploy script works | Verified end-to-end against local anvil; writes `contracts/deployments/<chainId>.json`. |
+| Monad's P256 precompile is live and validating | `node scripts/probe-p256.mjs` → valid sig `ACCEPT`, tampered `reject`, on **both** mainnet (143) and testnet (10143), with a `sha256` control call so a silently-broken endpoint can't masquerade as a rejecting one. |
+| High-S signatures accepted | `node scripts/probe-highs.mjs` → both S forms `ACCEPT`. Platform authenticators are not guaranteed to produce low-S; without this a live passkey demo could fail at random. |
+| 24 contract tests pass | `cd contracts && forge test` (exit 0) — real P-256 signatures over real action digests through the real precompile. No mocking of the cryptography. |
 | Gas | Full passkey authorization check ≈ **177k gas**; `executeTransfer` 70k–270k. |
 
-Tests that matter most, because a system that only says "yes" proves nothing:
+### Contracts deployed (Monad testnet, ~1.1 MON gas)
 
 ```
-test_blocked_injectedAmountExceedsApproval        (the headline demo)
-test_blocked_agentCannotForgeApprovalWithItsOwnKey (agent signs with its own key -> BadSignature)
-test_blocked_approvalDoesNotCoverDifferentRecipient
-test_blocked_differentAmountIsDifferentAction
-test_blocked_replayAfterConsumption
-test_blocked_afterRevocation / afterExpiry
-test_blocked_differentAgentCannotUseTheApproval
-test_blocked_bypassingExecutorIsRejected
-test_blocked_wrongOrigin / wrongRelyingParty / registrationCeremony / userVerificationRequired
-test_identity_agentIdOwnershipIsEnforced
+DemoUSD                0x817328dec94122b8eCB7f28a5839003352394430
+WitnessIntentRegistry  0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B
+WitnessVerifier        0xBE66C46f26fE006B4De2B6441011939F930C8C4D
+DemoSafe               0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6
+AgentExecutor          0x6ac484ac42E7eC9942365710b1F8C6106026B45e
 ```
 
-## 2. Blocked — needs you
+Funded via https://faucet.monad.xyz (worked from the shared browser; the Turnstile checkbox needed a
+real click). Deployer: `0xFc31378e13B4Cb7B545bAC58b28916476406439d`.
 
-### a. Fund the deployer, then deploy to Monad testnet
+### Deployed app (static bundle + Cloudflare Worker)
 
-Generated deployer address (key is in `witness/.env`, gitignored, never printed):
+`bun install` + `bunx tsc --noEmit` → clean (one real error found and fixed: a `Uint8Array`
+`BufferSource` typing in the WebAuthn helper). Both bundles build; the worker builds with
+`target: browser`, so any Node-only import fails the build, not the edge.
 
-```
-0xFc31378e13B4Cb7B545bAC58b28916476406439d
-```
+Exercised **against real testnet state**, through the deployed Worker:
 
-1. Open **https://faucet.monad.xyz** (Monad Testnet, chain id **10143**) and request MON for that
-   address. The faucet needs a browser — it cannot be scripted.
-2. Then:
-   ```bash
-   cd witness/contracts
-   set -a && source ../.env && set +a
-   ERC8004_IDENTITY_REGISTRY=0x8004A818BFB912233c491871b3d84c89A494BD9e \
-     forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast
-   ```
-   The identity registry is optional but recommended: it makes the ERC-8004 agent-id binding
-   *enforced* (`ownerOf(agentId) == agentWallet`) rather than a self-declared label. Verify the
-   address on-chain first — Monad's own ERC-8004 doc page renders its address section blank.
-3. Addresses land in `contracts/deployments/10143.json`. The app reads them from there.
+- preview worker relayed `createIntent` and `revokeIntent` — real txs, confirmed receipts
+- `POST /api/agent` with 10× the approved amount and no assertion → `{"ok":false,"reason":"OverLimit","reasonCode":8}` — a genuine reverted on-chain transaction, decoded to the protocol's own reason
+- in-limit attempt with no assertion → `RpIdMismatch`; after revocation → `Revoked`
 
-### b. Finish the app build
+Exercised **on production, in a real browser**:
 
-`npm install` inside `app/` does not complete reliably in the sandbox used here — it was still
-extracting after several minutes and is not a code problem. On a normal machine:
+- page renders; `/api/config` serves the deployed addresses; `/healthz` reports `hostMatchesOrigin: true`
+- **a real passkey was enrolled** (`navigator.credentials.create`) and the fingerprint was registered
+  on-chain as the authority — the UI showed *"Passkey: enrolled in this browser"*, intent #6,
+  tx `0xefb2443d…`, permission cap 1.00 DUSD, relying party = the production host
+- the final step — **Approve with passkey** — starts the assertion ceremony and waits for the
+  device's biometric/PIN prompt. That tap is the human step; everything before it is verified.
 
-```bash
-cd witness/app
-npm install
-npx tsc --noEmit      # app source has NOT yet been typechecked
-npm run build
-npm run dev           # then open http://localhost:3000
-```
+### Two bugs found by testing, both fixed
 
-The app source is complete but **unverified** — it has never been compiled. Treat the first
-`tsc --noEmit` as a real step, not a formality.
+1. **Revert reasons were being lost.** The raw revert bytes sit ~7 causes deep in a
+   `writeContract` error, but the walker stopped at 6 — every refusal collapsed to "Reverted",
+   exactly the unhelpful outcome the decoder exists to prevent. Fixed with a deeper bound + cycle
+   guard, and the executor ABI now declares the `Unauthorized` error.
+2. **rpId used a guessed hostname.** The first deploy derived the host from the project id
+   (hyphenated UUID), but the platform serves the hyphen-stripped form; Chrome rejected the passkey
+   with *"the relying party ID is not a registrable domain suffix of the current domain"*.
+   `contracts/script/SetRelyingParty.s.sol` now updates the verifier **and** the manifest in one
+   command so they cannot drift.
 
-Server env (never sent to the browser):
+## 2. What still needs a human
 
-```
-WITNESS_CHAIN_ID=10143
-WITNESS_OPERATOR_PRIVATE_KEY=0x...   # drives the demo agent
-WITNESS_RELAYER_PRIVATE_KEY=0x...    # registers/revokes permissions
-```
+1. **Tap the passkey on the live site.** Open production, *Create permission with passkey* (a
+   Windows Hello prompt appears), then *Approve with passkey*. The order that films best: click
+   **Simulate prompt injection first** (the on-chain refusal), then approve. Each permission is
+   one-time and expires in 10 minutes, so re-register before recording.
+2. **Record the videos** (2 min pitch, 3 min demo) — the video is what is judged. Suggested beats in
+   §4 below.
+3. **One external integrator** — see §3. Worth 20% and cannot be coded.
+4. **Three named adopters** — see §3. Worth 25%.
+5. **Optional: ERC-8004 binding.** `erc8004IdentityRegistry` is `0x0` in the manifest, so the UI
+   shows "not configured". To enforce it: confirm the registry address on-chain (Monad's own doc
+   page renders its address section blank — verify before trusting any address), redeploy with
+   `ERC8004_IDENTITY_REGISTRY=0x…`, and mint an agent id owned by the executor.
+6. **`witness.sithunyein.com` is not attached.** The Sites API exposes no custom-domain parameter —
+   only `*.freebuff.page` URLs. Options: attach the domain in the app's Sites UI if offered, or keep
+   the freebuff.page link. If the host changes, run `SetRelyingParty` (see README) and redeploy;
+   passkeys are bound to the hostname.
 
-### c. Host it on witness.sithunyein.com
+## 3. The two criteria that are not code
 
-Any Node host works (Vercel/Netlify/Fly). Set the three env vars above there, then point DNS:
-
-| Type | Name | Value |
-|---|---|---|
-| CNAME | `witness` | the host's target (Vercel → `cname.vercel-dns.com`) |
-
-**Set `RP_ID=witness.sithunyein.com` and `ORIGIN=https://witness.sithunyein.com` before deploying.**
-The passkey is bound to the relying party, so the deployed origin must match or every passkey prompt
-fails for judges. `localhost` works for local dev; production will not work from `localhost` and
-vice versa.
-
-Because the app needs server-side keys, a static-only host will not run the agent route.
-
-## 3. Still to make, not code
-
-- [ ] **Logo** — JPG/JPEG/PNG/WEBP, ≤3MB
-- [ ] **3-minute technical demo video** — live product, not slides or a code walkthrough.
-      Suggested beats: 20s problem → 60s live approve-and-execute → 45s the injected attempt
-      blocked on-chain with the reason visible → 20s architecture → 15s integrations.
-      **Record it over a working build as early as possible**; the video is what is judged.
-- [ ] **2-minute pitch video** — team, problem, why
-- [ ] **Live link + access instructions** — state plainly that judges need no wallet or funds:
-      registration and gas are relayed, and they approve with a passkey on their own device.
-- [ ] Repo reachable by `metropolis@hackathon.monad.xyz` (it is public, so this is satisfied)
-- [ ] Confirm the project was created and the track selected **before** the deadline
-
-## 4. The two criteria that are not code
-
-Deadline is Oct 13–14; assume the earlier. These carry 45% of the score and no commit can satisfy
-them.
+Deadline is Oct 13–14; assume the earlier. These carry 45% of the score.
 
 ### Traction (20%) — needs one other team
 
@@ -126,42 +107,66 @@ verifier.authorizeAndConsume(
 // reverts with Unauthorized(OverLimit | Expired | AlreadyConsumed | ...) otherwise
 ```
 
-DM teams in the Metropolis Discord today, offer to do the integration for them in 15 minutes, and
-name the integration in the README and the video.
+DM teams in the Metropolis Discord, offer to do the integration for them in 15 minutes, and name the
+integration in the README and the video.
 
 ### Founder & market readiness (25%) — needs named adopters
 
 Name three and say why each would not roll their own:
 
-- **x402 paid endpoints** that need a payer authorization — cite the known gap that today's spend
-  controls are per-payment client-side caps with no accumulated session budget.
+- **x402 paid endpoints** that need a payer authorization — today's spend controls are per-payment
+  client-side caps with no accumulated session budget.
 - **Monad DeFi agents** — swaps/transfers gated on human approval.
 - **ERC-8004 agent marketplaces** — a listing that can prove human authorization, not just identity.
 
 The "why not roll their own" answer: a receipt is only useful if the counterparty recognises it.
 Rolling your own gives you a check nobody else verifies, and you would still have to write the
 WebAuthn parsing, the replay/revocation state, and a receipt format — which is exactly this repo.
-Anchoring to ERC-8004 for identity and to ERC-8196's policy field names for interop is the
-network-effect argument.
 
-## 5. Positioning to keep live in the demo
+## 4. Demo video beats
+
+1. 20s — problem: agent identity ≠ human authorization; a prompt-injected agent still has a valid identity.
+2. 60s — live: register a permission with a passkey, approve one transfer, show it execute on MonadScan.
+3. 45s — the injected attempt: 10× the amount, no approval, **rejected on-chain** with the reason
+   visible (`OverLimit`). The refusal is a reverted transaction, not a client-side check.
+4. 20s — architecture: one passkey signature over the action digest, verified by the counterparty
+   through Monad's native P256 precompile.
+5. 15s — integrations asked for. Say plainly: no wallet or funds needed to try it.
+
+## 5. Platform caveats worth knowing
+
+- **Hosting paused once.** Mid-session the platform returned 503 "Site temporarily unavailable"
+  with quota monitoring "unavailable" ("Sites will resume when monitoring is available"). It
+  resumed; if it recurs, publishing is not the cause — re-check the production URL rather than
+  redeploying.
+- **No local workerd test.** `wrangler`'s `workerd` postinstall fails in this environment; the
+  worker was verified under bun (real testnet txs through the actual handlers) and then **on the
+  deployed preview**, which is workerd — that is the authoritative check anyway.
+- **No D1/R2 needed.** The demo keeps no server state beyond what is on-chain.
+- The worker waits for receipts before responding (avoids rendering pre-transaction state) and
+  reports a write that mined-and-reverted as a failure.
+
+## 6. Positioning to keep
 
 > ERC-8004 proves which agent is acting. ERC-8196 proves an action fits a policy the owner set once,
 > enforced inside the agent's own wallet and signed with the agent's own key. Witness proves **this
 > human approved this exact action, right now** — and the **counterparty** that receives the action
 > can check it without trusting the agent.
 
-Do not use the phrase "proves whether the agent was allowed to act": ERC-8196's stated core question
-is literally "Is this action authorized right now?", so that framing reads as a re-skin. The
+Do not use "proves whether the agent was allowed to act": ERC-8196's stated core question is
+literally "Is this action authorized right now?", so that framing reads as a re-skin. The
 differentiators are per-action human consent, passkey-signed, verifiable by the receiving contract.
 
-## 6. Honest limits
+## 7. Honest limits
 
-- Not yet done: no testnet deployment, no built/typechecked app, no hosted URL, no videos, no logo,
-  no external integrator.
-- The app is relayed for gas and registration so judges need no wallet. The relay key cannot approve
-  anything — approval requires the enrolled passkey, which never leaves the user's device.
-- ERC-8004 is enforced only when `ERC8004_IDENTITY_REGISTRY` is set; a test states the skip
-  behaviour explicitly so it is never accidental.
-- The action digest is a domain-separated `keccak256`, not a full EIP-712 envelope. Domain separation
-  by chain id and contract is what the security argument needs; EIP-712 would be a compatible upgrade.
+- The passkey **approve** step has been exercised up to the device prompt, not through it; the
+  biometric tap itself is the outstanding human step.
+- No external integrator, no named adopters, no videos, no logo.
+- `witness.sithunyein.com` cannot be attached with the current platform tooling.
+- ERC-8004 is enforced only when a registry is configured; a test states the skip behaviour
+  explicitly so it is never accidental.
+- The action digest is a domain-separated `keccak256`, not a full EIP-712 envelope. Domain
+  separation by chain id and contract is what the security argument needs; EIP-712 is a compatible
+  upgrade.
+- The demo relay key pays gas for registration. It cannot approve anything: approval requires the
+  enrolled passkey, which never leaves the user's device.

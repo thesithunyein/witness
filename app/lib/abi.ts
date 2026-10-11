@@ -199,6 +199,13 @@ export const demoSafeAbi = [
 
 export const agentExecutorAbi = [
   {
+    // Declared here so viem can name the refusal ("Unauthorized(8)") instead of
+    // reporting an unknown signature when description isn't at hand.
+    type: "error",
+    name: "Unauthorized",
+    inputs: [{ name: "reason", type: "uint8" }],
+  },
+  {
     type: "function",
     name: "executeTransfer",
     stateMutability: "nonpayable",

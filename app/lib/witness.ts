@@ -44,15 +44,30 @@ export const publicClient = (chainId: number) =>
     transport: http(),
   });
 
-/** Recursively hunt for revert `data` on a viem error, which may be nested. */
-function findRevertData(err: unknown, depth = 0): Hex | undefined {
-  if (!err || typeof err !== "object" || depth > 6) return undefined;
+/**
+ * Recursively hunt for revert `data` on a viem error, which may be nested.
+ *
+ * How deep the raw revert bytes sit depends on the call path: viem's
+ * `simulateContract` errors carry them around depth 5, while a `writeContract`
+ * estimation failure carries them around depth 7. The bound must cover the
+ * deepest real chain — an earlier limit of 6 silently collapsed every refusal
+ * into "Reverted", which is exactly the unhelpful outcome this function exists
+ * to prevent. The WeakSet guards against a cyclic `cause` chain.
+ */
+function findRevertData(
+  err: unknown,
+  depth = 0,
+  seen: WeakSet<object> = new WeakSet()
+): Hex | undefined {
+  if (!err || typeof err !== "object" || depth > 12) return undefined;
+  if (seen.has(err)) return undefined;
+  seen.add(err);
   const e = err as Record<string, unknown>;
   const data = e.data;
   if (typeof data === "string" && data.startsWith("0x") && data.length >= 10) {
     return data as Hex;
   }
-  return findRevertData(e.cause, depth + 1);
+  return findRevertData(e.cause, depth + 1, seen);
 }
 
 export type DecodedFailure = { reason: number; name: string };
