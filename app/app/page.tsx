@@ -10,6 +10,7 @@ import {
   type IntentRecord,
 } from "@/lib/sdk";
 import { short } from "@/lib/witness";
+import { AppBar } from "@/components/chrome";
 import {
   mergeRequests,
   pendingRequest,
@@ -636,9 +637,8 @@ export default function Page() {
   if (configError) {
     return (
       <main className="shell">
-        <Masthead />
-        <Hero />
-        <div className="err" style={{ marginTop: 28 }}>
+        <AppBar />
+        <div className="err">
           <strong>Not configured.</strong> {configError}
         </div>
         <section className="section">
@@ -666,8 +666,45 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
   return (
     <main className="shell">
-      <Masthead chainId={config?.chainId} locked={config?.configurationLocked} />
-      <Hero />
+      <AppBar
+        chainId={config?.chainId}
+        locked={config?.configurationLocked}
+        actions={
+          <a className="micro" href="/integrate">
+            Integrate →
+          </a>
+        }
+      >
+        {/* Rendered unconditionally: the tabs are pure view state, so gating them
+            on the config fetch would grow the bar by a row the moment it resolves
+            — a layout shift on every load, and no navigation while it loads. */}
+        <div className="tabs" role="tablist" aria-label="Sections" onKeyDown={onTabKey}>
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              className="tab"
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={view === t.id}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={view === t.id ? 0 : -1}
+              onClick={() => setView(t.id)}
+            >
+              {t.label}
+              {t.id === "activity" && activity.length > 0 && (
+                <span className="tab__count">{activity.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </AppBar>
+
+      <DashboardHeader
+        config={config}
+        intent={intent}
+        pendingCount={asked ? 1 : 0}
+        onJump={view === "approvals" ? undefined : () => setView("approvals")}
+      />
 
       {config === null && (
         <p className="note" aria-busy="true">
@@ -677,26 +714,6 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
       {config && (
         <>
-          <div className="tabs" role="tablist" aria-label="Sections" onKeyDown={onTabKey}>
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                className="tab"
-                role="tab"
-                id={`tab-${t.id}`}
-                aria-selected={view === t.id}
-                aria-controls={`panel-${t.id}`}
-                tabIndex={view === t.id ? 0 : -1}
-                onClick={() => setView(t.id)}
-              >
-                {t.label}
-                {t.id === "activity" && activity.length > 0 && (
-                  <span className="tab__count">{activity.length}</span>
-                )}
-              </button>
-            ))}
-          </div>
-
           {err && (
             <div className="err" role="alert">
               {err}
@@ -1405,60 +1422,104 @@ function SecurityDetails({
    Chrome
    -------------------------------------------------------------------------- */
 
-function Mark() {
-  return (
-    <svg className="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
-        <line x1="12" y1="1.5" x2="12" y2="22.5" />
-        <line x1="1.5" y1="12" x2="22.5" y2="12" />
-        <line x1="4.6" y1="4.6" x2="19.4" y2="19.4" />
-        <line x1="19.4" y1="4.6" x2="4.6" y2="19.4" />
-      </g>
-    </svg>
-  );
-}
+/**
+ * The dashboard header.
+ *
+ * The previous concept opened with the wordmark set 232px wide, which says
+ * nothing and costs the whole first screen. This opens with the state of the
+ * account instead: what the agent is allowed to do, whether anything is waiting
+ * on the human, and which guarantees the deployment actually enforces.
+ *
+ * Every tile is derived from the chain's own answers — none of it is asserted
+ * in copy, so a stranger reading it learns the real posture of this deployment.
+ */
+function DashboardHeader({
+  config,
+  intent,
+  pendingCount,
+  onJump,
+}: {
+  config: Config | null;
+  intent: IntentRecord | null;
+  pendingCount: number;
+  /** Absent while the approvals tab is already open — nothing to jump to. */
+  onJump?: () => void;
+}) {
+  const limit = intent ? mon(intent.maxAmount) : null;
+  const until = intent
+    ? new Date(Number(intent.expiry) * 1000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
-function Masthead({ chainId, locked }: { chainId?: number; locked?: boolean }) {
   return (
-    <header className="masthead">
-      <div className="brand">
-        <Mark />
-        <span className="brand-name">Witness Approvals</span>
-      </div>
-      <div className="masthead-right">
-        <p className="micro">{locked ? "Configuration frozen" : "Monad testnet"}</p>
-        <span className="pill">
-          <span className="pill__dot" aria-hidden />
-          {chainId ? (chainId === 143 ? "Monad · 143" : "Testnet · 10143") : "Connecting…"}
-        </span>
-      </div>
-    </header>
-  );
-}
-
-function Hero() {
-  return (
-    <section className="hero">
-      <h1 className="hero-word" aria-label="Witness">
-        <span className="hero-word__mask">
-          <span className="hero-word__inner">
-            <span className="hero-word__white">WIT</span>
-            <span className="hero-word__accent">NESS</span>
-          </span>
-        </span>
+    <section className="hero" aria-labelledby="dashboard-title">
+      <p className="micro">
+        {config ? `Live on Monad · chain ${config.chainId}` : "Reading the deployment…"}
+      </p>
+      <h1 className="hero__title" id="dashboard-title">
+        Your agent asks. <em>You decide.</em>
       </h1>
-      <div className="hero-foot">
-        <p className="micro">
-          Your agent asks.
-          <br />
-          You decide.
-        </p>
-        <p className="micro hero-foot__right">
-          Nothing moves without your passkey.
-          <br />
-          Not even by the agent.
-        </p>
+      <p className="hero__lede">
+        A passkey signs one exact action — this recipient, this amount, this contract — and the
+        contract that holds the funds checks that signature before anything moves. Nothing here
+        trusts the agent. Nothing here trusts this page either.
+      </p>
+
+      <div className="stats">
+        <div className="stat">
+          <p className="stat__label">Permission</p>
+          <p className="stat__value">{limit ?? "None yet"}</p>
+          <p className="stat__hint">
+            {intent
+              ? intent.active
+                ? `One use, until ${until}`
+                : "No longer active"
+              : "Create one so the agent can ask"}
+          </p>
+        </div>
+
+        <div className="stat">
+          <p className="stat__label">Waiting on you</p>
+          <p className="stat__value">{pendingCount}</p>
+          <p className="stat__hint">
+            {pendingCount > 0 ? "A request needs a decision" : "No requests pending"}
+          </p>
+        </div>
+
+        <div className="stat">
+          <p className="stat__label">Agent identity</p>
+          <p
+            className={`stat__value ${config?.identityEnforced ? "stat__value--ok" : "stat__value--warn"}`}
+          >
+            {config === null ? "—" : config.identityEnforced ? "Enforced" : "Not configured"}
+          </p>
+          <p className="stat__hint">
+            {config?.agentId && config.agentId !== "0"
+              ? `Ownership of ERC-8004 #${config.agentId}`
+              : "Ownership checked by the verifier"}
+          </p>
+        </div>
+
+        <div className="stat">
+          <p className="stat__label">Configuration</p>
+          <p
+            className={`stat__value ${config?.configurationLocked ? "stat__value--ok" : "stat__value--warn"}`}
+          >
+            {config === null ? "—" : config.configurationLocked ? "Frozen" : "Mutable"}
+          </p>
+          <p className="stat__hint">Accepted origin and registry, fixed at deploy</p>
+        </div>
       </div>
+
+      {onJump && (
+        <div className="hero-foot">
+          <button className="primary" onClick={onJump}>
+            Go to the pending request
+          </button>
+        </div>
+      )}
     </section>
   );
 }

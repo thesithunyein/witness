@@ -8,6 +8,7 @@ import {
   WitnessClient,
   type Authorization,
 } from "@/lib/sdk";
+import { AppBar } from "@/components/chrome";
 
 /**
  * The integration page.
@@ -180,30 +181,19 @@ export default function Integrate() {
 
   return (
     <main className="shell">
-      <header className="masthead">
-        <a className="brand" href="/">
-          <svg className="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
-              <line x1="12" y1="1.5" x2="12" y2="22.5" />
-              <line x1="1.5" y1="12" x2="22.5" y2="12" />
-              <line x1="4.6" y1="4.6" x2="19.4" y2="19.4" />
-              <line x1="19.4" y1="4.6" x2="4.6" y2="19.4" />
-            </g>
-          </svg>
-          <span className="brand-name">Witness Approvals</span>
-        </a>
-        <div className="masthead-right">
+      <AppBar
+        actions={
           <a className="micro" href="/">
             ← Back to the app
           </a>
-        </div>
-      </header>
+        }
+      />
 
       <section className="section">
         <div className="section-head">
           <span className="section-num">01</span>
-          <h1 className="section-title" style={{ fontFamily: "var(--serif)", fontSize: "2rem" }}>
-            Add approvals to your Monad app
+          <h1 className="hero__title" style={{ fontSize: "clamp(24px, 3.2vw, 34px)", margin: 0 }}>
+            Add approvals to <em>your Monad app</em>
           </h1>
         </div>
         <p className="note" style={{ marginBottom: 18 }}>
