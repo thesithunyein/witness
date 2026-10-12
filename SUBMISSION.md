@@ -260,6 +260,30 @@ expires in 10 minutes.
    through Monad's native P256 precompile.
 5. 15s, integrations asked for. Say plainly: no wallet or funds needed to try it.
 
+### Pre-flight, and what goes wrong
+
+Thirty minutes before the take, not during it.
+
+- **Fresh permission, created immediately before you record.** Each one is single-use and expires in
+  ten minutes, so a take that starts late has no approve button. Create it, then start within two.
+- **The real receipt open in a second tab.** `0x59616dd8…` on `testnet.monadscan.com`, block
+  70,155,898, status success. Know what the confirmation screen looks like before you need it live.
+- **Terminal already warm.** `npm install` finished at the repo root, so `node examples/agent-request.mjs`
+  prints its first line instantly instead of resolving dependencies on camera.
+- **Instance alive:** `curl -s https://witness.sithunyein.com/api/config` returns 200. The queue is
+  process memory, so an instance recycle is the one event that can lose a request mid-take. If the
+  agent's `POST` returns a `shareUrl`, open that link rather than waiting for the poll: it carries the
+  validated request in the URL.
+- **Passkey enrolled on the recording device.** The tap needs a platform authenticator on that
+  device: fingerprint, face, or the device PIN where there is no biometric sensor. Enrol beforehand.
+- **Pick your first frame deliberately.** If a permission already exists in this browser, the screen
+  opens on the request card, not the setup form. `Settings` then `Clear this browser's Witness data`
+  gives the empty state back.
+
+Two frames have to be readable on screen by the end: the approved transaction on MonadScan with
+status success, and the injected attempt showing the contract's own typed reason, `OverLimit`.
+Those are the argument. Everything else is commentary.
+
 ## 5. Platform caveats worth knowing
 
 - **Hosting paused once.** Mid-session the platform returned 503 "Site temporarily unavailable"

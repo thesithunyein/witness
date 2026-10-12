@@ -71,6 +71,25 @@ Search terms that find the right posts: "agent", "x402", "402 Payment Required",
 twenty generic ones, because the reply rate on "I read your contracts and here is
 the one function to add" is not comparable.
 
+### 3b. Seven specific targets, checked
+
+Verified by loading the page or the repository, not by reputation. These are the ones
+where the fit is structural, which is the only reason a stranger says yes.
+
+| Target | Where | Why the fit is structural |
+|---|---|---|
+| **Monad x402 Facilitator** | `docs.monad.xyz/tooling-and-infra/agentic-payments` | Its `POST /verify` exists to check a payment authorization before a server releases content. That is the same decision Witness makes, with the missing half: the facilitator can see that a key signed, not that a human approved that exact action |
+| **x402 on Monad guide** | `docs.monad.xyz/guides/x402` | Every builder copying a payable endpoint starts here. One optional check documented next to their signature check reaches all of them |
+| **Monad Foundation, x402 effort** | `monad.xyz/blog/monad-foundation-joins-x402-foundation`, 29 Jun 2026 | They joined the standard whose stated job is agents that "discover, authorize". Their framing is the pitch, already written |
+| **@monad-crypto/mpp** | npm | The MPP SDK is where an authorization step belongs, on their side of the call |
+| **erc-8004/erc-8004-contracts** | GitHub | The registry contracts, curated by the standard's authors. Identity plus "who approved this" is the composition they do not have |
+| **Monad ERC-8004 guide** | `docs.monad.xyz/guides/erc-8004` | The registration walkthrough agents follow, and the natural place to say what identity does not prove |
+| **vistara-apps/erc-8004-example** | GitHub | Small, readable, real. A maintainer there can finish an L1 check in an afternoon |
+
+What is not checked here: handles, Discord invites, or whether a given repo took commits this
+month. The honest contact surface is a GitHub issue or a docs PR, which is what engineers
+actually read. Offer the PR in the first message, as in §2:
+
 ---
 
 ## 4. Message templates
