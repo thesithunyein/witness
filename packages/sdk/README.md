@@ -6,8 +6,12 @@ Your agent asks to spend money. The human approves *that exact action* with a
 passkey. Your contract verifies the approval on-chain before it moves anything,
 without trusting the agent, and without asking the human to hold a wallet.
 
-```
-npm i @witness/sdk viem
+Not on the public registry yet, so build it from a checkout of the repo. Once it is released, the
+same package installs as `npm i @witness/sdk viem`.
+
+```bash
+cd packages/sdk && npm pack        # writes witness-sdk-0.1.0.tgz (14.9 kB, 9 files)
+npm i ./witness-sdk-0.1.0.tgz viem # in your app
 ```
 
 Used by the reference app at [witness.sithunyein.com](https://witness.sithunyein.com),

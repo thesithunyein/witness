@@ -1,5 +1,49 @@
 # Changelog
 
+## 2026-10-11 (submission) - the claims a judge can check, and the one that was broken
+
+A pass over the things a judge can verify in a minute, so that every claim in the repo
+is either checkable or corrected. Nothing here changes behaviour.
+
+- **`scripts/probe-p256.mjs` runs again.** It resolved its vector from the repo root while
+the vectors live at `contracts/test/vectors/`, so the one script that proves Monad's P256
+precompile validates (rather than accepting everything) crashed before it made a single
+call. Fixed, and re-run against both testnet (10143) and mainnet (143): `valid ACCEPT`,
+`tampered reject`, with the sha256 control call alongside it.
+- **The SDK's install claims are true now.** The package is not on the public registry, and
+three files said `npm i @witness/sdk` as a present-tense fact. The README, the integrator
+kit and the SDK's own README now say what is true: a real package with a version and a
+build, `npm pack` produces the tarball, and the registry name is where it lands when the
+maintainer publishes it.
+- **Two statements in `SUBMISSION.md` were wrong in the direction that costs points.** It
+still said there was no logo and that the hosted site served a pre-deployment build. The
+logo is in `assets/`, and production serves the current manifest. Both corrected, and the
+production claim was re-checked against the live response instead of assumed.
+- **The Founder section answers "why not roll your own" with numbers.** 1,194 lines of
+Solidity, 1,223 lines of client TypeScript, 40 tests, 1,146 lines of docs, then the four
+things a from-scratch attempt gets wrong: P-256 has no signature recovery, the signature is
+the easy half of WebAuthn, consumption and revocation, and typed refusals.
+- **The gas figure was wrong, and is now measured.** The docs said a full authorization check was
+about 177k gas. The real approved passkey authorized transfer costs **326,925 gas** end to end (tx
+`0x59616dd8…`, block 70,155,898), so the published number understated it by roughly 85 percent.
+Replaced with measured values from `forge test --gas-report`.
+- **The two heavyweight claims were re-run, not restated.** All five contracts came back
+`exact_match` on Sourcify (matchIds 2047996 to 2048000, `runtimeMatch: exact_match` on each), and
+`examples/live-e2e.mjs` passed 4/4 against the deployed contracts, with the approved path landing as
+a real transaction and the two refused permissions revoked afterwards.
+- **The Founder section says who the market is, not just what category it is.** x402's move to the
+Linux Foundation's x402 Foundation (22 members), Coinbase's reported 69,000 agents and 165 million
+transactions at roughly $0.30 per call, and the exact gap: in a 402 flow the payer's own key
+approves, so the resource server cannot tell a human approval from an agent's own decision. The
+honest limit of that case is stated too, one approval is one use while a sub-dollar call does not
+deserve a biometric tap, with the capped session as the next piece.
+- **Shipped declarations work under `nodenext`.** `moduleResolution: bundler` let the emitted
+`.d.ts` files keep extensionless relative imports, so a consumer building a Node ESM project
+saw TS2834 errors inside our own published file and could not fix them from their side. The
+build now rewrites both forms tsc emits, `from "./x"` and `import("./x").T`. Verified by
+packing the tarball, extracting it into a separate consumer, and importing it three ways:
+ESM, CommonJS, and a strict `nodenext` type check, all exit 0.
+
 ## 2026-10-11 (brand) - one logo, and an interface that matches it
 
 The mark is the winking bear on a lime tile: black on lime, thick rounded shapes,

@@ -49,6 +49,11 @@ No wallet and no testnet funds are needed to use it: registration and gas are re
 server, and the approval is a passkey on the visitor's own device. The relayer can never approve
 anything, approving requires the enrolled passkey, which never leaves the user's device.
 
+**What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
+`keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
+assertion is checked against that public key by the precompile, so the registry never holds anything
+that could approve an action on its own.
+
 > **The live build matches the manifest**, verified by asking it: `GET /api/config` on production
 > returns the addresses below, `identityEnforced: true` and `configurationLocked: true`, and the
 > Settings tab reads *Enforced* / *Frozen*. Addresses are baked into the bundle at build time from
@@ -372,8 +377,11 @@ controller, used once to register the identity).
 
 ## SDK
 
-Installable, with a build and a version: **`npm i @witness/sdk`** (from this repo: `packages/sdk`;
-the tarball is built from the app's own modules, so there is one copy of the truth and no drift).
+A real package, not four files to copy: `packages/sdk` has a version and a build, and `npm pack` in
+that directory produces the tarball (ESM + CJS + type declarations) from the app's own modules, so
+there is one copy of the truth and no drift. It is **not on the public registry yet**, publishing
+needs the maintainer's own npm account, so `npm i @witness/sdk` is the name it will install under
+rather than a command that works today.
 
 `app/lib/sdk/index.ts` wraps the whole loop so an integrating app never reimplements the digest, the
 WebAuthn ceremony, or the revert decoding:
@@ -554,7 +562,10 @@ has a Node process produce a genuine P-256 signature over exactly those bytes (r
 platform authenticator does), and submits it to contracts that verify through the real precompile. A
 passing happy path means the whole path is wired: digest → passkey → precompile → funds moved.
 
-Gas: a full authorization check is ~177k; a transfer runs 70k-270k depending on which check refuses.
+Gas, measured on the deployed stack: an approved passkey authorized transfer costs **326,925 gas**
+end to end (tx `0x59616dd8…`, block 70,155,898). Inside the contracts, `executeTransfer` runs 75k to
+273k and `executeTransferNative` 78k to 268k depending on which check refuses the call, and
+`createIntent` averages 253k. Reproduce with `forge test --gas-report`.
 
 ---
 
@@ -578,6 +589,46 @@ agent cannot route around. Rolling your own gives you a check nobody else's cont
 human authorized the action behind it. A marketplace that wants to accept a permission as a
 credential needs the counterparty to verify it, and a receipt is only useful if the counterparty
 recognises the format. Rolling your own produces a signature that only your own contracts check.
+
+**The market is not hypothetical, and neither is the gap.** x402 is the clearest case, and it is
+now big enough to cite: governance moved to the Linux Foundation's x402 Foundation on April 2, 2026
+with 22 launch members including Stripe, Visa, Mastercard, Google, AWS, Shopify and Circle, and
+Coinbase reported 69,000 active agents and 165 million transactions by late April 2026, at roughly
+**$0.30 per call** ([x402.org](https://x402.org/)). In every one of those calls, what authorizes the
+money is the *payer's own* signed transfer authorization in the `PAYMENT-SIGNATURE` header. The
+resource server cannot tell an approval a human gave from a payment an agent decided on by itself,
+which is the exact gap Witness closes at the moment the 402 is satisfied. Monad's own
+[ERC-8004 guide](https://docs.monad.xyz/guides/erc-8004) covers the identity half of the same stack;
+the teams building against it are the ones who need the authorization half.
+
+**And the honest limit of that case:** today one approval is one use, while a $0.30 average call
+does not deserve a biometric tap. The version that fits is a capped session the human approves once
+and the agent draws down, which is also the direction x402 V2 moved in. The registry already carries
+the fields for it (`maxAmount`, `expirySeconds`, `policyHash`), and per-action consent stays the
+right answer for the calls that are large or unusual. Say so rather than pretending a tap per
+sub-cent call is a product.
+
+**Why they would not roll their own, with the numbers.** This is the honest answer to "why not just
+write it", so here is what writing it means, measured from this repo: **1,194 lines of Solidity** in
+`contracts/src`, **1,223 lines of client TypeScript** (the four modules `packages/sdk` generates its
+sources from), **40 tests** that sign real digests with a real P-256 key through the real precompile,
+and 1,146 lines of docs across this README, [INTEGRATOR-KIT.md](INTEGRATOR-KIT.md),
+[THREAT-MODEL.md](THREAT-MODEL.md) and the SDK's own README. The parts that actually cost the time
+are not the signature check you would start with:
+
+1. **P-256 has no signature recovery.** Unlike secp256k1, the public key cannot be recovered from an
+   assertion, so enrollment is not optional, and the enrolled key has to be bound to a
+   `credentialId` and to the permission that names it.
+2. **The signature is the easy half of WebAuthn.** `rpIdHash`, the `UP` and `UV` flags, the
+   `webauthn.get` type, the challenge-versus-digest comparison and the accepted origin all have to be
+   validated before the precompile runs, or a valid signature over the wrong bytes passes.
+3. **One action, one use, plus revocation and expiry.** Consumption bookkeeping a replay cannot
+   sidestep, and a revocation path that does not leave the permission usable.
+4. **Typed refusals.** Sixteen `Reason` values, so an integrating UI can say "that is above what you
+   approved" instead of "transaction failed".
+
+And the reason that decides it: a receipt is only useful if the counterparty recognises it. A
+bespoke check is one no other contract will ever call.
 
 If you are building 1, 2, or 3, the five-line integration is in
 [`SUBMISSION.md`](SUBMISSION.md#3-the-two-criteria-that-are-not-code), and

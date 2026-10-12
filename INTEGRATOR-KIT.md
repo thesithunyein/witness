@@ -126,7 +126,8 @@ only if they agreed to be named.
 
 1. https://witness.sithunyein.com, the product, 30 seconds to understand
 2. https://witness.sithunyein.com/integrate, the developer surface, with a live preflight
-3. `packages/sdk` (`npm i @witness/sdk`), so they can see it is a package, not a paste
+3. `packages/sdk`, so they can see it is a package, not a paste (`npm pack` there builds the
+   tarball; `@witness/sdk` is the published name, it is not on the registry yet)
 4. [THREAT-MODEL.md](THREAT-MODEL.md), **send this one to engineers only.** The
    honest limits section is why they will read the rest
 

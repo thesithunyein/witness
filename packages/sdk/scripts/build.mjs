@@ -17,7 +17,15 @@
  *
  *   bun run build
  */
-import { renameSync, rmSync, mkdirSync, existsSync } from "node:fs";
+import {
+  renameSync,
+  rmSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -77,6 +85,30 @@ const typed = spawnSync(process.execPath, [tsc, "-p", "tsconfig.build.json"], {
   stdio: "inherit",
 });
 if (typed.status !== 0) process.exit(typed.status ?? 1);
+
+// 3b. Give the declarations explicit relative extensions.
+//
+// `moduleResolution: bundler` (above) lets the emitted .d.ts keep extensionless
+// relative imports, which is fine for the app and for bundler consumers, but a
+// consumer building a Node ESM project with `moduleResolution: nodenext` sees
+// TS2834 *inside the shipped file* and cannot fix it from their side. Adding the
+// `.js` extension is valid in every modern resolution mode: TypeScript maps
+// `./witness.js` back to `witness.d.ts`. Without this, the types work for the
+// integrator who uses a bundler and fail for the one who does not.
+const typesDir = resolve(dist, "types");
+const withExtension = (spec) => (spec.endsWith(".js") ? spec : `${spec}.js`);
+for (const file of readdirSync(typesDir).filter((f) => f.endsWith(".d.ts"))) {
+  const path = resolve(typesDir, file);
+  const source = readFileSync(path, "utf8");
+  // Both forms tsc emits: `from "./x"` and the type reference `import("./x").T`.
+  const extended = source
+    .replace(/(from\s+")(\.\/[^"]+?)(")/g, (_a, head, spec, tail) => head + withExtension(spec) + tail)
+    .replace(/(import\(")(\.\/[^"]+?)("\))/g, (_a, head, spec, tail) => head + withExtension(spec) + tail);
+  if (extended !== source) {
+    writeFileSync(path, extended);
+    console.log(`  types/${file} (relative imports given .js extensions)`);
+  }
+}
 
 for (const file of ["index.js", "index.cjs", "types/index.d.ts"]) {
   const path = resolve(dist, file);

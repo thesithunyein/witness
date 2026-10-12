@@ -49,8 +49,10 @@ Everything here is new since §0 was written. The theme: the two things the prev
   declarations from the app's own modules, so the product and the integration surface cannot drift.
   Verified by installing the packed tarball into a separate consumer and importing it three ways.
 - **Verified on an explorer, keylessly.** All five contracts are `exact_match` on Sourcify
-  (MonadVision) as of 2026-10-11, so a judge can read the source instead of trusting this document.
-  `contracts/verify.sh` reproduces it; Monadscan additionally needs `MONADSCAN_API_KEY`.
+  (MonadVision), re-checked 2026-10-11: matchIds `2047996` to `2048000`, `runtimeMatch: exact_match`
+  on each, so a judge can read the source instead of trusting this document. `contracts/verify.sh`
+  reproduces the submission; check each job's result, because submitting is not verifying.
+  Monadscan additionally needs `MONADSCAN_API_KEY`.
 - **`THREAT-MODEL.md`**, every actor, every attack class with mitigation *and residual risk*, and the
   weaknesses ranked. It says out loud that `AgentExecutor.forwardAsOwner` is a live owner-only
   arbitrary call, that `setOperator` is not locked, and that the relayer owns the permissions it
@@ -89,14 +91,17 @@ Changed in the second pass:
 - **40 contract tests** (was 24), including the ERC-721 receiver hook the identity mint needs.
 - **`examples/live-e2e.mjs`**, 4/4 live checks against the deployed contracts: approved action moves
   exactly the approved amount, replay refused (`AlreadyConsumed`), 10× unapproved refused
-  (`OverLimit`), unowned identity refused (`AgentNotRegistered`).
+  (`OverLimit`), unowned identity refused (`AgentNotRegistered`). Re-run 2026-10-11: 4/4 passed, the
+  approved path landing as tx `0x59616dd8…` (status success, 326,925 gas), and the two refused
+  permissions revoked at the end so a run leaves no unusable state behind.
 - **Consumer UI**: `Approvals / Activity / Agents / Settings`, plain-language approval, everything
   technical behind *Security details*, `/integrate` for third parties.
 
-Still outstanding (unchanged): the passkey **approve** tap through the device prompt, the videos, an
-external integrator, named adopters. And the hosted site must be **rebuilt and redeployed** to pick
-up the new addresses, its manifest is baked at build time, so until then it serves the previous
-stack.
+Still outstanding: the passkey **approve** tap through the device prompt, the videos, an external
+integrator, named adopters. The hosted site **has been rebuilt and redeployed**, and that is
+verified against production rather than assumed: `GET /api/config` there returns the addresses in
+`contracts/deployments/10143.json` with `identityEnforced: true` and `configurationLocked: true`, so
+the manifest it serves is the current stack, not the previous one.
 
 ---
 
@@ -109,7 +114,7 @@ stack.
 | Monad's P256 precompile is live and validating | `node scripts/probe-p256.mjs` → valid sig `ACCEPT`, tampered `reject`, on **both** mainnet (143) and testnet (10143), with a `sha256` control call so a silently-broken endpoint can't masquerade as a rejecting one. |
 | High-S signatures accepted | `node scripts/probe-highs.mjs` → both S forms `ACCEPT`. Platform authenticators are not guaranteed to produce low-S; without this a live passkey demo could fail at random. |
 | 40 contract tests pass | `cd contracts && forge test` (exit 0), real P-256 signatures over real action digests through the real precompile. No mocking of the cryptography. (24 in the original suite, 16 added with the native path, the locks, and the identity mint.) |
-| Gas | Full passkey authorization check ≈ **177k gas**; `executeTransfer` 70k-270k. |
+| Gas, measured | An approved passkey authorized transfer costs **326,925 gas** end to end on testnet (tx `0x59616dd8…`, block 70,155,898). `forge test --gas-report`: `executeTransfer` 75k to 273k, `executeTransferNative` 78k to 268k, `createIntent` avg 253k. |
 
 ### Contracts deployed (Monad testnet), FIRST deployment, superseded
 
@@ -175,9 +180,26 @@ Exercised **on production, in a real browser**:
    each with the "why they would not roll their own" answer. What is missing is an outsider
    agreeing with one of them, which is item 3.
 5. ~~Optional: ERC-8004 binding.~~ **DONE**, the registry is configured and verified on-chain, and
-   identity `#2148` is owned by `AgentExecutor`. Enforcement is active in the deployed contracts; the
-   only step left is rebuilding the hosted site so the app and the chain agree.
-6. ~~Rebuild and redeploy the hosted app.~~ **DONE**, and verified against production rather than
+   identity `#2148` is owned by `AgentExecutor`. Enforcement is active in the deployed contracts, and
+   the hosted app and the chain agree, see item 7.
+6. **Publish the SDK**, which is the one step left that makes the documented install path real. It
+   needs your npm account and nothing else:
+
+   ```bash
+   cd packages/sdk
+   npm publish --access public    # `prepublishOnly` runs the drift check and the build for you
+   ```
+
+   Inspect first with `npm pack --dry-run`: 9 files, 14.9 kB, `witness-sdk-0.1.0.tgz`, and nothing
+   outside `dist`, `README.md`, `LICENSE` and `package.json`. **One caveat to resolve before you
+   run it:** the package is named `@witness/sdk`, and a scoped publish needs the `witness` scope to
+   be yours. That could not be checked from here (the registry's scope endpoint needs an
+   authenticated account). If the publish returns 403, the scope is not yours and the two names
+   that are known to be unclaimed are `@thesithunyein/sdk` (your own user scope, always available to
+   you) and the unscoped `witness-sdk`. Either way, three files name the package: `packages/sdk/package.json`,
+   the SDK's README and the root README, so a rename is three lines and a doc pass.
+
+7. ~~Rebuild and redeploy the hosted app.~~ **DONE**, and verified against production rather than
    assumed, see "Verified on production" in §0. Passkeys are bound to the hostname, and the verifier's accepted origin is
    immutable by design, so a future host change means a new deployment, not a settings update.
 
@@ -221,10 +243,19 @@ WebAuthn parsing, the replay/revocation state, and a receipt format, which is ex
 
 ## 4. Demo video beats
 
+Film on production (`witness.sithunyein.com`). Nothing needs an account, a wallet or testnet funds:
+registration and gas are relayed, and the approval is a passkey on the recording device, one tap to
+enroll. Re-register a fresh permission immediately before the take, each one is single-use and
+expires in 10 minutes.
+
 1. 20s, problem: agent identity ≠ human authorization; a prompt-injected agent still has a valid identity.
 2. 60s, live: register a permission with a passkey, approve one transfer, show it execute on MonadScan.
+   Open tx `0x59616dd8…` (block 70,155,898, 326,925 gas, status success) on
+   `testnet.monadscan.com` beforehand, so you know what the confirmation screen should look like; it
+   is a real approved transfer from 2026-10-11 and the receipt a judge can check.
 3. 45s, the injected attempt: 10× the amount, no approval, **rejected on-chain** with the reason
-   visible (`OverLimit`). The refusal is a reverted transaction, not a client-side check.
+   visible (`OverLimit`). The refusal is a reverted transaction, not a client-side check. Then say
+   the five-minute route into this repo for a stranger: `node examples/monad-app.mjs`.
 4. 20s, architecture: one passkey signature over the action digest, verified by the counterparty
    through Monad's native P256 precompile.
 5. 15s, integrations asked for. Say plainly: no wallet or funds needed to try it.
@@ -269,9 +300,12 @@ differentiators are per-action human consent, passkey-signed, verifiable by the 
   `setOperator` is not locked. Neither can move the safe's funds, both outbound paths still require
   a passkey assertion, but the executor's own identity token is reachable, and calling that
   "frozen configuration" would be generous.
-- No external integrator, no named adopters who agreed to be named, no videos, no logo.
-- The hosted site still serves a build made before the second deployment; its addresses are stale
-  until it is rebuilt.
+- No external integrator, no named adopters who agreed to be named, no videos yet. The logo exists,
+  at [`assets/logo.png`](assets/logo.png), a 53 KB PNG, inside the 3 MB cap.
+- The hosted site was rebuilt and redeployed, and `GET /api/config` on production returns the
+  current addresses (verified against the live response, not against the local manifest). Passkeys
+  are bound to the hostname and the verifier's accepted origin is immutable, so a future host change
+  means a new deployment, not a settings update.
 - ERC-8004 enforcement is active on the current deployment (registry set, identity owned, both
   frozen). A test still states the no-registry behaviour explicitly, so the skip can never happen by
   accident.

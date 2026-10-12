@@ -13,9 +13,9 @@ const ROOT = resolve(__dirname, "..");
 const P256 = "0x0000000000000000000000000000000000000100";
 const SHA256_PC = "0x0000000000000000000000000000000000000002";
 
-const v = JSON.parse(
-  readFileSync(resolve(ROOT, "test/vectors/AssertionVector.json"), "utf8")
-);
+// The vectors live beside the contracts that consume them, not at the repo root.
+const VECTOR = "contracts/test/vectors/AssertionVector.json";
+const v = JSON.parse(readFileSync(resolve(ROOT, VECTOR), "utf8"));
 
 const cache = new Map();
 async function call(rpc, to, data) {
