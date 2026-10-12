@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { formatUnits, type Address } from "viem";
 import {
   NATIVE_ACTION_TYPE,
@@ -11,6 +11,24 @@ import {
 } from "@/lib/sdk";
 import { short } from "@/lib/witness";
 import { AppBar } from "@/components/chrome";
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  CodeIcon,
+  CoinIcon,
+  DotIcon,
+  ExternalLinkIcon,
+  FingerprintIcon,
+  InboxIcon,
+  LockIcon,
+  PulseIcon,
+  ShieldCheckIcon,
+  SlidersIcon,
+  TargetIcon,
+  XIcon,
+} from "@/components/icons";
 import {
   mergeRequests,
   pendingRequest,
@@ -65,6 +83,14 @@ const VIEWS: { id: View; label: string; caption: string }[] = [
     caption: "What this deployment enforces on-chain, and what is up to you.",
   },
 ];
+
+/** The tab's own icon, keyed by the same id the tab uses, so neither can lose one. */
+const VIEW_ICONS: Record<View, ComponentType<{ size?: number }>> = {
+  approvals: CheckCircleIcon,
+  activity: PulseIcon,
+  agents: TargetIcon,
+  settings: SlidersIcon,
+};
 
 type Config = {
   chainId: number;
@@ -699,8 +725,10 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
         chainId={config?.chainId}
         locked={config?.configurationLocked}
         actions={
-          <a className="micro" href="/integrate">
-            Integrate →
+          <a className="micro micro--icon" href="/integrate">
+            <CodeIcon size={13} />
+            Integrate
+            <ArrowRightIcon size={13} />
           </a>
         }
       >
@@ -708,7 +736,9 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
             on the config fetch would grow the bar by a row the moment it resolves,
             which is a layout shift on every load, and leaves no navigation while it loads. */}
         <div className="tabs" role="tablist" aria-label="Sections" onKeyDown={onTabKey}>
-          {VIEWS.map((t) => (
+          {VIEWS.map((t) => {
+            const Icon = VIEW_ICONS[t.id];
+            return (
             <button
               key={t.id}
               className="tab"
@@ -719,13 +749,15 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
               tabIndex={view === t.id ? 0 : -1}
               onClick={() => setView(t.id)}
             >
+              <Icon size={15} />
               {t.label}
               {t.id === "approvals" && asked !== null && <span className="tab__count">1</span>}
               {t.id === "activity" && activity.length > 0 && (
                 <span className="tab__count">{activity.length}</span>
               )}
             </button>
-          ))}
+            );
+          })}
         </div>
       </AppBar>
 
@@ -776,7 +808,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                         <AgentAvatar />
                         <div>
                           <p className="micro" style={{ color: "var(--ink-dim)" }}>
-                            {asked ? "Waiting for you" : "Already decided"}
+                            {asked ? "The request" : "Already decided"}
                           </p>
                           <p className="card__title">{config.agentName}</p>
                         </div>
@@ -808,16 +840,20 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                           <dd>
                             {asked ? (
                               <span className={`state state--${risk?.tone ?? "quiet"}`}>
-                                <span aria-hidden>
-                                  {risk?.tone === "ok" ? "✓" : risk?.tone === "bad" ? "✕" : "•"}
-                                </span>
+                                {risk?.tone === "ok" ? (
+                                  <CheckIcon size={13} />
+                                ) : risk?.tone === "bad" ? (
+                                  <XIcon size={13} />
+                                ) : (
+                                  <DotIcon size={13} />
+                                )}
                                 {risk?.label ?? "Checking…"}
                               </span>
                             ) : (
                               <span
                                 className={`state ${shown.status === "approved" ? "state--ok" : "state--bad"}`}
                               >
-                                <span aria-hidden>{shown.status === "approved" ? "✓" : "✕"}</span>
+                                {shown.status === "approved" ? <CheckIcon size={13} /> : <XIcon size={13} />}
                                 {shown.status === "approved"
                                   ? "Approved"
                                   : shown.status === "blocked"
@@ -836,9 +872,11 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                           disabled={!canDecide}
                           aria-busy={busy === "approve"}
                         >
+                          <FingerprintIcon size={16} />
                           {busy === "approve" ? "Waiting for your passkey…" : "Approve with passkey"}
                         </button>
                         <button className="block" onClick={block} disabled={!canDecide}>
+                          <XIcon size={14} />
                           {busy === "block" ? "Blocking…" : "Block"}
                         </button>
                       </div>
@@ -881,7 +919,9 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
           {view === "activity" && (
             <section id="panel-activity" role="tabpanel" aria-labelledby="tab-activity">
               {activity.length === 0 ? (
-                <p className="note">Nothing yet. Decisions appear here, newest first.</p>
+                <p className="note">
+                  Nothing yet. Approve or block a request and the decision lands here.
+                </p>
               ) : (
                 <div className="card">
                   <ul className="rows">
@@ -892,7 +932,13 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                             e.tone === "ok" ? "state--ok" : e.tone === "bad" ? "state--bad" : "state--quiet"
                           }`}
                         >
-                          <span aria-hidden>{e.tone === "ok" ? "✓" : e.tone === "bad" ? "✕" : "•"}</span>
+                          {e.tone === "ok" ? (
+                            <CheckIcon size={13} />
+                          ) : e.tone === "bad" ? (
+                            <XIcon size={13} />
+                          ) : (
+                            <DotIcon size={13} />
+                          )}
                           {e.tone === "ok" ? "Allowed" : e.tone === "bad" ? "Refused" : "Info"}
                         </span>
                         <div className="row__main">
@@ -900,9 +946,15 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                           <p className="row__meta">{e.detail}</p>
                           {e.explorer && e.hash && (
                             <p className="row__meta">
-                              <a href={e.explorer} target="_blank" rel="noreferrer">
-                                View the transaction ↗
-                              </a>
+                            <a
+                              className="link-icon"
+                              href={e.explorer}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              View the transaction
+                              <ExternalLinkIcon size={12} />
+                            </a>
                             </p>
                           )}
                         </div>
@@ -912,10 +964,11 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   </ul>
                 </div>
               )}
-              <Notice>
+              {/* A neutral note, not the warning surface: nothing here is wrong. */}
+              <p className="note">
                 <strong>This history lives in this browser.</strong> The decisions themselves are
                 on-chain.
-              </Notice>
+              </p>
             </section>
           )}
 
@@ -971,7 +1024,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   <ul className="rows">
                     <li className="row">
                       <span className={`state ${config.identityEnforced ? "state--ok" : "state--quiet"}`}>
-                        <span aria-hidden>{config.identityEnforced ? "✓" : "•"}</span>
+                        {config.identityEnforced ? <CheckIcon size={13} /> : <DotIcon size={13} />}
                         {config.identityEnforced ? "Enforced" : "Not configured"}
                       </span>
                       <div className="row__main">
@@ -983,7 +1036,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                     </li>
                     <li className="row">
                       <span className={`state ${config.configurationLocked ? "state--ok" : "state--wait"}`}>
-                        <span aria-hidden>{config.configurationLocked ? "✓" : "•"}</span>
+                        {config.configurationLocked ? <CheckIcon size={13} /> : <DotIcon size={13} />}
                         {config.configurationLocked ? "Frozen" : "Mutable"}
                       </span>
                       <div className="row__main">
@@ -997,7 +1050,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                     </li>
                     <li className="row">
                       <span className="state state--ok">
-                        <span aria-hidden>✓</span>
+                        <CheckIcon size={13} />
                         Enforced
                       </span>
                       <div className="row__main">
@@ -1089,10 +1142,6 @@ function VerdictCard({ verdict, onDismiss }: { verdict: Verdict; onDismiss: () =
   );
 }
 
-function Notice({ children }: { children: React.ReactNode }) {
-  return <p className="notice">{children}</p>;
-}
-
 /**
  * No agent has asked for anything yet.
  *
@@ -1171,7 +1220,7 @@ function ActivityPanel({ entries, onSeeAll }: { entries: Entry[]; onSeeAll: () =
         )}
       </div>
       {entries.length === 0 ? (
-        <p className="note">Nothing yet. Approve or block a request and it will show up here.</p>
+        <p className="note">No decisions in this browser yet.</p>
       ) : (
         <ul className="rows">
           {entries.slice(0, 3).map((e) => (
@@ -1271,7 +1320,7 @@ function AgentPanel({
           className={`state ${intent?.active ? "state--wait" : intent ? "state--bad" : "state--quiet"}`}
           style={{ marginLeft: "auto" }}
         >
-          <span aria-hidden>•</span>
+          <DotIcon size={13} />
           {state}
         </span>
       </div>
@@ -1279,6 +1328,7 @@ function AgentPanel({
       {intent && (
         <div className="section-actions" style={{ marginTop: 0 }}>
           <button className="block" onClick={onRevoke} disabled={busy !== null || !intent.active}>
+            <XIcon size={14} />
             {busy === "revoke" ? "Withdrawing…" : "Withdraw access"}
           </button>
         </div>
@@ -1299,7 +1349,7 @@ function timeOf(intent: IntentRecord): string {
 
 /** One line for what the permission allows. Shared, so it reads the same anywhere. */
 function permissionLine(intent: IntentRecord | null): string {
-  if (!intent) return "No permission yet";
+  if (!intent) return "Nothing may be spent until you set a limit";
   return intent.expiry === 0n
     ? `May spend up to ${mon(intent.maxAmount)} once, with no expiry`
     : `May spend up to ${mon(intent.maxAmount)} once, until ${timeOf(intent)}`;
@@ -1330,7 +1380,7 @@ function SetupCard({
           <p className="micro" style={{ color: "var(--ink-dim)" }}>
             Setup
           </p>
-          <p className="card__title">Set what {agentName} may do</p>
+          <p className="card__title">{agentName}</p>
         </div>
       </div>
 
@@ -1367,6 +1417,7 @@ function SetupCard({
 
       <div className="decide">
         <button className="primary decide__primary" onClick={onSubmit} disabled={busy} aria-busy={busy}>
+          <FingerprintIcon size={16} />
           {busy ? "Waiting for your passkey…" : "Create permission with passkey"}
         </button>
       </div>
@@ -1400,7 +1451,10 @@ function SecurityDetails({
   return (
     <div className="disclosure-block">
       <details className="security" open={defaultOpen}>
-        <summary>Security details</summary>
+        <summary>
+          <ChevronRightIcon size={14} className="disclosure-caret" />
+          Security details
+        </summary>
         <dl className="tech-list">
           <dt>Status</dt>
           <dd>
@@ -1435,11 +1489,13 @@ function SecurityDetails({
               "not configured"
             ) : (
               <a
+                className="link-icon"
                 href={`${config.explorer}/address/${config.erc8004IdentityRegistry}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                {config.erc8004IdentityRegistry} ↗
+                {config.erc8004IdentityRegistry}
+                <ExternalLinkIcon size={12} />
               </a>
             )}
           </dd>
@@ -1448,11 +1504,13 @@ function SecurityDetails({
           <dt>Enforcing contract</dt>
           <dd>
             <a
+              className="link-icon"
               href={`${config.explorer}/address/${config.contracts.DemoSafe}`}
               target="_blank"
               rel="noreferrer"
             >
-              {config.contracts.DemoSafe} ↗
+              {config.contracts.DemoSafe}
+              <ExternalLinkIcon size={12} />
             </a>
           </dd>
           <dt>Permission registry</dt>
@@ -1481,11 +1539,13 @@ function SecurityDetails({
               <dt>Paying to</dt>
               <dd>
                 <a
+                  className="link-icon"
                   href={`${config.explorer}/address/${request.to}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  {request.to} ↗
+                  {request.to}
+                  <ExternalLinkIcon size={12} />
                 </a>
               </dd>
             </>
@@ -1497,11 +1557,13 @@ function SecurityDetails({
               <dd>
                 {config.payee ? (
                   <a
+                    className="link-icon"
                     href={`${config.explorer}/address/${config.payee}`}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {config.payee} ↗
+                    {config.payee}
+                    <ExternalLinkIcon size={12} />
                   </a>
                 ) : (
                   "not recorded in the deployment manifest"
@@ -1556,64 +1618,91 @@ function StatusStrip({
 
   return (
     <section className="status" aria-label={`${current.label} status`}>
+      {/* The screen's name is the selected tab directly above, so the heading is
+          the one line that says what this screen is for. Printing the name here as
+          well put the same word on screen twice, 40px apart. */}
       <div className="status__head">
-        <h1 className="status__title">{current.label}</h1>
-        <p className="status__caption">{current.caption}</p>
+        <h1 className="status__title status__title--lead">{current.caption}</h1>
       </div>
 
-      <div className="metrics">
-        <div className="metric">
-          <p className="metric__label">Spending limit</p>
-          <p className={intent ? "metric__value metric__value--num" : "metric__value"}>
-            {intent ? mon(intent.maxAmount) : "Not set"}
-          </p>
-          <p className="metric__hint">
-            {!intent
-              ? "None yet"
-              : !intent.active
-                ? "No longer active"
-                : intent.expiry === 0n
-                  ? "One payment, no expiry"
-                  : `One payment, up to ${timeOf(intent)}`}
-          </p>
-        </div>
+      {/* The four facts, on the screen that acts on them. Activity is a log and
+          Settings is a reference: both already carry these facts in their own
+          rows, so printing the strip above them was four cards, four times.
 
-        <div className="metric">
-          <p className="metric__label">Waiting for you</p>
-          <p className="metric__value metric__value--num">{pendingCount}</p>
-          <p className="metric__hint">
-            {pendingCount > 0 ? "Decide it below" : "Nothing waiting"}
-          </p>
-        </div>
+          Each hint says something the value does not: it used to read "Not set /
+          None yet" and "0 / Nothing waiting", the same sentence twice. */}
+      {view === "approvals" && (
+        <div className="metrics">
+          <div className="metric">
+            <p className="metric__label">
+              <CoinIcon size={13} />
+              Spending limit
+            </p>
+            <p className={intent ? "metric__value metric__value--num" : "metric__value"}>
+              {intent ? mon(intent.maxAmount) : "Not set"}
+            </p>
+            <p className="metric__hint">
+              {!intent
+                ? "A request above it is refused on-chain."
+                : !intent.active
+                  ? "No longer active."
+                  : intent.expiry === 0n
+                    ? "One payment, no expiry."
+                    : `One payment, up to ${timeOf(intent)}.`}
+            </p>
+          </div>
 
-        <div className="metric">
-          <p className="metric__label">Agent verified</p>
-          <p
-            className={`metric__value ${
-              config?.identityEnforced ? "metric__value--ok" : "metric__value--warn"
-            }`}
-          >
-            {config === null ? "…" : config.identityEnforced ? "Yes" : "No"}
-          </p>
-          <p className="metric__hint">
-            {config?.agentId && config.agentId !== "0"
-              ? `Agent #${config.agentId}, owned on-chain`
-              : "Ownership checked on-chain"}
-          </p>
-        </div>
+          <div className="metric">
+            <p className="metric__label">
+              <InboxIcon size={13} />
+              Waiting for you
+            </p>
+            <p className="metric__value metric__value--num">{pendingCount}</p>
+            <p className="metric__hint">
+              {pendingCount > 0 ? "Decide it below." : "Nothing has asked yet."}
+            </p>
+          </div>
 
-        <div className="metric">
-          <p className="metric__label">Settings locked</p>
-          <p
-            className={`metric__value ${
-              config?.configurationLocked ? "metric__value--ok" : "metric__value--warn"
-            }`}
-          >
-            {config === null ? "…" : config.configurationLocked ? "Yes" : "No"}
-          </p>
-          <p className="metric__hint">Frozen at deploy</p>
+          <div className="metric">
+            <p className="metric__label">
+              <ShieldCheckIcon size={13} />
+              Agent verified
+            </p>
+            <p
+              className={`metric__value ${
+                config?.identityEnforced ? "metric__value--ok" : "metric__value--warn"
+              }`}
+            >
+              {config === null ? "…" : config.identityEnforced ? "Yes" : "No"}
+            </p>
+            <p className="metric__hint">
+              {config?.agentId && config.agentId !== "0"
+                ? `Agent #${config.agentId}, owned on-chain.`
+                : "Ownership is checked on-chain."}
+            </p>
+          </div>
+
+          <div className="metric">
+            <p className="metric__label">
+              <LockIcon size={13} />
+              Settings locked
+            </p>
+            <p
+              className={`metric__value ${
+                config?.configurationLocked ? "metric__value--ok" : "metric__value--warn"
+              }`}
+            >
+              {config === null ? "…" : config.configurationLocked ? "Yes" : "No"}
+            </p>
+            {/* This hint said "Frozen at deploy" whether or not it was frozen. */}
+            <p className="metric__hint">
+              {config?.configurationLocked
+                ? "Fixed when it was deployed."
+                : "The operator can still change it."}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

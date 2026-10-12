@@ -175,6 +175,26 @@ body::after {
   margin: 0;
 }
 
+/* --- icons ----------------------------------------------------------------
+   A glyph and its label are one object: inline-flex so the icon sits on the
+   text's centre line, never on the baseline of a wrapped line. */
+
+.micro--icon,
+.link-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-icon svg {
+  flex: none;
+  opacity: 0.7;
+}
+
+.link-icon:hover svg {
+  opacity: 1;
+}
+
 .mono {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
@@ -407,10 +427,15 @@ body::after {
   margin: 0;
 }
 
-.status__caption {
-  font-size: 13.5px;
-  color: var(--ink-dim);
-  margin: 0;
+/* The heading is the screen's one line of context. Its name is the selected tab
+   directly above, so it is not printed here as well. */
+.status__title--lead {
+  font-size: clamp(16px, 1.5vw, 18px);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  color: var(--ink);
+  max-width: 74ch;
 }
 
 /* The developer page's heading: same display face, sized for a page that is read
@@ -453,6 +478,16 @@ body::after {
   letter-spacing: 0.13em;
   color: var(--ink-faint);
   margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The glyph wears the label's colour, so a metric icon never competes with the
+   value underneath it. */
+.metric__label svg {
+  flex: none;
+  opacity: 0.8;
 }
 
 .metric__value {
@@ -762,6 +797,16 @@ button.danger:hover:not(:disabled) {
   color: var(--danger);
 }
 
+/* A button with an icon in it: the glyph and the label are one control, centred
+   together, instead of an inline image riding the text baseline. */
+button.primary,
+button.block {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
 .row {
   display: flex;
   gap: 10px;
@@ -800,6 +845,11 @@ button.danger:hover:not(:disabled) {
   text-transform: uppercase;
   border: 1px solid transparent;
   white-space: nowrap;
+}
+
+/* A chip is one glyph plus one word: the icon never shrinks or wraps away. */
+.state svg {
+  flex: none;
 }
 
 .chip.ok,
@@ -1164,15 +1214,16 @@ details.security > summary::-webkit-details-marker {
   display: none;
 }
 
-details.security > summary::before {
-  content: "+";
-  font-family: var(--mono);
+/* The caret is the icon inside the summary, rotated by the open state, so the
+   marker and the panel cannot disagree about which way it goes. */
+.disclosure-caret {
+  flex: none;
   color: var(--accent);
-  font-size: 13px;
+  transition: transform 160ms var(--soft);
 }
 
-details.security[open] > summary::before {
-  content: "\2212";
+details.security[open] > summary .disclosure-caret {
+  transform: rotate(90deg);
 }
 
 details.security > summary:focus-visible {
