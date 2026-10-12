@@ -45,6 +45,27 @@ const FALLBACK_LIMIT_WEI = 5n * 10n ** 17n;
 
 type View = "approvals" | "activity" | "agents" | "settings";
 
+/**
+ * The four screens, with the one line of context each opens with.
+ *
+ * One list, so the tab label and the strip above it cannot disagree, and the app
+ * has one place to look to see what it is made of.
+ */
+const VIEWS: { id: View; label: string; caption: string }[] = [
+  {
+    id: "approvals",
+    label: "Approvals",
+    caption: "Approve one exact payment; the contract holding the funds checks the signature.",
+  },
+  { id: "activity", label: "Activity", caption: "Every decision made in this browser, newest first." },
+  { id: "agents", label: "Agents", caption: "Who may act for you, and what it may spend." },
+  {
+    id: "settings",
+    label: "Settings",
+    caption: "What this deployment enforces on-chain, and what is up to you.",
+  },
+];
+
 type Config = {
   chainId: number;
   rpId: string;
@@ -140,22 +161,22 @@ function plainReason(auth: Authorization): string {
   if (auth.allowed) return auth.message;
   switch (auth.name) {
     case "OverLimit":
-      return "This request asks for more than the limit you set. Nothing was sent.";
+      return "This asks for more than the limit you set, so nothing was sent.";
     case "Expired":
-      return "This permission had already expired, so the request was refused.";
+      return "This permission had already expired.";
     case "Revoked":
-      return "You had already withdrawn this permission, so the request was refused.";
+      return "You had already withdrawn this permission.";
     case "AlreadyConsumed":
-      return "This one-time permission was already used, so the request was refused.";
+      return "This one-time permission was already used.";
     case "ChallengeMismatch":
     case "BadSignature":
-      return "There was no approval for this request, so it was refused.";
+      return "There was no approval for this request.";
     case "NoSuchIntent":
-      return "This permission no longer exists, so the request was refused.";
+      return "This permission no longer exists.";
     case "WrongAgent":
-      return "A different agent tried to use your permission, so it was refused.";
+      return "A different agent tried to use your permission.";
     case "AgentNotRegistered":
-      return "The agent could not prove the identity it claimed, so it was refused.";
+      return "The agent could not prove the identity it claimed.";
     default:
       return auth.message || "The request was refused.";
   }
@@ -410,7 +431,7 @@ export default function Page() {
         setVerdict({
           tone: "ok",
           label: "Approved",
-          note: `${config?.agentName ?? "The agent"} can now complete this action. The permission is used up, so it cannot be replayed.`,
+          note: "The permission is used up, so this cannot be replayed.",
         });
         addEntry({
           tone: "ok",
@@ -446,7 +467,7 @@ export default function Page() {
         setVerdict({
           tone: "bad",
           label: "Cancelled",
-          note: "The passkey prompt was dismissed, so nothing was approved and nothing moved. The request is still waiting.",
+          note: "The prompt was dismissed, so nothing moved. The request is still waiting.",
         });
       } else {
         setErr(e instanceof Error ? e.message : String(e));
@@ -604,31 +625,39 @@ export default function Page() {
    * is never asserted. A request above the limit is labelled as such before any
    * passkey prompt, because the human should know the answer the chain will give.
    */
+  /**
+   * Risk is derived from the request against the permission that is on-chain. It
+   * is never asserted. A request above the limit is labelled as such before any
+   * passkey prompt, because the human should know the answer the chain will give.
+   *
+   * A permission that is already gone is checked first: an expired or used one has
+   * no time left, and calling that "expiring soon" would name the wrong refusal.
+   */
   const risk = useMemo(() => {
     if (!intent) return null;
+    if (!intent.active) return { tone: "bad" as const, label: "No longer active" };
     if (asked && BigInt(asked.amount) > intent.maxAmount)
       return { tone: "bad" as const, label: "Over your limit" };
     if (remaining <= 60) return { tone: "wait" as const, label: "Expiring soon" };
-    if (!intent.active) return { tone: "bad" as const, label: "No longer active" };
     return { tone: "ok" as const, label: "Within your limit" };
   }, [intent, remaining, asked]);
+
+  /** Why a permission stopped working, in one clause rather than three brackets. */
+  const inactiveWhy = intent?.consumed
+    ? "it was already used"
+    : intent?.revoked
+      ? "you withdrew it"
+      : "the time on it ran out";
 
   /** There is nothing to decide until an agent has actually asked for something. */
   const canDecide = Boolean(intent?.active && asked && !busy);
 
-  const tabs: { id: View; label: string }[] = [
-    { id: "approvals", label: "Approvals" },
-    { id: "activity", label: "Activity" },
-    { id: "agents", label: "Agents" },
-    { id: "settings", label: "Settings" },
-  ];
-
   const onTabKey = (e: React.KeyboardEvent) => {
-    const i = tabs.findIndex((t) => t.id === view);
+    const i = VIEWS.findIndex((t) => t.id === view);
     if (e.key === "ArrowRight") {
-      setView(tabs[(i + 1) % tabs.length].id);
+      setView(VIEWS[(i + 1) % VIEWS.length].id);
     } else if (e.key === "ArrowLeft") {
-      setView(tabs[(i - 1 + tabs.length) % tabs.length].id);
+      setView(VIEWS[(i - 1 + VIEWS.length) % VIEWS.length].id);
     }
   };
 
@@ -679,7 +708,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
             on the config fetch would grow the bar by a row the moment it resolves,
             which is a layout shift on every load, and leaves no navigation while it loads. */}
         <div className="tabs" role="tablist" aria-label="Sections" onKeyDown={onTabKey}>
-          {tabs.map((t) => (
+          {VIEWS.map((t) => (
             <button
               key={t.id}
               className="tab"
@@ -691,6 +720,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
               onClick={() => setView(t.id)}
             >
               {t.label}
+              {t.id === "approvals" && asked !== null && <span className="tab__count">1</span>}
               {t.id === "activity" && activity.length > 0 && (
                 <span className="tab__count">{activity.length}</span>
               )}
@@ -699,16 +729,11 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
         </div>
       </AppBar>
 
-      <DashboardHeader
-        config={config}
-        intent={intent}
-        pendingCount={asked ? 1 : 0}
-        onJump={view === "approvals" ? undefined : () => setView("approvals")}
-      />
+      <StatusStrip view={view} config={config} intent={intent} pendingCount={asked ? 1 : 0} />
 
       {config === null && (
         <p className="note" aria-busy="true">
-          Loading your permissions…
+          Loading…
         </p>
       )}
 
@@ -722,29 +747,28 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
           {config.identityEnforced === false && (
             <p className="notice">
-              <strong>Identity registry not configured on this deployment.</strong> The approval and
-              the spend limit are still enforced on-chain; only the ERC-8004 agent-identity binding
-              is inactive.
+              <strong>Agent identity is not enforced on this deployment.</strong> The approval and
+              the spend limit still are.
             </p>
           )}
 
           {view === "approvals" && (
             <section id="panel-approvals" role="tabpanel" aria-labelledby="tab-approvals">
-              {verdict && <VerdictCard verdict={verdict} onDismiss={() => setVerdict(null)} />}
+              <div className="workspace">
+                <div className="workspace__main">
+                  {verdict && <VerdictCard verdict={verdict} onDismiss={() => setVerdict(null)} />}
 
-              {intentId === null ? (
-                <SetupCard
-                  agentName={config.agentName}
-                  limitMon={limitMon}
-                  expiryMinutes={expiryMinutes}
-                  busy={busy === "setup"}
-                  onLimit={setLimitMon}
-                  onExpiry={setExpiryMinutes}
-                  onSubmit={createPermission}
-                />
-              ) : (
-                <>
-                  {shown === null ? (
+                  {intentId === null ? (
+                    <SetupCard
+                      agentName={config.agentName}
+                      limitMon={limitMon}
+                      expiryMinutes={expiryMinutes}
+                      busy={busy === "setup"}
+                      onLimit={setLimitMon}
+                      onExpiry={setExpiryMinutes}
+                      onSubmit={createPermission}
+                    />
+                  ) : shown === null ? (
                     <WaitingForAgent agentName={config.agentName} queueErr={queueErr} />
                   ) : (
                     <div className="request">
@@ -764,7 +788,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                       </h2>
                       <p className="request__sub">
                         {asked
-                          ? `One payment, to ${shown.service}. Nothing moves until you approve it.`
+                          ? "Posted by the agent process and shown exactly as it arrived."
                           : outcomeLine(shown)}
                       </p>
 
@@ -821,9 +845,8 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
                       {!intent?.active && (
                         <p className="field__hint" style={{ marginTop: 14 }}>
-                          This permission is no longer active
-                          {intent?.consumed ? " (already used)" : intent?.revoked ? " (withdrawn)" : ""}
-                          {remaining <= 0 ? " (expired)" : ""}. Create a new one to keep going.
+                          This permission is no longer active, because {inactiveWhy}. Create a new one
+                          to keep going.
                         </p>
                       )}
 
@@ -836,62 +859,62 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                     </div>
                   )}
 
-                  <Notice>
-                    <strong>This request came from outside this app.</strong> An agent process POSTed
-                    it to <span className="mono">/api/requests</span>, and it is rendered here exactly
-                    as it arrived: recipient, amount, and the agent&rsquo;s own words. Nothing on this
-                    screen is a fixture.
-                  </Notice>
-
-                  <ActivityPreview entries={activity} onSeeAll={() => setView("activity")} />
-
-                  {!intent?.active && (
+                  {intentId !== null && !intent?.active && (
                     <div className="section-actions">
                       <button onClick={resetBrowser}>Set up a new permission</button>
                     </div>
                   )}
-                </>
-              )}
+                </div>
+
+                <div className="workspace__side">
+                  <AgentPanel config={config} intent={intent} busy={busy} onRevoke={revoke} />
+                  {intentId === null ? (
+                    <HowItWorks />
+                  ) : (
+                    <ActivityPanel entries={activity} onSeeAll={() => setView("activity")} />
+                  )}
+                </div>
+              </div>
             </section>
           )}
 
           {view === "activity" && (
             <section id="panel-activity" role="tabpanel" aria-labelledby="tab-activity">
               {activity.length === 0 ? (
-                <p className="note">
-                  Nothing yet. Decisions you make will appear here, newest first.
-                </p>
+                <p className="note">Nothing yet. Decisions appear here, newest first.</p>
               ) : (
-                <ul className="rows">
-                  {activity.map((e) => (
-                    <li className="row" key={e.key}>
-                      <span
-                        className={`state ${
-                          e.tone === "ok" ? "state--ok" : e.tone === "bad" ? "state--bad" : "state--quiet"
-                        }`}
-                      >
-                        <span aria-hidden>{e.tone === "ok" ? "✓" : e.tone === "bad" ? "✕" : "•"}</span>
-                        {e.tone === "ok" ? "Allowed" : e.tone === "bad" ? "Refused" : "Info"}
-                      </span>
-                      <div className="row__main">
-                        <p className="row__title">{e.title}</p>
-                        <p className="row__meta">{e.detail}</p>
-                        {e.explorer && e.hash && (
-                          <p className="row__meta">
-                            <a href={e.explorer} target="_blank" rel="noreferrer">
-                              View the transaction ↗
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                      <span className="row__time">{when(e.at)}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="card">
+                  <ul className="rows">
+                    {activity.map((e) => (
+                      <li className="row" key={e.key}>
+                        <span
+                          className={`state ${
+                            e.tone === "ok" ? "state--ok" : e.tone === "bad" ? "state--bad" : "state--quiet"
+                          }`}
+                        >
+                          <span aria-hidden>{e.tone === "ok" ? "✓" : e.tone === "bad" ? "✕" : "•"}</span>
+                          {e.tone === "ok" ? "Allowed" : e.tone === "bad" ? "Refused" : "Info"}
+                        </span>
+                        <div className="row__main">
+                          <p className="row__title">{e.title}</p>
+                          <p className="row__meta">{e.detail}</p>
+                          {e.explorer && e.hash && (
+                            <p className="row__meta">
+                              <a href={e.explorer} target="_blank" rel="noreferrer">
+                                View the transaction ↗
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                        <span className="row__time">{when(e.at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
               <Notice>
-                <strong>This history lives in this browser</strong>, not on a server. The underlying
-                decisions are on-chain; the list is a local record of them.
+                <strong>This history lives in this browser.</strong> The decisions themselves are
+                on-chain.
               </Notice>
             </section>
           )}
@@ -900,48 +923,21 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
             <section id="panel-agents" role="tabpanel" aria-labelledby="tab-agents">
               {verdict && <VerdictCard verdict={verdict} onDismiss={() => setVerdict(null)} />}
 
-              <div className="card">
-                <div className="card__head">
-                  <AgentAvatar large />
-                  <div>
-                    <h2 className="card__title">{config.agentName}</h2>
-                    <p className="card__sub">
-                      {intent
-                        ? `May spend up to ${mon(intent.maxAmount)}, once, until ${new Date(
-                            Number(intent.expiry) * 1000
-                          ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                        : "No permission yet"}
-                    </p>
-                  </div>
-                  <span
-                    className={`state ${
-                      intent?.active ? "state--wait" : intent ? "state--bad" : "state--quiet"
-                    }`}
-                    style={{ marginLeft: "auto" }}
-                  >
-                    <span aria-hidden>•</span>
-                    {intent?.active ? "Active" : intent ? "Inactive" : "No permission"}
-                  </span>
-                </div>
-
-                {intent && (
-                  <div className="section-actions" style={{ marginTop: 4 }}>
-                    <button className="block" onClick={revoke} disabled={busy !== null || !intent.active}>
-                      {busy === "revoke" ? "Withdrawing…" : "Withdraw access"}
-                    </button>
-                  </div>
-                )}
-
-                <SecurityDetails config={config} intent={intent} passkey={passkey} />
-              </div>
+              <AgentPanel
+                config={config}
+                intent={intent}
+                passkey={passkey}
+                busy={busy}
+                onRevoke={revoke}
+                details
+              />
 
               <div className="card">
                 <div className="card__head">
                   <div>
                     <h2 className="card__title">Try to break it</h2>
                     <p className="card__sub">
-                      Run the attack this design exists to stop: an agent, prompt-injected, asking for
-                      ten times the limit with no approval to present.
+                      The attack this design stops: ten times the limit, no approval attached.
                     </p>
                   </div>
                 </div>
@@ -955,9 +951,8 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                 <p className="note" style={{ marginTop: 14 }}>
                   {injectionTarget
                     ? `${mon(injectionAmount)} is ten times your limit, sent to ${short(injectionTarget)} with no approval attached. `
-                    : "Set a permission first, then this sends ten times its limit with no approval attached. "}
-                  The refusal is a reverted transaction from the contract that holds the funds, not a
-                  check in the agent&rsquo;s code, and not a check in this page.
+                    : "Set a permission first, then this sends ten times its limit. "}
+                  The refusal is a reverted transaction from the contract that holds the funds.
                 </p>
               </div>
             </section>
@@ -965,55 +960,59 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
           {view === "settings" && (
             <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
-              <div className="card">
-                <div className="card__head">
-                  <div>
-                    <h2 className="card__title">How this is enforced</h2>
-                    <p className="card__sub">What is checked before any money moves.</p>
+              <div className="panel-grid">
+                <div className="card">
+                  <div className="card__head">
+                    <div>
+                      <h2 className="card__title">How this is enforced</h2>
+                      <p className="card__sub">What is checked before any money moves.</p>
+                    </div>
                   </div>
+                  <ul className="rows">
+                    <li className="row">
+                      <span className={`state ${config.identityEnforced ? "state--ok" : "state--quiet"}`}>
+                        <span aria-hidden>{config.identityEnforced ? "✓" : "•"}</span>
+                        {config.identityEnforced ? "Enforced" : "Not configured"}
+                      </span>
+                      <div className="row__main">
+                        <p className="row__title">Agent identity</p>
+                        <p className="row__meta">
+                          The agent must own the ERC-8004 identity it claims, checked on-chain.
+                        </p>
+                      </div>
+                    </li>
+                    <li className="row">
+                      <span className={`state ${config.configurationLocked ? "state--ok" : "state--wait"}`}>
+                        <span aria-hidden>{config.configurationLocked ? "✓" : "•"}</span>
+                        {config.configurationLocked ? "Frozen" : "Mutable"}
+                      </span>
+                      <div className="row__main">
+                        <p className="row__title">Configuration</p>
+                        <p className="row__meta">
+                          {config.configurationLocked
+                            ? "The accepted origin and identity registry were frozen at deploy and cannot be changed by anyone."
+                            : "This deployment still lets the operator change the accepted origin. Re-deploy with the lock enabled."}
+                        </p>
+                      </div>
+                    </li>
+                    <li className="row">
+                      <span className="state state--ok">
+                        <span aria-hidden>✓</span>
+                        Enforced
+                      </span>
+                      <div className="row__main">
+                        <p className="row__title">Exact action binding</p>
+                        <p className="row__meta">
+                          The approval covers this recipient, this amount, this contract and this
+                          chain.
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                  <SecurityDetails config={config} intent={intent} passkey={passkey} defaultOpen />
                 </div>
-                <ul className="rows">
-                  <li className="row">
-                    <span className={`state ${config.identityEnforced ? "state--ok" : "state--quiet"}`}>
-                      <span aria-hidden>{config.identityEnforced ? "✓" : "•"}</span>
-                      {config.identityEnforced ? "Enforced" : "Not configured"}
-                    </span>
-                    <div className="row__main">
-                      <p className="row__title">Agent identity</p>
-                      <p className="row__meta">
-                        The agent must own the ERC-8004 identity it claims, checked on-chain.
-                      </p>
-                    </div>
-                  </li>
-                  <li className="row">
-                    <span className={`state ${config.configurationLocked ? "state--ok" : "state--wait"}`}>
-                      <span aria-hidden>{config.configurationLocked ? "✓" : "•"}</span>
-                      {config.configurationLocked ? "Frozen" : "Mutable"}
-                    </span>
-                    <div className="row__main">
-                      <p className="row__title">Configuration</p>
-                      <p className="row__meta">
-                        {config.configurationLocked
-                          ? "The accepted origin and identity registry were frozen at deployment and cannot be changed by anyone, including the deployer."
-                          : "This deployment still allows the operator to change the accepted origin. Re-deploy with the lock enabled."}
-                      </p>
-                    </div>
-                  </li>
-                  <li className="row">
-                    <span className="state state--ok">
-                      <span aria-hidden>✓</span>
-                      Enforced
-                    </span>
-                    <div className="row__main">
-                      <p className="row__title">Exact action binding</p>
-                      <p className="row__meta">
-                        The approval covers this recipient and this amount, on this contract, on this
-                        chain. A change to any of them invalidates it.
-                      </p>
-                    </div>
-                  </li>
-                </ul>
-                <SecurityDetails config={config} intent={intent} passkey={passkey} defaultOpen />
+
+                <HowItWorks />
               </div>
 
               <div className="card">
@@ -1021,7 +1020,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                   <div>
                     <h2 className="card__title">This browser</h2>
                     <p className="card__sub">
-                      Your passkey is held by your device. This page only keeps its public key and your
+                      Your passkey stays on your device; this page keeps only its public key and your
                       local history.
                     </p>
                   </div>
@@ -1029,15 +1028,13 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                 <div className="section-actions" style={{ marginTop: 0 }}>
                   <button onClick={resetBrowser}>Clear this browser&rsquo;s Witness data</button>
                 </div>
+                <p className="note" style={{ marginTop: 14 }}>
+                  Witness relays gas only, so trying it needs no wallet and no testnet funds. The
+                  relaying key cannot approve anything: it does not hold your passkey.
+                </p>
               </div>
             </section>
           )}
-
-          <p className="note" style={{ marginTop: 26 }}>
-            The passkey is the authority. Witness relays gas only, so no wallet and no testnet funds
-            are needed to try it, and the relaying key cannot approve anything, because it does not
-            hold your passkey.
-          </p>
         </>
       )}
     </main>
@@ -1119,21 +1116,19 @@ function WaitingForAgent({ agentName, queueErr }: { agentName: string; queueErr:
 
       <h2 className="request__sentence">No request waiting.</h2>
       <p className="request__sub">
-        Your permission is live. When {agentName} wants to spend, it posts a request to this app.
-        Run the agent from the repository and it will appear here on its own.
+        Your permission is live. A request appears here the moment {agentName} asks.
       </p>
 
       <pre className="mono note" style={{ whiteSpace: "pre-wrap" }}>{`npm install
 node examples/agent-request.mjs`}</pre>
 
       <p className="field__hint">
-        This page reads the queue every 3 seconds. Nothing is approved until you tap.
+        Reads the queue every 3 seconds. Nothing is approved until you tap.
       </p>
 
       {queueErr && (
         <p className="field__hint">
-          <strong>The queue could not be read:</strong> {queueErr}. The agent may still be able to
-          deliver a request by link.
+          <strong>The queue could not be read:</strong> {queueErr}
         </p>
       )}
     </div>
@@ -1154,13 +1149,18 @@ function outcomeLine(r: AgentRequest): string {
   }
 }
 
-function ActivityPreview({ entries, onSeeAll }: { entries: Entry[]; onSeeAll: () => void }) {
+/**
+ * The last few decisions, as a panel beside the work.
+ *
+ * It is the same list the Activity tab shows, cut to three rows, because the
+ * answer to "what just happened" should not need a tab change. The full list is
+ * one click away rather than on the screen at all times.
+ */
+function ActivityPanel({ entries, onSeeAll }: { entries: Entry[]; onSeeAll: () => void }) {
   return (
-    <div className="disclosure-block">
-      <div className="section-head" style={{ marginBottom: 12 }}>
-        <p className="section-title" style={{ margin: 0 }}>
-          Recent activity
-        </p>
+    <div className="card">
+      <div className="card__head">
+        <h2 className="card__title">Recent activity</h2>
         {entries.length > 0 && (
           <button
             onClick={onSeeAll}
@@ -1197,6 +1197,114 @@ function ActivityPreview({ entries, onSeeAll }: { entries: Entry[]; onSeeAll: ()
   );
 }
 
+/**
+ * The whole loop, in three lines.
+ *
+ * It sits beside the setup card, which is the one moment a reader needs to know
+ * what is about to happen, and on Settings as a reference. One component, so the
+ * two cannot tell different stories.
+ */
+function HowItWorks() {
+  const steps: [string, string][] = [
+    ["The agent asks", "It posts a request: who it wants to pay, and how much."],
+    ["You approve one payment", "Your passkey signs that exact amount to that exact address."],
+    [
+      "The contract pays",
+      "It verifies the signature on-chain, pays once, and refuses a second attempt.",
+    ],
+  ];
+
+  return (
+    <div className="card">
+      <div className="card__head">
+        <h2 className="card__title">How it works</h2>
+      </div>
+      <ul className="rows">
+        {steps.map(([title, note], i) => (
+          <li className="row" key={title}>
+            <code className="mono state state--quiet">{i + 1}</code>
+            <div className="row__main">
+              <p className="row__title">{title}</p>
+              <p className="row__meta">{note}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Who may act, and under what permission.
+ *
+ * The assumptions screen and the Agents screen are the same question at two
+ * scales, so they are one component: the sidebar shows the state and the
+ * withdrawal control, the Agents tab adds the technical disclosure.
+ */
+function AgentPanel({
+  config,
+  intent,
+  passkey,
+  busy,
+  onRevoke,
+  details,
+}: {
+  config: Config;
+  intent: IntentRecord | null;
+  passkey?: EnrolledPasskey | null;
+  busy: string | null;
+  onRevoke: () => Promise<void>;
+  /** Adds the disclosure, which needs the width of the Agents screen. */
+  details?: boolean;
+}) {
+  const state = intent?.active ? "Active" : intent ? "Inactive" : "No permission";
+
+  return (
+    <div className="card">
+      <div className="card__head">
+        <AgentAvatar large={details} />
+        <div>
+          <h2 className="card__title">{config.agentName}</h2>
+          <p className="card__sub">{permissionLine(intent)}</p>
+        </div>
+        <span
+          className={`state ${intent?.active ? "state--wait" : intent ? "state--bad" : "state--quiet"}`}
+          style={{ marginLeft: "auto" }}
+        >
+          <span aria-hidden>•</span>
+          {state}
+        </span>
+      </div>
+
+      {intent && (
+        <div className="section-actions" style={{ marginTop: 0 }}>
+          <button className="block" onClick={onRevoke} disabled={busy !== null || !intent.active}>
+            {busy === "revoke" ? "Withdrawing…" : "Withdraw access"}
+          </button>
+        </div>
+      )}
+
+      {details && <SecurityDetails config={config} intent={intent} passkey={passkey ?? null} />}
+    </div>
+  );
+}
+
+/** A permission's expiry as a clock time. One definition, used wherever it is shown. */
+function timeOf(intent: IntentRecord): string {
+  return new Date(Number(intent.expiry) * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** One line for what the permission allows. Shared, so it reads the same anywhere. */
+function permissionLine(intent: IntentRecord | null): string {
+  if (!intent) return "No permission yet";
+  return intent.expiry === 0n
+    ? `May spend up to ${mon(intent.maxAmount)} once, with no expiry`
+    : `May spend up to ${mon(intent.maxAmount)} once, until ${timeOf(intent)}`;
+}
+
 function SetupCard({
   agentName,
   limitMon,
@@ -1220,16 +1328,15 @@ function SetupCard({
         <AgentAvatar />
         <div>
           <p className="micro" style={{ color: "var(--ink-dim)" }}>
-            Step 1 of 1
+            Setup
           </p>
           <p className="card__title">Set what {agentName} may do</p>
         </div>
       </div>
 
-      <p className="request__sentence">Nothing needs your approval yet.</p>
+      <p className="request__sentence">Give {agentName} one spend limit.</p>
       <p className="request__sub">
-        Create one spend limit. It covers a single payment, and your passkey is what approves it, so
-        no one else, including this site, can spend in your name.
+        It covers a single payment, and only your passkey can approve it.
       </p>
 
       <div className="field-grid">
@@ -1265,8 +1372,8 @@ function SetupCard({
       </div>
 
       <p className="field__hint" style={{ marginTop: 14 }}>
-        Your device will ask for your fingerprint, face, or PIN. That passkey is the only thing that
-        can approve a payment.
+        Your device will ask for your fingerprint, face, or PIN. That passkey, and nothing else,
+        approves a payment.
       </p>
     </div>
   );
@@ -1423,142 +1530,90 @@ function SecurityDetails({
    -------------------------------------------------------------------------- */
 
 /**
- * The dashboard header.
+ * The strip the app opens with.
  *
- * The previous concept opened with the wordmark set 232px wide, which says
- * nothing and costs the whole first screen. This opens with the state of the
- * account instead: what the agent is allowed to do, whether anything is waiting
- * on the human, and which guarantees the deployment actually enforces.
+ * This is state, not a pitch. It used to lead with a headline, a four-line lede
+ * and three explainer cards, which is a landing page sitting on top of a tool:
+ * whoever came to approve something had to scroll past the argument for why they
+ * should. What is left is the four facts the app actually knows, all of them
+ * derived from the chain's own answers, directly above the work.
  *
- * Every tile is derived from the chain's own answers. None of it is asserted
- * in copy, so a stranger reading it learns the real posture of this deployment.
- *
- * The copy here is deliberately plain: this is the first screen, and the person
- * reading it may be a founder, an accountant, or someone who has never seen a
- * wallet. Jargon belongs behind "Security details", not in front of the decision.
+ * The line beside the screen name is the caption from VIEWS, so it follows the
+ * tab and cannot drift from what the tab is.
  */
-function DashboardHeader({
+function StatusStrip({
+  view,
   config,
   intent,
   pendingCount,
-  onJump,
 }: {
+  view: View;
   config: Config | null;
   intent: IntentRecord | null;
   pendingCount: number;
-  /** Absent while the approvals tab is already open, so there is nothing to jump to. */
-  onJump?: () => void;
 }) {
-  const limit = intent ? mon(intent.maxAmount) : null;
-  const until = intent
-    ? new Date(Number(intent.expiry) * 1000).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
+  const current = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
 
   return (
-    <section className="hero" aria-labelledby="dashboard-title">
-      <p className="micro">
-        {config ? `Live on Monad, chain ${config.chainId}` : "Reading the deployment"}
-      </p>
-      <h1 className="hero__title" id="dashboard-title">
-        Your agent asks. <em>You decide.</em>
-      </h1>
-      <p className="hero__lede">
-        A software agent can move money for you. This page makes it ask first. One tap of your
-        fingerprint approves one specific payment, and the contract holding your funds checks that
-        approval before anything leaves. An agent that gets tricked by a prompt still cannot pay
-        anyone you did not approve.
-      </p>
+    <section className="status" aria-label={`${current.label} status`}>
+      <div className="status__head">
+        <h1 className="status__title">{current.label}</h1>
+        <p className="status__caption">{current.caption}</p>
+      </div>
 
-      <ol className="how">
-        <li className="how__step">
-          <span className="how__num" aria-hidden>
-            1
-          </span>
-          <div>
-            <p className="how__label">The agent asks</p>
-            <p className="how__note">It posts a request right here: who it wants to pay and how much.</p>
-          </div>
-        </li>
-        <li className="how__step">
-          <span className="how__num" aria-hidden>
-            2
-          </span>
-          <div>
-            <p className="how__label">You approve one payment</p>
-            <p className="how__note">
-              Your fingerprint signs that exact amount to that exact address. Nothing else.
-            </p>
-          </div>
-        </li>
-        <li className="how__step">
-          <span className="how__num" aria-hidden>
-            3
-          </span>
-          <div>
-            <p className="how__label">The contract pays</p>
-            <p className="how__note">
-              It verifies your signature on-chain, pays once, and refuses any second attempt.
-            </p>
-          </div>
-        </li>
-      </ol>
-
-      <div className="stats">
-        <div className="stat">
-          <p className="stat__label">Spending limit</p>
-          <p className="stat__value">{limit ?? "Not set"}</p>
-          <p className="stat__hint">
-            {intent
-              ? intent.active
-                ? `One payment, up to ${until}`
-                : "No longer active"
-              : "Set one to let the agent ask"}
+      <div className="metrics">
+        <div className="metric">
+          <p className="metric__label">Spending limit</p>
+          <p className={intent ? "metric__value metric__value--num" : "metric__value"}>
+            {intent ? mon(intent.maxAmount) : "Not set"}
+          </p>
+          <p className="metric__hint">
+            {!intent
+              ? "None yet"
+              : !intent.active
+                ? "No longer active"
+                : intent.expiry === 0n
+                  ? "One payment, no expiry"
+                  : `One payment, up to ${timeOf(intent)}`}
           </p>
         </div>
 
-        <div className="stat">
-          <p className="stat__label">Requests to review</p>
-          <p className="stat__value">{pendingCount}</p>
-          <p className="stat__hint">
-            {pendingCount > 0 ? "Waiting for your decision" : "Nothing waiting"}
+        <div className="metric">
+          <p className="metric__label">Waiting for you</p>
+          <p className="metric__value metric__value--num">{pendingCount}</p>
+          <p className="metric__hint">
+            {pendingCount > 0 ? "Decide it below" : "Nothing waiting"}
           </p>
         </div>
 
-        <div className="stat">
-          <p className="stat__label">Agent verified</p>
+        <div className="metric">
+          <p className="metric__label">Agent verified</p>
           <p
-            className={`stat__value ${config?.identityEnforced ? "stat__value--ok" : "stat__value--warn"}`}
+            className={`metric__value ${
+              config?.identityEnforced ? "metric__value--ok" : "metric__value--warn"
+            }`}
           >
-            {config === null ? "Checking" : config.identityEnforced ? "Yes" : "No"}
+            {config === null ? "…" : config.identityEnforced ? "Yes" : "No"}
           </p>
-          <p className="stat__hint">
+          <p className="metric__hint">
             {config?.agentId && config.agentId !== "0"
-              ? `Agent #${config.agentId} is owned on-chain`
+              ? `Agent #${config.agentId}, owned on-chain`
               : "Ownership checked on-chain"}
           </p>
         </div>
 
-        <div className="stat">
-          <p className="stat__label">Settings locked</p>
+        <div className="metric">
+          <p className="metric__label">Settings locked</p>
           <p
-            className={`stat__value ${config?.configurationLocked ? "stat__value--ok" : "stat__value--warn"}`}
+            className={`metric__value ${
+              config?.configurationLocked ? "metric__value--ok" : "metric__value--warn"
+            }`}
           >
-            {config === null ? "Checking" : config.configurationLocked ? "Yes" : "No"}
+            {config === null ? "…" : config.configurationLocked ? "Yes" : "No"}
           </p>
-          <p className="stat__hint">Only a new deployment can change them</p>
+          <p className="metric__hint">Frozen at deploy</p>
         </div>
       </div>
-
-      {onJump && (
-        <div className="hero-foot">
-          <button className="primary" onClick={onJump}>
-            Review the waiting request
-          </button>
-        </div>
-      )}
     </section>
   );
 }

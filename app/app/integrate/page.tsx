@@ -192,13 +192,13 @@ export default function Integrate() {
       <section className="section">
         <div className="section-head">
           <span className="section-num">01</span>
-          <h1 className="hero__title" style={{ fontSize: "clamp(24px, 3.2vw, 34px)", margin: 0 }}>
+          <h1 className="page-title">
             Add approvals to <em>your Monad app</em>
           </h1>
         </div>
         <p className="note" style={{ marginBottom: 18 }}>
-          Your app holds or moves value. Witness lets the human approve one exact action with a
-          passkey, and lets your contract check that approval before anything moves. Four calls.
+          Witness lets the human approve one exact action with a passkey, and lets your contract check
+          that approval before anything moves.
         </p>
 
         <div className="integrate-grid">
@@ -237,14 +237,11 @@ export default function Integrate() {
           ))}
         </ul>
         <p className="note" style={{ marginTop: 16 }}>
-          Install it rather than copying it:{" "}
-          <span className="mono">npm i @witness/sdk viem</span>. One dependency, ESM and CJS, with type
-          declarations, built from the same modules this page uses, so the product and the integration
-          surface cannot drift. The package lives in{" "}
-          <span className="mono">packages/sdk</span>. Runnable examples:{" "}
-          <span className="mono">examples/monad-app.mjs</span> for the read path, and{" "}
-          <span className="mono">examples/agent-request.mjs</span> for an agent that asks a human and then
-          verifies the payment on-chain itself.
+          Install it rather than copying it: <span className="mono">npm i @witness/sdk viem</span>, built
+          from the same modules this page uses. Runnable examples:{" "}
+          <span className="mono">examples/monad-app.mjs</span> reads a permission, and{" "}
+          <span className="mono">examples/agent-request.mjs</span> is an agent that asks a human and
+          then checks the payment on-chain.
         </p>
       </section>
 
@@ -367,10 +364,8 @@ export default function Integrate() {
             <div className="row__main">
               <p className="row__title">You must route value through a Witness-checked path</p>
               <p className="row__meta">
-                This is the honest limit of the guarantee: it covers the contract you point at
-                <span className="mono"> DemoSafe</span> (on the deployed demo), or your own contract
-                if you call the verifier from it. An agent with another way to spend your funds is
-                not constrained by Witness.
+                It covers the contract that calls the verifier, DemoSafe on this demo, and nothing
+                else. An agent with another way to spend your funds is not constrained by Witness.
               </p>
             </div>
           </li>

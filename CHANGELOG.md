@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-10-12 (app) - the landing page left, and an app screen arrived
+
+The first screen was a pitch. A 46px headline, a four-line lede, three explainer cards
+and a four-tile grid of statistics, all of it above the thing the page exists for, so
+anyone who opened it to approve a payment had to scroll past the argument for why they
+should. The argument was not wrong, it was in the wrong place. This is the interface
+half of the submission pass, and no contract, route, SDK or passkey behaviour changed.
+
+- **The app opens with state, not a claim.** `DashboardHeader` became `StatusStrip`:
+  the name of the screen, one line of context, and the four facts the app actually
+  knows (spending limit and its clock, requests waiting, agent verified, settings
+  locked), each one read from the chain. The headline, the lede and the three-step
+  explainer are gone from the top of the app.
+- **Two columns where there is room for them.** On a desktop the approvals screen is a
+  workspace: the decision on the left, and on the right the agent that may act, its
+  withdrawal control, and the last three decisions. The setup screen puts "How it
+  works" in that column instead, because that is the moment a reader needs it.
+- **One sentence per place.** Twenty-odd long strings were cut, including all eight
+  refusal messages, which had each ended in the same clause about the request being
+  refused. The three-step explainer moved into Settings and beside the setup card as a
+  single `HowItWorks` component, so the two copies cannot drift.
+- **A real bug in the risk label.** An expired or already-used permission reported
+  "Expiring soon", because the countdown check ran before the check for whether the
+  permission is active at all, so the page named a refusal the contract would never
+  give. It reads "No longer active" now. The same sentence used to end "(used)
+  (expired)" and now says which one happened, once.
+- **The tabs carry the work.** The approvals tab shows a count while something is
+  waiting, which is the honest replacement for the removed jump button.
+
+Verified: `tsc --noEmit` clean, `next build` passes with five routes, `build-static`
+passes, `check-style` clean across 97 files. All four panels and the developer page
+checked in the browser at 1440px and 430px, including the waiting state rendered from a
+live testnet permission (id 1, inactive) and seeded local history. No console errors.
+
 ## 2026-10-11 (submission) - the claims a judge can check, and the one that was broken
 
 A pass over the things a judge can verify in a minute, so that every claim in the repo
