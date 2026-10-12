@@ -182,6 +182,7 @@ export default function Integrate() {
   return (
     <main className="shell">
       <AppBar
+        chainId={config?.chainId}
         actions={
           <a className="micro" href="/">
             ← Back to the app
