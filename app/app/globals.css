@@ -1,91 +1,96 @@
 /*
- * Witness: light control panel.
+ * Witness: a restrained light system.
  *
- * The dark version was a console. This is the same product for someone opening it
- * at a desk in daylight, and for the person who has to be persuaded that an agent
- * is safe to leave running. Light surfaces are less forgiving, so the rules are
- * stricter here than they were on black:
+ * The previous theme treated the page like a poster: display grotesque, large
+ * radii, a background grid and lime glows. It photographed well and read like
+ * a template. This pass is the opposite bet: the product should look like a
+ * tool someone trusts with money. The reference class is Stripe or Linear in
+ * daylight, not a hackathon splash page.
  *
- *   - TWO surfaces only: a near-white page (#f5f6f8) and white cards on top of it.
- *     Depth comes from a hairline plus a two-layer shadow, never from a heavy
- *     border, and the page never uses pure #fff as its own background.
- *   - The brand ramp (indigo to teal) is used for fills and for the few large
- *     display words. Both stops clear 4.5:1 against white text, and no body copy
- *     is ever set in a gradient: small gradient text is the fastest way to make a
- *     light UI look cheap.
- *   - Semantic colour keeps its own tokens and is always paired with an icon and
- *     a word, so status survives for a colour-blind reader and on a projector.
- *   - Type: Inter for the interface, Space Grotesk for display lines, JetBrains
- *     Mono for figures. Micro-labels stay tracked and uppercase, because that is
- *     what lets a dense panel be skimmed.
- *   - Motion is short and only marks a change of state.
+ * The rules of the system:
  *
- * Every class name from the previous systems is preserved, so the page markup did
- * not have to be rewritten for the theme change.
+ *   - FLAT page, honest surfaces. The background is a near-white #f6f7f9 and
+ *     cards are white on top of it. The grid and the radial glows are gone:
+ *     decoration is the first thing that makes an interface look generated.
+ *   - ONE accent, spent carefully. Lime survives as the primary action, the
+ *     status dot and the two hairline bars on the decision card and the code
+ *     block. Everything else is ink and gray. Lime is a fill, never text,
+ *     except the dark olive --accent-text which carries small labels.
+ *   - SMALL radii. 12px on cards, 8px on wells and inputs, pills reserved for
+ *     chips and tabs. The 22px corner is what made the old UI feel soft.
+ *   - ONE typeface for words. Inter carries interface and display alike;
+ *     weight and tracking make the hierarchy. JetBrains Mono still owns every
+ *     figure and identifier. Two voices, not three.
+ *   - Buttons do not jump. Hover changes surface and border; the lift shadow
+ *     appears only where a control promotes an action. The primary is a flat
+ *     lime fill with ink text, no inner gloss.
+ *   - Semantic colour keeps its own tokens and is always paired with an icon
+ *     and a word, so status survives for a colour-blind reader and on a
+ *     projector.
+ *   - The developer page's code blocks are dark. Documentation is where the
+ *     product shows engineers it is one of theirs.
+ *
+ * Every class name from the previous system is preserved, so no markup had
+ * to change for this pass.
  */
 
 :root {
   /* surfaces */
-  --bg: #f5f6f8;
+  --bg: #f6f7f9;
   --bg-2: #ffffff;
-  --bg-3: #f1f3f7;
-  --bg-4: #e8ecf3;
-  --bg-deep: #f8fafc;
+  --bg-3: #eef0f3;
+  --bg-4: #e5e8ed;
+  --bg-deep: #f2f4f6;
   --card: #ffffff;
 
-  /* raised surfaces */
-  --glass: linear-gradient(180deg, #ffffff 0%, #fdfdff 100%);
-  --glass-hover: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
-  --line: rgba(13, 21, 38, 0.1);
-  --line-strong: rgba(13, 21, 38, 0.2);
-  --inset: rgba(13, 21, 38, 0.04);
+  /* hairlines: one weak, one strong, nothing heavier */
+  --line: rgba(15, 22, 36, 0.08);
+  --line-strong: rgba(15, 22, 36, 0.16);
+  --inset: rgba(15, 22, 36, 0.03);
 
-  /* ink: 16.9 / 6.5 / 5.2 against the page. faint is the small-label colour, so
-     it has to clear 4.5:1, which the previous #68738a missed at 4.41. */
-  --ink: #0d1526;
-  --ink-dim: #4d586b;
-  --ink-faint: #5d6779;
+  /* ink ramp. faint is the small-label colour and still clears 4.5:1. */
+  --ink: #10141d;
+  --ink-dim: #46505f;
+  --ink-faint: #687385;
 
-  /* The brand, taken straight from the logo: a lime tile with ink on it. Lime is
-     a FILL colour, never a text colour, so --accent-text is the readable
-     member of the family for links, labels and numbers. */
-  /* Sampled from the artwork itself (app/public/logo.png): the tile runs from
-     #c9f429 at the light end to #a9f41e at the deep end, and the bear is #0d0d0d. */
+  /* The brand, sampled from the logo: a lime tile with ink on it. Lime is a
+     FILL colour, never a text colour, so --accent-text is the readable member
+     of the family for links, labels and numbers. */
   --accent: #c2f325;
-  --accent-light: #c9f429;
-  --accent-2: #a9f41e;
-  --accent-2-bright: #86ab00;
-  --accent-ink: #0d0d0d;
-  --accent-text: #4b6100;
-  --accent-soft: rgba(194, 243, 37, 0.24);
-  --accent-2-soft: rgba(194, 243, 37, 0.18);
-  --ramp: linear-gradient(135deg, #c9f429 0%, #a9f41e 100%);
+  --accent-light: #cdf538;
+  --accent-2: #aad916;
+  --accent-2-bright: #7a9a00;
+  --accent-ink: #131600;
+  --accent-text: #3f5400;
+  --accent-soft: rgba(194, 243, 37, 0.16);
+  --accent-2-soft: rgba(194, 243, 37, 0.1);
+  --ramp: linear-gradient(90deg, #cdf538 0%, #aad916 100%);
 
   /* semantic state, never the only signal */
-  --ok: #047857;
-  --ok-soft: rgba(4, 120, 87, 0.1);
+  --ok: #067647;
+  --ok-soft: rgba(6, 118, 71, 0.08);
   --danger: #b42318;
-  --danger-soft: rgba(180, 35, 24, 0.08);
-  --warn: #b45309;
-  --warn-soft: rgba(180, 83, 9, 0.1);
+  --danger-soft: rgba(180, 35, 24, 0.07);
+  --warn: #b54708;
+  --warn-soft: rgba(181, 71, 8, 0.08);
 
+  /* two voices: Inter for words, JetBrains Mono for figures */
   --sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
-  --display: var(--font-display), "Space Grotesk", var(--sans);
+  --display: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
   --mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
   --decide: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* The logo is a thick ribbon with round ends on a rounded tile, so every
-     corner in the product is generous and every single-line control is a pill. */
-  --radius: 22px;
-  --radius-sm: 14px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --radius-pill: 999px;
   --gutter: 5vw;
 
-  --shadow: 0 1px 2px rgba(13, 21, 38, 0.06), 0 10px 26px -14px rgba(13, 21, 38, 0.18);
-  --shadow-lift: 0 1px 2px rgba(13, 21, 38, 0.07), 0 18px 40px -22px rgba(13, 21, 38, 0.22);
-  --shadow-sm: 0 1px 2px rgba(13, 21, 38, 0.07);
+  /* shadows stay low and cool; nothing floats more than a few px */
+  --shadow: 0 1px 2px rgba(15, 22, 36, 0.05), 0 8px 20px -12px rgba(15, 22, 36, 0.1);
+  --shadow-lift: 0 1px 2px rgba(15, 22, 36, 0.04), 0 16px 34px -20px rgba(15, 22, 36, 0.16);
+  --shadow-sm: 0 1px 2px rgba(15, 22, 36, 0.05);
 }
 
 * {
@@ -105,35 +110,8 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Two very soft tints and a hairline grid, both fixed, so the page keeps its
-   shape while content scrolls over it. Kept under 8% opacity: on a light page,
-   background art competes with the content the moment it gets any stronger. */
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::before {
-  background:
-    radial-gradient(760px 420px at 8% -8%, rgba(194, 243, 37, 0.26), transparent 70%),
-    radial-gradient(680px 380px at 98% 2%, rgba(140, 200, 10, 0.16), transparent 72%);
-}
-
-body::after {
-  background-image:
-    linear-gradient(rgba(13, 21, 38, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(13, 21, 38, 0.035) 1px, transparent 1px);
-  background-size: 68px 68px;
-  mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
-  -webkit-mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
-}
-
 ::selection {
-  background: rgba(79, 70, 229, 0.18);
+  background: rgba(194, 243, 37, 0.4);
   color: var(--ink);
 }
 
@@ -143,17 +121,17 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-3);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd3e1;
+  background: #dde1e7;
   border-radius: 999px;
-  border: 2px solid var(--bg-3);
+  border: 2px solid var(--bg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b3bdcd;
+  background: #c6cdd7;
 }
 
 .shell {
@@ -170,7 +148,7 @@ body::after {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
   margin: 0;
 }
@@ -219,9 +197,9 @@ body::after {
   margin: 0 0 clamp(16px, 2.6dvh, 26px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
@@ -231,16 +209,15 @@ body::after {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 16px;
+  padding: 11px 14px;
 }
 
 .appbar__nav {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-top: 1px solid var(--line);
-  background: var(--bg-2);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -252,26 +229,25 @@ body::after {
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   color: inherit;
   text-decoration: none;
   min-width: 0;
 }
 
-/* The mark IS the logo file (public/logo.png), the same one the tab icon and the
-   README show, so the three cannot drift apart. */
+/* The mark IS the logo file (public/logo.png), the same one the tab icon and
+   the README show, so the three cannot drift apart. */
 .mark {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   flex: none;
   display: block;
-  border-radius: 9px;
-  box-shadow: 0 8px 18px -10px rgba(120, 150, 0, 0.8);
+  border-radius: 8px;
   transition: transform 200ms var(--decide);
 }
 
 .brand:hover .mark {
-  transform: rotate(-5deg) scale(1.05);
+  transform: rotate(-4deg) scale(1.04);
 }
 
 .brand:active .mark {
@@ -280,17 +256,17 @@ body::after {
 
 .brand-name {
   font-family: var(--display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
 .brand-sub {
   display: block;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -298,25 +274,25 @@ body::after {
 .masthead-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: none;
 }
 
-/* a factual readout, not a claim */
+/* a factual readout, not a claim. Neutral body, one lime dot as the signal. */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border-radius: 999px;
-  padding: 7px 13px;
-  font-size: 10.5px;
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--accent-text);
-  background: var(--accent-2-soft);
-  border: 1px solid rgba(160, 190, 0, 0.4);
+  color: var(--ink-dim);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
 }
 
 .pill__dot {
@@ -337,39 +313,36 @@ body::after {
   }
 }
 
-/* --- nav: a pill segmented control, sized for a thumb --- */
+/* --- nav: a segmented control, sized for a thumb --- */
 
 .tabs {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   align-items: center;
-  padding: 4px;
+  padding: 3px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--bg-3);
-  box-shadow: inset 0 1px 2px rgba(13, 21, 38, 0.05);
+  border-radius: 10px;
+  background: var(--bg);
 }
 
 .tab {
   appearance: none;
   background: none;
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   color: var(--ink-dim);
-  padding: 8px 15px;
+  padding: 8px 14px;
   margin: 0;
   font: inherit;
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.005em;
   cursor: pointer;
   white-space: nowrap;
-  min-height: 40px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  /* The global button carries a lift shadow; inside the segmented control that
-     reads as four outlined capsules, which is not what a segmented control is. */
   box-shadow: none;
   transition: background-color 150ms var(--soft), color 150ms var(--soft),
     border-color 150ms var(--soft), box-shadow 150ms var(--soft);
@@ -377,7 +350,7 @@ body::after {
 
 .tab:hover {
   color: var(--ink);
-  background: rgba(13, 21, 38, 0.05);
+  background: rgba(15, 22, 36, 0.05);
 }
 
 .tab[aria-selected="true"] {
@@ -402,8 +375,8 @@ body::after {
 }
 
 /* =========================================================================
-   The status strip: the name of the screen, one line of context, and the four
-   facts the app actually knows. Nothing else belongs above the work.
+   The status strip: the name of the screen, one line of context, and the
+   four facts the app actually knows. Nothing else belongs above the work.
    ========================================================================= */
 
 .status {
@@ -421,31 +394,31 @@ body::after {
 .status__title {
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(20px, 2.4vw, 25px);
-  line-height: 1.1;
-  letter-spacing: -0.025em;
+  font-size: clamp(19px, 2.2vw, 23px);
+  line-height: 1.15;
+  letter-spacing: -0.022em;
   margin: 0;
 }
 
-/* The heading is the screen's one line of context. Its name is the selected tab
-   directly above, so it is not printed here as well. */
+/* The heading is the screen's one line of context. Its name is the selected
+   tab directly above, so it is not printed here as well. */
 .status__title--lead {
   font-size: clamp(16px, 1.5vw, 18px);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.014em;
   line-height: 1.35;
   color: var(--ink);
   max-width: 74ch;
 }
 
-/* The developer page's heading: same display face, sized for a page that is read
-   rather than operated. */
+/* The developer page's heading: sized for a page that is read rather than
+   operated. */
 .page-title {
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(24px, 3.2vw, 34px);
+  font-size: clamp(24px, 3vw, 32px);
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.028em;
   margin: 0;
 }
 
@@ -464,9 +437,9 @@ body::after {
 
 .metric {
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   background: var(--bg-2);
-  padding: 12px 13px;
+  padding: 12px 14px;
   min-width: 0;
   box-shadow: var(--shadow-sm);
 }
@@ -475,7 +448,7 @@ body::after {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
   margin: 0 0 6px;
   display: flex;
@@ -483,15 +456,15 @@ body::after {
   gap: 6px;
 }
 
-/* The glyph wears the label's colour, so a metric icon never competes with the
-   value underneath it. */
+/* The glyph wears the label's colour, so a metric icon never competes with
+   the value underneath it. */
 .metric__label svg {
   flex: none;
   opacity: 0.8;
 }
 
 .metric__value {
-  font-size: 15.5px;
+  font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -504,7 +477,7 @@ body::after {
 /* Money and counts are figures, so they keep the tabular face. Words do not. */
 .metric__value--num {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 400;
 }
 
@@ -580,7 +553,7 @@ body::after {
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--accent-text);
-  border: 1px solid rgba(160, 190, 0, 0.4);
+  border: 1px solid rgba(122, 154, 0, 0.35);
   background: var(--accent-2-soft);
   border-radius: var(--radius-pill);
   padding: 3px 9px;
@@ -590,7 +563,7 @@ body::after {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
   color: var(--ink-dim);
   margin: 0;
 }
@@ -602,9 +575,9 @@ body::after {
 .request {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(160, 190, 0, 0.45);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: clamp(18px, 3dvh, 30px);
+  padding: clamp(18px, 3dvh, 28px);
   background: var(--bg-2);
   box-shadow: var(--shadow-lift);
 }
@@ -626,31 +599,31 @@ body::after {
 }
 
 .agent-avatar {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  border: 1px solid rgba(160, 190, 0, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(122, 154, 0, 0.3);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
 
 .agent-avatar--lg {
-  width: 54px;
-  height: 54px;
-  border-radius: 18px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
 }
 
 .request__sentence {
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(22px, 2.8vw, 32px);
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: clamp(21px, 2.6vw, 29px);
+  line-height: 1.18;
+  letter-spacing: -0.022em;
   margin: 0 0 8px;
-  max-width: 28ch;
+  max-width: 30ch;
 }
 
 /* the amount is the decision, so it is the one coloured word */
@@ -690,21 +663,21 @@ body::after {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
   margin-bottom: 7px;
 }
 
 .fact dd {
   margin: 0;
-  font-size: 15px;
+  font-size: 14.5px;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
 .fact dd.mono {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 /* --- the two decisions --- */
@@ -737,35 +710,33 @@ button.block:hover:not(:disabled) {
 button {
   font: inherit;
   font-size: 13.5px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.008em;
-  border-radius: var(--radius-pill);
-  padding-inline: 22px;
+  border-radius: 10px;
+  padding-inline: 20px;
   border: 1px solid var(--line-strong);
   background: var(--bg-2);
   color: var(--ink);
-  padding: 12px 22px;
-  min-height: 44px;
+  padding: 11px 20px;
+  min-height: 42px;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   transition: background-color 160ms var(--soft), border-color 160ms var(--soft),
-    color 160ms var(--soft), transform 110ms var(--soft), box-shadow 160ms var(--soft);
+    color 160ms var(--soft), box-shadow 160ms var(--soft), filter 160ms var(--soft);
 }
 
 button:hover:not(:disabled) {
   background: var(--bg-3);
   border-color: var(--ink-faint);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(1px);
   box-shadow: var(--shadow-sm);
 }
 
-/* Lime is a fill, so it is not a usable focus ring on a white page: the dark
-   member of the family marks the focused control instead. */
+button:active:not(:disabled) {
+  background: var(--bg-4);
+  box-shadow: none;
+}
+
+/* The dark member of the family marks the focused control. */
 button:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
@@ -774,21 +745,25 @@ button:focus-visible {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
+/* The primary is a flat lime fill with ink text. No gloss, no float; the
+   shadow only appears where the control promotes an action. */
 button.primary {
-  background: var(--ramp);
+  background: var(--accent);
   border-color: transparent;
   color: var(--accent-ink);
-  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.5) inset, 0 10px 22px -12px rgba(150, 180, 0, 0.85);
 }
 
 button.primary:hover:not(:disabled) {
-  filter: brightness(1.04) saturate(1.05);
+  background: var(--accent-light);
   border-color: transparent;
-  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.55) inset, 0 14px 28px -12px rgba(120, 150, 0, 0.75);
+  box-shadow: var(--shadow);
+}
+
+button.primary:active:not(:disabled) {
+  background: var(--accent-2);
+  filter: none;
 }
 
 button.danger:hover:not(:disabled) {
@@ -838,10 +813,10 @@ button.block {
   align-items: center;
   gap: 6px;
   border-radius: 999px;
-  padding: 5px 11px;
+  padding: 4px 10px;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -856,21 +831,21 @@ button.block {
 .state--ok {
   color: var(--ok);
   background: var(--ok-soft);
-  border-color: rgba(4, 120, 87, 0.24);
+  border-color: rgba(6, 118, 71, 0.22);
 }
 
 .chip.bad,
 .state--bad {
   color: var(--danger);
   background: var(--danger-soft);
-  border-color: rgba(180, 35, 24, 0.24);
+  border-color: rgba(180, 35, 24, 0.22);
 }
 
 .chip.warn,
 .state--wait {
   color: var(--warn);
   background: var(--warn-soft);
-  border-color: rgba(180, 83, 9, 0.24);
+  border-color: rgba(181, 71, 8, 0.22);
 }
 
 .chip.idle,
@@ -887,6 +862,7 @@ code.state {
   letter-spacing: 0.01em;
   font-size: 11.5px;
   color: var(--ink);
+  background: var(--bg-3);
 }
 
 /* =========================================================================
@@ -897,9 +873,9 @@ code.state {
   position: relative;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--glass);
-  padding: clamp(16px, 2.4dvh, 24px);
-  box-shadow: var(--shadow-lift);
+  background: var(--bg-2);
+  padding: clamp(16px, 2.4dvh, 22px);
+  box-shadow: var(--shadow);
 }
 
 .card + .card {
@@ -915,9 +891,9 @@ code.state {
 
 .card__title {
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.014em;
   margin: 0;
 }
 
@@ -1037,7 +1013,7 @@ code.state {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg-2);
-  padding: clamp(18px, 3dvh, 30px);
+  padding: clamp(18px, 3dvh, 28px);
   margin-bottom: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-lift);
@@ -1066,10 +1042,10 @@ code.state {
 .verdict-label,
 .verdict-card__label {
   font-family: var(--display);
-  font-weight: 600;
-  font-size: clamp(30px, 4.2vw, 50px);
-  line-height: 1.03;
-  letter-spacing: -0.035em;
+  font-weight: 700;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   margin: 6px 0 10px;
 }
 
@@ -1110,7 +1086,7 @@ code.state {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
 }
 
@@ -1124,7 +1100,7 @@ code.state {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
-  min-height: 46px;
+  min-height: 44px;
   transition: border-color 150ms var(--soft), box-shadow 150ms var(--soft);
 }
 
@@ -1137,7 +1113,7 @@ code.state {
 .field select:focus-visible {
   outline: none;
   border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px rgba(75, 97, 0, 0.2);
+  box-shadow: 0 0 0 3px rgba(63, 84, 0, 0.14);
 }
 
 .field__hint {
@@ -1191,9 +1167,9 @@ details.security > summary {
   cursor: pointer;
   list-style: none;
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
   color: var(--ink-dim);
   min-height: 44px;
   display: flex;
@@ -1218,7 +1194,7 @@ details.security > summary::-webkit-details-marker {
    marker and the panel cannot disagree about which way it goes. */
 .disclosure-caret {
   flex: none;
-  color: var(--accent);
+  color: var(--accent-2-bright);
   transition: transform 160ms var(--soft);
 }
 
@@ -1295,7 +1271,7 @@ details.security > summary:focus-visible {
 
 .notice {
   position: relative;
-  border: 1px solid rgba(180, 83, 9, 0.24);
+  border: 1px solid rgba(181, 71, 8, 0.22);
   border-radius: var(--radius-sm);
   background: var(--warn-soft);
   padding: 12px 15px;
@@ -1312,7 +1288,7 @@ details.security > summary:focus-visible {
 }
 
 .err {
-  border: 1px solid rgba(180, 35, 24, 0.3);
+  border: 1px solid rgba(180, 35, 24, 0.28);
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
   padding: 12px 15px;
@@ -1334,8 +1310,8 @@ a {
 a:hover {
   color: var(--ink);
   text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent-2-bright);
+  text-decoration-thickness: 1.5px;
 }
 
 /* =========================================================================
@@ -1355,14 +1331,17 @@ a:hover {
   background: var(--bg-2);
   padding: 16px;
   min-width: 0;
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-sm);
 }
 
+/* Code blocks are the one dark surface in the product: documentation is read
+   by engineers, and a dark well is what makes code feel like it belongs to a
+   tool rather than to the marketing page around it. */
 .code {
   position: relative;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(15, 22, 36, 0.9);
   border-radius: var(--radius-sm);
-  background: var(--bg-deep);
+  background: #10141d;
   overflow: hidden;
 }
 
@@ -1372,6 +1351,7 @@ a:hover {
   inset: 0 0 auto 0;
   height: 2px;
   background: var(--ramp);
+  z-index: 1;
 }
 
 .code pre {
@@ -1380,7 +1360,7 @@ a:hover {
   overflow-x: auto;
   font-size: 0.76rem;
   line-height: 1.7;
-  color: var(--ink);
+  color: #e6e9f0;
   tab-size: 2;
 }
 
@@ -1392,13 +1372,16 @@ a:hover {
   min-height: 40px;
   padding: 8px 18px;
   font-size: 11.5px;
-  border-radius: var(--radius-pill);
-  color: var(--ink);
+  border-radius: var(--radius-sm);
+  color: #e6e9f0;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .code__copy:hover {
-  border-color: var(--accent-text);
-  color: var(--accent-text);
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
 }
 
 @media (min-width: 1024px) {
@@ -1424,7 +1407,7 @@ a:hover {
 @keyframes settle-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -1546,8 +1529,11 @@ a:hover {
   button:hover:not(:disabled) {
     background: var(--bg-2);
     border-color: var(--line-strong);
-    transform: none;
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
+  }
+
+  button.primary:hover:not(:disabled) {
+    background: var(--accent);
   }
 
   .tab:hover,

@@ -1,29 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 /**
- * Three faces, each with one job:
+ * Two faces, each with one job:
  *
- *   Inter           the interface, labels, body, buttons
- *   Space Grotesk   display lines: the dashboard title, the permission
- *                   sentence, the verdict. Geometric, not decorative.
- *   JetBrains Mono  every figure and identifier: amounts, addresses, hashes,
- *                   countdowns. Tabular, so a ticking number does not reflow.
+ *   Inter          the interface, labels, body, buttons and every display
+ *                  line. One grotesque, weight and tracking carry the
+ *                  hierarchy, which is what keeps a security product looking
+ *                  like a tool instead of a poster.
+ *   JetBrains Mono every figure and identifier: amounts, addresses, hashes,
+ *                  countdowns. Tabular, so a ticking number does not reflow.
  *
- * All three are self-hosted by next/font, so there is no third-party request at
+ * Both are self-hosted by next/font, so there is no third-party request at
  * runtime and no layout shift when they load.
  */
 const sans = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
-});
-
-const display = Space_Grotesk({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-display",
 });
 
 const mono = JetBrains_Mono({
@@ -48,13 +43,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // Matches the page background so the browser chrome does not band against it.
-  themeColor: "#f5f6f8",
+  themeColor: "#f6f7f9",
   colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );
