@@ -95,16 +95,23 @@ evidence (a transaction hash, an `/api/config` response, a verification job id).
 
 ## Deploying the app
 
-The Vercel project behind `witness-agent.vercel.app` must have its **Root Directory**
-set to `app`. The repository root has a `package.json` too, and it has no `next` in it,
-so a build that starts at the root stops with `No Next.js version detected` and the
-check on the commit goes red. That setting lives in the project, not in a file: no
-`vercel.json` key can move it, and a `vercel.json` in `app/` is invisible to a build
-that started at the root.
+The Vercel project behind `witness-agent.vercel.app` builds with its **Root Directory**
+set to `app`, and it has to stay that way. The repository root has a `package.json`
+too, and it carries no `next`, so a build that starts at the root stops with
+`No Next.js version detected` before it reads a line of the app, which is what turns
+the Vercel check on a commit red while every Actions job is green.
 
-Because of that, a push to `main` is not by itself the deployment path. The app is
-published from its own directory, which is how every live deployment in the README's
-table was produced:
+The setting lives in the project rather than in a file. No `vercel.json` key can move
+it, and the `vercel.json` inside `app/` is invisible to a build that started at the
+root, so the repository cannot describe its own build root. Read it back with:
+
+```bash
+vercel api "/v9/projects/<projectId>?teamId=<teamId>"   # prints rootDirectory
+vercel api "/v9/projects/<projectId>?teamId=<teamId>" --method PATCH --field rootDirectory=app
+```
+
+Publishing by hand is still the fastest path, and it is how every live deployment in
+the README's table was produced:
 
 ```bash
 cd app && vercel --prod
