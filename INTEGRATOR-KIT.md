@@ -144,7 +144,7 @@ only if they agreed to be named.
 ## 5. What to send in the first message (nothing more)
 
 1. https://witness-agent.vercel.app, the product, 30 seconds to understand
-2. https://witness-agent.vercel.app/integrate, the developer surface, with a live preflight
+2. https://witness-agent.vercel.app/docs, the developer surface, with a live preflight
 3. `packages/sdk`, so they can see it is a package, not a paste (`npm pack` there builds the
    tarball; `@witness/sdk` is the published name, it is not on the registry yet)
 4. [THREAT-MODEL.md](THREAT-MODEL.md), **send this one to engineers only.** The

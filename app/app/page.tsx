@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
-import { ArrowRightIcon, BotIcon, LockIcon, ShieldCheckIcon } from "@/components/icons";
+import { ArrowRightIcon, BotIcon, LockIcon, ShieldCheckIcon, XBrandIcon } from "@/components/icons";
 
 /**
  * The landing page: the front door.
  *
  * The app itself lives at /app. This page is the argument for it, and it is
- * built like a printed one: one serif voice for the headline and the step
- * titles, hairlines instead of cards, and the brand colour reduced to two small
- * marks. It renders identically in the static bundle (the Worker deployment
- * mounts it client-side at /), so it stays a plain, synchronous, hook-free
- * component: the FAQ is native <details>, no JavaScript.
+ * built like a printed one: one voice for the headline and the step titles,
+ * hairlines instead of cards, and the brand colour reduced to two small marks.
+ * It renders identically in the static bundle (the Worker deployment mounts it
+ * client-side at /), so it stays a plain, synchronous, hook-free component: the
+ * FAQ is native <details>, and every entrance is a CSS animation with no
+ * observer behind it.
+ *
+ * Three rules the page keeps, because they are what a front door is for:
+ *
+ *   one call to action, and it is in the bar. "Open the app" sits at the top
+ *   right where a product puts the one thing it wants you to do, visible while
+ *   you read. The hero points at the argument instead of repeating the button.
+ *
+ *   no third-party marks. Source links belong in the paperwork, not on the
+ *   product's own front page. The one outbound identity link is the project's
+ *   own X account, an icon in the footer where a contact belongs.
+ *
+ *   facts where links would be. The On-chain column answers "can I check it"
+ *   with deployed addresses rather than with a paragraph about how honest we
+ *   are, and every footer link resolves to a page that exists.
  */
 
 export const metadata: Metadata = {
@@ -84,7 +99,7 @@ const FAQ = [
   },
   {
     q: "How do I add it to my app?",
-    a: "Three steps on the Developers page. One SDK, no wallet plumbing.",
+    a: "Read the docs. One SDK, four calls, one check on-chain.",
   },
 ];
 
@@ -92,13 +107,11 @@ const FAQ = [
  * What the footer is for.
  *
  * Three questions are left after the argument above: where do I go next, how do
- * I build on it, and can I check it myself. The Verify column answers the third
- * with deployed addresses rather than with words, so every claim on this page
- * can be checked instead of believed.
- *
- * Links stay inside what exists: the two pages of this site, the repository,
- * the testnet explorer and the live config endpoint. A footer is the easiest
- * place in a product to invent a Privacy page nobody wrote.
+ * I build on it, and can I check it myself. Every link here resolves to a page
+ * that exists: the two routes of this site and their sections, the project's X
+ * account, and the deployed addresses a sceptic can read on the explorer. A
+ * footer is the easiest place in a product to invent a Privacy page nobody
+ * wrote, so nothing here is invented.
  */
 const FOOTER: {
   heading: string;
@@ -107,7 +120,7 @@ const FOOTER: {
   {
     heading: "Product",
     links: [
-      { label: "Open the app", href: "/app" },
+      { label: "The app", href: "/app" },
       { label: "How it works", href: "#how-it-works" },
       { label: "Questions", href: "#faq" },
     ],
@@ -115,18 +128,13 @@ const FOOTER: {
   {
     heading: "Developers",
     links: [
-      { label: "Integration guide", href: "/integrate" },
-      { label: "The four calls", href: "/integrate#calls" },
-      { label: "Runnable examples", href: "/integrate#next" },
-      {
-        label: "Source on GitHub",
-        href: "https://github.com/thesithunyein/witness",
-        external: true,
-      },
+      { label: "Docs", href: "/docs" },
+      { label: "The four calls", href: "/docs#calls" },
+      { label: "Try the preflight", href: "/docs#preflight" },
     ],
   },
   {
-    heading: "Verify",
+    heading: "On-chain",
     links: [
       {
         label: "WitnessVerifier",
@@ -144,8 +152,8 @@ const FOOTER: {
         external: true,
       },
       {
-        label: "Live deployment",
-        href: "https://witness-agent.vercel.app/api/config",
+        label: "Block explorer",
+        href: "https://testnet.monadscan.com",
         external: true,
       },
     ],
@@ -165,10 +173,10 @@ export default function Landing() {
           <div className="ln-nav__links">
             <a href="#how-it-works">How it works</a>
             <a href="#faq">FAQ</a>
-            <a href="/integrate">Developers</a>
+            <a href="/docs">Docs</a>
           </div>
 
-          <a className="ln-btn ln-btn--brand" href="/app">
+          <a className="ln-btn ln-btn--brand ln-btn--nav" href="/app">
             Open the app
             <ArrowRightIcon size={15} />
           </a>
@@ -180,21 +188,27 @@ export default function Landing() {
           <span className="ln-eyebrow__dot" aria-hidden />
           Passkey authorization for AI agents
         </p>
+        {/* Each line is its own clipped track, so the two halves of the sentence
+            rise into place one after the other the way a title card does. */}
         <h1 className="ln-hero__title">
-          Your agent asks.
-          <br />
-          You <em>decide.</em>
+          <span className="ln-hero__line">
+            <span>Your agent asks.</span>
+          </span>
+          <span className="ln-hero__line">
+            <span>
+              You <em>decide.</em>
+            </span>
+          </span>
         </h1>
         <p className="ln-hero__sub">
           Approve one exact payment with a passkey. The contract checks the signature before it pays.
         </p>
         <div className="ln-hero__actions">
-          <a className="ln-btn ln-btn--brand ln-btn--lg" href="/app">
-            Open the app
-            <ArrowRightIcon size={16} />
+          <a className="ln-btn ln-btn--lg" href="#how-it-works">
+            See how it works
           </a>
-          <a className="ln-btn ln-btn--lg ln-btn--ghost" href="/integrate">
-            Read the integration
+          <a className="ln-btn ln-btn--lg ln-btn--ghost" href="/docs">
+            Read the docs
           </a>
         </div>
       </header>
@@ -254,18 +268,13 @@ export default function Landing() {
         ))}
       </section>
 
+      {/* The close says the product's rule, not the hero's sentence twice. */}
       <section className="ln-final">
         <h2 className="ln-final__line">
-          The agent asks.
+          Everything else
           <br />
-          You <em>decide.</em>
+          is <em>refused on-chain.</em>
         </h2>
-        <div className="ln-hero__actions">
-          <a className="ln-btn ln-btn--brand ln-btn--lg" href="/app">
-            Open the app
-            <ArrowRightIcon size={16} />
-          </a>
-        </div>
         <p className="ln-final__note">
           <ShieldCheckIcon size={13} /> One payment per approval.
           <LockIcon size={13} /> Configuration frozen.
@@ -284,10 +293,15 @@ export default function Landing() {
               Passkey approvals for AI agents. One signature covers one payment, and the contract
               that holds the funds checks it before anything moves.
             </p>
-            <p className="ln-footer__status">
-              <span className="ln-footer__dot" aria-hidden />
-              Monad testnet · 10143
-            </p>
+            <a
+              className="ln-footer__x"
+              href="https://x.com/witness_agent"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Witness on X"
+            >
+              <XBrandIcon size={14} />
+            </a>
           </div>
 
           <nav className="ln-footer__cols" aria-label="Footer">
@@ -313,15 +327,6 @@ export default function Landing() {
 
         <div className="ln-footer__legal">
           <p>© 2026 Witness. Testnet software, not audited. Do not use with real funds.</p>
-          <div className="ln-footer__legal-links">
-            <a href="https://github.com/thesithunyein/witness" target="_blank" rel="noreferrer">
-              GitHub
-            </a>
-            <a href="https://testnet.monadscan.com" target="_blank" rel="noreferrer">
-              Explorer
-            </a>
-            <a href="/integrate">Integration guide</a>
-          </div>
         </div>
       </footer>
     </div>

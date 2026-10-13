@@ -567,11 +567,14 @@ const firstLine = (err: unknown, max = 300): string =>
  *
  * The bundle is one index.html whose entry component reads the path, so each of
  * these serves that same shell and the browser decides which page to mount. Both
- * trailing-slash forms are listed: /integrate/ is the same page as /integrate,
- * and an asset lookup for it would fall through to the single-page fallback in
- * some environments and to a miss in others, which is a 404 nobody can predict.
+ * trailing-slash forms are listed: /docs/ is the same page as /docs, and an
+ * asset lookup for it would fall through to the single-page fallback in some
+ * environments and to a miss in others, which is a 404 nobody can predict.
  */
-const CLIENT_ROUTES = new Set(["/app", "/app/", "/integrate", "/integrate/"]);
+const CLIENT_ROUTES = new Set(["/app", "/app/", "/docs", "/docs/"]);
+
+/** The docs page's previous address, forwarded rather than 404ed. */
+const OLD_DOCS_ROUTES = new Set(["/integrate", "/integrate/"]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -623,9 +626,13 @@ export default {
       return json({ ok: false, error: "not found" }, 404);
     }
 
+    if (OLD_DOCS_ROUTES.has(url.pathname)) {
+      return Response.redirect(new URL("/docs", url.origin).toString(), 308);
+    }
+
     // The client routes live in the static bundle too: the app at /app and the
-    // integration guide at /integrate. The query string is preserved, because the
-    // agent's share link carries its request to /app?req=…
+    // docs at /docs. The query string is preserved, because the agent's share
+    // link carries its request to /app?req=…
     if (CLIENT_ROUTES.has(url.pathname)) {
       const target = new URL("/index.html", url);
       target.search = url.search;

@@ -8,7 +8,7 @@ Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sit
 |---|---|
 | **live site (use this as the live link)** | **https://witness-agent.vercel.app** |
 | **app** | **https://witness-agent.vercel.app/app** |
-| integration page | https://witness-agent.vercel.app/integrate |
+| integration page | https://witness-agent.vercel.app/docs |
 | origin the contracts are frozen to | https://witness-agent.vercel.app (the same URL as above) |
 | earlier stack, bound to a domain whose DNS lapsed | https://witness.sithunyein.com (NXDOMAIN) |
 | older freebuff.page deployment | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
@@ -129,7 +129,7 @@ Changed in the second pass:
   status success, 336,107 gas), and the two refused permissions revoked at the end so a run leaves
   no unusable state behind.
 - **Consumer UI**: `Approvals / Activity / Agents / Settings`, plain-language approval, everything
-  technical behind *Security details*, `/integrate` for third parties.
+  technical behind *Security details*, `/docs` for third parties.
 
 Still outstanding: the passkey **approve** tap recorded end to end, the videos, an external
 integrator, named adopters. The hosted site **has been rebuilt and redeployed**, and that is

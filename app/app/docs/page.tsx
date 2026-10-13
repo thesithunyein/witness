@@ -13,7 +13,7 @@ import { ArrowRightIcon, ExternalLinkIcon } from "@/components/icons";
 import { short } from "@/lib/witness";
 
 /**
- * The integration page.
+ * The docs page.
  *
  * This is a developer surface, so it is built the way the documentation this
  * audience already uses is built: a rail on the left that says where you are,
@@ -167,13 +167,6 @@ const LIMITS: { tone: "ok" | "wait"; tag: string; title: string; body: string }[
 
 const NEXT: { title: string; body: string; href: string; label: string; external?: boolean }[] = [
   {
-    title: "Run an agent against this deployment",
-    body: "examples/agent-request.mjs asks a human for one payment, then reads the chain to confirm what happened rather than trusting the reply.",
-    href: "https://github.com/thesithunyein/witness",
-    label: "Open the repository",
-    external: true,
-  },
-  {
     title: "See what the app itself reads",
     body: "The deployed manifest: chain, addresses, the frozen rp id, and the agent identity the verifier checks ownership of.",
     href: "/api/config",
@@ -187,7 +180,7 @@ const NEXT: { title: string; body: string; href: string; label: string; external
   },
 ];
 
-export default function Integrate() {
+export default function Docs() {
   const [config, setConfig] = useState<Config | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -276,7 +269,6 @@ export default function Integrate() {
   return (
     <main className="shell">
       <AppBar
-        chainId={config?.chainId}
         actions={
           <a className="micro micro--icon" href="/app">
             <span>Open the app</span>
@@ -308,13 +300,13 @@ export default function Integrate() {
 
         <div className="dev__body">
           <header className="dev__head">
-            <p className="micro">Integration guide</p>
+            <p className="micro">Docs</p>
             <h1 className="dev__title">
               Add passkey approvals to <em>your</em> app.
             </h1>
             <p className="dev__lede">
               Witness lets the human approve one exact action with a passkey, and lets your contract
-              check that approval before anything moves. One SDK, one check on-chain, three steps.
+              check that approval before anything moves. One SDK, four calls, one check on-chain.
             </p>
 
             <dl className="dev__facts">
@@ -557,7 +549,7 @@ export default function Integrate() {
 
           <section className="dev__section" id="next">
             <SectionHead n="07" title="Next steps">
-              Three ways on from here, in the order they are useful.
+              Two ways on from here, in the order they are useful.
             </SectionHead>
             <ul className="rows">
               {NEXT.map((item) => (

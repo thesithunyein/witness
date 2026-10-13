@@ -18,7 +18,7 @@
  *
  * This module is deliberately dependency-light: viem plus three sibling files in
  * `app/lib` (`abi.ts`, `witness.ts`, `webauthn.ts`). To vendor it into your own app,
- * copy those four files. See /integrate for the worked example.
+ * copy those four files. See /docs for the worked example.
  */
 
 import { createPublicClient, http, keccak256, toBytes, type Address, type Hex, type PublicClient } from "viem";

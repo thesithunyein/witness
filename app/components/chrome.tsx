@@ -9,10 +9,15 @@
  *   a logo is not a label: on a phone, a reader who has never seen the mark
  *   cannot tell where it goes.
  *
- *   section navigation is not in here. The app's sections are a rail on a
- *   desktop and a bar at the bottom of a phone, so they belong to the app's own
- *   frame, not to a component the developer page also renders. This bar is the
- *   same everywhere: who you are, where you can go back to, what chain you are on.
+ *   the bar says one thing per element. The mark carries the name and nothing
+ *   under it, and the chain readout is gone: the chain id is a setting, not
+ *   navigation, and it already has its own row in Settings. A bar with a brand,
+ *   one way home and the screen's own action reads as a bar; a bar with a second
+ *   line of small caps under the logo reads as a business card.
+ *
+ * Section navigation is not in here. The app's sections are a rail on a desktop
+ * and a bar at the bottom of a phone, so they belong to the app's own frame, not
+ * to a component the developer page also renders.
  */
 import type { ReactNode } from "react";
 import { HomeIcon } from "@/components/icons";
@@ -29,30 +34,17 @@ export function Mark() {
 }
 
 export function AppBar({
-  chainId,
-  locked,
   actions,
 }: {
-  /** Chain the app is configured against. Undefined while the config loads. */
-  chainId?: number;
-  /** True once the deployment froze its trust-critical settings. */
-  locked?: boolean;
-  /** Right-hand controls, after Home and before the chain readout. */
+  /** Right-hand controls, after Home. The screen's own verb, nothing else. */
   actions?: ReactNode;
 }) {
-  const chain = chainId ? (chainId === 143 ? "Monad · 143" : "Testnet · 10143") : "Connecting…";
-
   return (
     <header className="appbar">
       <div className="appbar__top">
         <a className="brand" href="/">
           <Mark />
-          <span>
-            <span className="brand-name">Witness</span>
-            <span className="brand-sub">
-              {locked ? "Configuration frozen" : "Monad testnet"}
-            </span>
-          </span>
+          <span className="brand-name">Witness</span>
         </a>
 
         <div className="masthead-right">
@@ -61,10 +53,6 @@ export function AppBar({
             <span>Home</span>
           </a>
           {actions}
-          <span className="pill" title="The chain this deployment is configured against">
-            <span className="pill__dot" aria-hidden />
-            {chain}
-          </span>
         </div>
       </div>
     </header>

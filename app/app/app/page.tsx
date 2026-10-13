@@ -13,18 +13,15 @@ import { short } from "@/lib/witness";
 import { passkeyOriginFits } from "@/lib/webauthn";
 import { AppBar } from "@/components/chrome";
 import {
-  ArrowRightIcon,
   BotIcon,
   CheckCircleIcon,
   CheckIcon,
   ChevronRightIcon,
-  CodeIcon,
   CoinIcon,
   DotIcon,
   ExternalLinkIcon,
   FingerprintIcon,
   InboxIcon,
-  KeyIcon,
   LockIcon,
   PulseIcon,
   SettingsIcon,
@@ -757,19 +754,12 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
   return (
     <main className="shell shell--app">
-      <AppBar
-        chainId={config?.chainId}
-        locked={config?.configurationLocked}
-        actions={
-          <a className="micro micro--icon" href="/integrate">
-            <CodeIcon size={13} />
-            {/* Labelled in a span so the small-screen layout can clip the word
-                without taking it out of the link's accessible name. */}
-            <span>Integrate</span>
-            <ArrowRightIcon size={13} className="micro__arrow" />
-          </a>
-        }
-      />
+      {/*
+        The bar's action slot stays empty here. The developer guide is one link
+        away on the front door, and a second way to it printed inside the app
+        was a control that answered a question nobody operating this screen had.
+      */}
+      <AppBar />
 
       {/*
         The frame: navigation beside the work on a desktop, and the same

@@ -79,11 +79,18 @@
   /* One family, two widths: Geist for words, Geist Mono for figures. The old
      editorial serif is gone on purpose: the reference is a single grotesque
      carrying both the display line and the 13px label, so `--serif` and
-     `--display` point at the same face and every screen reads as one voice. */
-  --sans: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: var(--font-mono), "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+     `--display` point at the same face and every screen reads as one voice.
+
+     Each token names a fallback inside var(), and that is load bearing. next/font
+     injects --font-sans on <html> for the Next build; the static bundle has no
+     next/font at all, and without the fallback the empty var() invalidates the
+     whole font-family declaration, which the browser resolves as Times New
+     Roman. The static site would ship in a serif nobody chose. */
+  --sans: var(--font-sans, "Geist"), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-sans, "Geist"), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: var(--font-sans, "Geist"), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: var(--font-mono, "Geist Mono"), "Geist Mono", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
 
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
   --decide: cubic-bezier(0.16, 1, 0.3, 1);
@@ -254,15 +261,6 @@ body {
   white-space: nowrap;
 }
 
-.brand-sub {
-  display: block;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
 .masthead-right {
   display: flex;
   align-items: center;
@@ -291,47 +289,18 @@ body {
   color: var(--ink);
 }
 
-/* a factual readout, not a claim. Neutral body, one lime dot as the signal. */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: var(--radius-pill);
-  padding: 6px 12px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: var(--ink-dim);
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-}
-
-.pill__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-2-bright);
-  animation: pulse-dot 2.6s var(--soft) infinite;
-}
-
-@keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
-}
-
 /* Inside the settings grid a row is a fact, not a table line: the card is half
    the page, so the state sits above its own sentence instead of squeezing the
-   sentence into the column left over beside it. */
+   sentence into the column left over beside it.
+
+   The horizontal padding goes: in a half-page card the row's text sits under
+   the card's own heading, and 12px of inset put every fact in the section a
+   step to the right of the title it belongs to. */
 .panel-grid .row {
   flex-direction: column;
   gap: 8px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* A button whose label sits beside a glyph: one control, centred together,
@@ -608,11 +577,15 @@ body {
   min-width: 0;
 }
 
+/* The cards in a settings row stretch to the taller of the pair. Two cards of
+   natural height leave the row's bottom edge ragged, and a settings screen is
+   read as a table: the corners of a row are either aligned or they are a
+   mistake. */
 .panel-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(14px, 2dvh, 18px);
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Settings is a set of independent questions, not one long read, so on a wide
@@ -1428,7 +1401,6 @@ details.security > summary:focus-visible {
   color: var(--ink-dim);
   line-height: 1.6;
   margin: 0 0 16px;
-  max-width: 86ch;
 }
 
 .notice strong {
@@ -1456,11 +1428,11 @@ a {
   transition: color 150ms var(--soft);
 }
 
+/* Hover is a colour change, and nothing else. A rule that slides in under every
+   link on the page is the loudest default on the web, and it lands under the
+   words at the exact moment the reader is trying to read them. */
 a:hover {
   color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--accent-2-bright);
-  text-decoration-thickness: 1.5px;
 }
 
 /* =========================================================================
@@ -2128,6 +2100,11 @@ a:hover {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* The hands' entrance pushes the band a few percent wider than the page for a
+     second and a half. Left alone that flashes a horizontal scrollbar over the
+     nicest part of the page, so the band is clipped to the sheet it is printed
+     on. Nothing on this page is sticky, so the clip costs nothing. */
+  overflow-x: clip;
 }
 
 .ln-micro {
@@ -2170,7 +2147,9 @@ a:hover {
 .ln-nav__links {
   display: flex;
   gap: 28px;
-  margin: 0 auto;
+  /* The links sit beside the brand and the one button takes the right edge, so
+     the bar reads as a wordmark, a table of contents, and a door. */
+  margin: 0;
 }
 
 .ln-nav__links a {
@@ -2233,6 +2212,15 @@ a:hover {
   min-height: 50px;
   padding: 14px 28px;
   font-size: 14.5px;
+}
+
+/* The bar's button. A size under the hero's, and pushed to the bar's right edge
+   at every width: it is the one control a visitor should never have to look
+   for, including on a phone where the links have folded away. */
+.ln-btn--nav {
+  margin-left: auto;
+  min-height: 42px;
+  padding: 10px 20px;
 }
 
 .ln-btn--ghost {
@@ -2316,6 +2304,26 @@ a:hover {
   text-wrap: balance;
 }
 
+/*
+ * Each line of the headline is its own mask.
+ *
+ * The words climb out from behind the line's own edge, one line after the
+ * other, which is the whole trick behind a title card: nothing fades, nothing
+ * bounces, the sentence simply arrives. The padding gives descenders room the
+ * cut would otherwise take, and the matching negative margin hands the page
+ * back the space the mask was paid for.
+ */
+.ln-hero__line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.ln-hero__line > span {
+  display: block;
+}
+
 .ln-hero__sub {
   max-width: 56ch;
   margin: 24px auto 0;
@@ -2336,19 +2344,42 @@ a:hover {
 /* --- the plate between the buttons and the facts -------------------------- */
 
 /*
- * Two hands reaching for each other, printed in halftone on the page colour. It
- * runs the same measure as the sections around it and needs no frame: the paper
- * is the page, so only the ink shows.
+ * Two hands reaching for each other, printed in halftone on the page colour.
  *
- * The asset is cropped to the drawing with a thin margin around it (963x298), so
- * its paper edges carry no dead space and all of the breathing room is the
- * margin below. Give the drawing more air here, never inside the file.
+ * The drawing runs edge to edge: no measure, no gutter, no frame. Cropped to
+ * the drawing with a thin margin around it (963x298), the asset is the band
+ * itself, and a gutter on either side of it reads as the picture failing to
+ * reach the paper. The sections below keep their own measure.
+ *
+ * The file is ink on transparency, not ink on a white plate: at full bleed the
+ * plate's own off-white and the grey specks inside it would print as a faint
+ * band across the page.
+ */
+/*
+ * The band is pulled up under the call to action, so the ink starts where the
+ * buttons end instead of a screen's worth of empty paper below them.
+ *
+ * The drawing is a diagonal: the two arms arrive at the sides and the deepest
+ * ink is the space between the fingertips. In its own frame the top-left is
+ * empty, so a plate set below the hero with ordinary spacing opens a dead band
+ * between the buttons and the first dot, which reads as a gap rather than as
+ * air.
+ *
+ * The offset is a percentage, and that is the point: a vertical margin resolves
+ * against the containing block's width, and the plate's height is a fixed
+ * fraction of that same width, so this is really "a fixed fraction of the
+ * plate's own height". The hands land the same distance under the buttons at
+ * every viewport, with no breakpoint to keep in sync.
+ *
+ * The number is the drawing's own edge: the right hand's first ink is 14.8% of
+ * the way down the frame, so anything shallower than -4.8% lifts dots over the
+ * button row. Deeper is a collision; this is the tightest value that clears it.
  */
 .ln-art {
   width: 100%;
-  max-width: 1120px;
-  margin: clamp(20px, 3dvh, 36px) auto 0;
-  padding: 0 var(--gutter);
+  max-width: none;
+  margin: -4.8% 0 0;
+  padding: 0;
 }
 
 .ln-art img {
@@ -2429,13 +2460,28 @@ a:hover {
   border-left: 1px solid var(--line);
 }
 
+/* The step number wears a rule, the way a chapter card does: a short stroke
+   drawn to its right in the brand hue, so "01" reads as a slate rather than as
+   a footnote. */
 .ln-step__num {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.14em;
   color: var(--accent-text);
   margin: 0;
+}
+
+.ln-step__num::after {
+  content: "";
+  width: 22px;
+  height: 1px;
+  flex: none;
+  background: var(--accent-2-bright);
+  opacity: 0.55;
 }
 
 .ln-step__title {
@@ -2585,8 +2631,6 @@ a:hover {
 
 .ln-footer__col a:hover {
   color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .ln-footer__legal {
@@ -2607,20 +2651,30 @@ a:hover {
   color: var(--ink-faint);
 }
 
-.ln-footer__legal-links {
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
+/*
+ * The one outbound mark: an icon, not a handle.
+ *
+ * A username printed beside a logo is the same fact twice, and the accessible
+ * name already carries it, so the tile shows the mark and nothing else.
+ */
+.ln-footer__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  transition: color 150ms var(--soft), border-color 150ms var(--soft),
+    background-color 150ms var(--soft);
 }
 
-.ln-footer__legal-links a {
-  font-size: 12.5px;
-  color: var(--ink-faint);
-  text-decoration: none;
-}
-
-.ln-footer__legal-links a:hover {
+.ln-footer__x:hover {
   color: var(--ink);
+  border-color: var(--line-strong);
+  background: var(--bg-3);
 }
 
 /* --- FAQ ------------------------------------------------------------------ */
@@ -2701,6 +2755,117 @@ a:hover {
   color: var(--ink-dim);
 }
 
+/* --- the title sequence ---------------------------------------------------
+   The page opens the way a film opens: a bar of small caps first, then the two
+   halves of the headline climbing into place, then the sentence, then the
+   controls. Load-time, short, and only what is above the fold; everything below
+   waits for the reader and is handled by the chapter rules underneath.
+   -------------------------------------------------------------------------- */
+
+@keyframes ln-line-in {
+  from {
+    transform: translateY(112%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes ln-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ln-art-in {
+  from {
+    opacity: 0;
+    transform: scale(1.045);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ln-nav__inner {
+    animation: ln-rise-in 560ms var(--decide) both;
+  }
+
+  .ln-hero > .ln-eyebrow {
+    animation: ln-rise-in 640ms var(--decide) 140ms both;
+  }
+
+  .ln-hero__line > span {
+    animation: ln-line-in 940ms var(--decide) 60ms both;
+  }
+
+  .ln-hero__line:nth-of-type(2) > span {
+    animation-delay: 210ms;
+  }
+
+  .ln-hero__sub {
+    animation: ln-rise-in 780ms var(--decide) 520ms both;
+  }
+
+  .ln-hero__actions {
+    animation: ln-rise-in 780ms var(--decide) 660ms both;
+  }
+
+  /* The hands arrive last and largest: one slow push-in, no bounce. */
+  .ln-art img {
+    animation: ln-art-in 1500ms var(--decide) 400ms both;
+  }
+}
+
+/* --- chapters -------------------------------------------------------------
+   Below the fold the page reveals itself as it is read: the facts, the steps
+   and the questions rise a little as they enter. The animation is mapped to
+   each element's own position in the viewport with a view timeline, so there is
+   no observer, no class toggling and nothing to hydrate. The whole block sits
+   inside @supports, so a browser without view timelines shows the plain page
+   rather than hiding content behind an animation that would never run.
+   -------------------------------------------------------------------------- */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ln-trust__grid,
+    .ln-steps__intro,
+    .ln-steps__grid,
+    .ln-faq > .ln-eyebrow,
+    .ln-faq__heading,
+    .ln-final__line {
+      animation: ln-rise-in both;
+      animation-timeline: view();
+      animation-range: entry 8% entry 48%;
+    }
+
+    .ln-step,
+    .ln-faq__item,
+    .ln-final__note {
+      animation: ln-rise-in both;
+      animation-timeline: view();
+      animation-range: entry 4% entry 40%;
+    }
+
+    /* One column settles a beat behind the one before it, so a row of three
+       lands like a dealt hand instead of snapping on as a single plate. */
+    .ln-step:nth-of-type(2) {
+      animation-range: entry 4% entry 46%;
+    }
+
+    .ln-step:nth-of-type(3) {
+      animation-range: entry 4% entry 52%;
+    }
+  }
+}
+
 /* --- landing on a small screen -------------------------------------------- */
 
 @media (max-width: 900px) {
@@ -2741,10 +2906,6 @@ a:hover {
 }
 
 @media (max-width: 560px) {
-  .ln-nav__inner .ln-btn {
-    margin-left: auto;
-  }
-
   .ln-trust__grid {
     grid-template-columns: minmax(0, 1fr);
   }

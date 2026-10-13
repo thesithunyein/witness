@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-10-13 - the front door names the pages it links to
+
+The site had three names for the same developer surface, a footer whose links did not all resolve, and
+a README that argued its case at length before it said where to go.
+
+- **`/integrate` is now `/docs`.** The page is named for what it is. The old address forwards rather
+  than 404s: a permanent redirect in `next.config.mjs` for the server render, and a 308 in the Worker
+  for the static bundle, where `app/static/main.tsx` mounts the same component at the new path. Every
+  reference moved with it: the README, `SUBMISSION.md`, `INTEGRATOR-KIT.md`, and the SDK's own header
+  comment.
+- **The app bar lost its Integrate link.** The guide is one link away on the front door, and a second
+  way to it printed inside the screen an operator is using answered a question nobody there had. The
+  bar also no longer repeats the chain under the brand; the chain id has its own row in Settings.
+- **The landing footer is three columns, and every link resolves:** Product (`/app`, the two anchors on
+  the page itself), Developers (`/docs`, its four calls, its live preflight), and On-chain (the three
+  deployed addresses and the explorer). A footer is the easiest place in a product to invent a Privacy
+  page nobody wrote, so nothing here is invented. The one outbound identity link is the project's own X
+  account, an icon with no username beside it, and no page on the site links to GitHub.
+- **One call to action, in the bar.** "Open the app" is the only button in the navigation and it stays
+  visible while the page is read; the hero points at the argument and at the docs instead of repeating
+  it. Copy that promised "three steps" now says what the page actually shows: four calls, one check
+  on-chain.
+- **The README is a front door, not an argument.** It went from 806 lines to about 270: the app link is
+  a button at the top, before the first paragraph, and the rest is the flow, the addresses, the honest
+  limits, and the commands that reproduce all of it. What repeated the same guarantee three ways did
+  not survive the edit.
+- **The landing band is ink on transparency.** `halftone-hands.png` no longer carries a baked page
+  colour, so the page's own background is the paper and the band has no visible box.
+
 ## 2026-10-13 - redeployed against the origin that serves the product
 
 The submission link and the origin the contracts accept were different hosts. `WitnessVerifier`
