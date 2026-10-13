@@ -238,6 +238,9 @@ operator-callable arbitrary-call function.
 `packages/sdk` builds `@witness-agent/sdk` from the app's own modules (ESM, CJS and type declarations), so
 there is one copy of the truth. It installs from the registry as `npm i @witness-agent/sdk viem`.
 
+Releases are tags: pushing `v*` runs `.github/workflows/release.yml`, which publishes only after
+the tag, the manifest, the app's types and the tarball's contents all agree.
+
 | Call | What it does |
 |---|---|
 | `createIntent` | the human registers a permission (passkey enrolled if needed) |

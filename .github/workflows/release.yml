@@ -1,0 +1,173 @@
+name: release
+
+# Publishing is a tag, and every gate that decides whether a release is honest runs
+# against the artifact rather than against the operator's memory of what to run:
+#
+#   * the tag equals the version in packages/sdk/package.json
+#   * that version is not already on the registry
+#   * the app the package is generated from typechecks
+#   * the generated sources agree with app/lib, and are then rebuilt from it
+#   * the prose guard passes, so the published README carries no em dash
+#   * the tarball holds nothing outside dist/, README.md, LICENSE and package.json
+#
+# Credentials, in the order npm itself prefers them:
+#
+#   1. Trusted publishing. npm mints a short-lived OIDC token for this workflow run, so
+#      no long-lived publish token exists in the repository, and the provenance
+#      attestation is generated automatically for a public repository. It needs npm CLI
+#      11.5.1 or newer and Node 22.14 or newer, which is why the runner's npm is
+#      upgraded below, plus a one-time configuration on npmjs.com: package Settings,
+#      Trusted publishing, GitHub Actions, repository thesithunyein/witness, workflow
+#      release.yml, with `npm publish` among the allowed actions.
+#   2. The NPM_TOKEN secret, used only if it exists. That path asks for provenance
+#      explicitly, because outside OIDC it is not automatic.
+#
+# A manual run is a rehearsal: every gate runs and the publish is a `--dry-run`. Only a
+# tag push, or a manual run with the dry_run input switched off, uploads anything.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Run every gate and rehearse the upload, publishing nothing
+        type: boolean
+        default: true
+
+# Unlike the CI workflow this group does not cancel in progress: an interrupted publish
+# is worse than a queued one.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token trusted publishing exchanges, and provenance
+
+jobs:
+  publish:
+    name: publish @witness-agent/sdk
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Caching is off on purpose: this job holds a publishing credential, and a cache
+      # is one way for a dependency set nobody reviewed to reach a release.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      # Trusted publishing needs npm CLI 11.5.1 or newer. The Node line .nvmrc pins
+      # ships an older one, and a CLI that old has no OIDC support at all.
+      - name: npm CLI new enough for OIDC
+        run: |
+          set -euo pipefail
+          npm install -g npm@latest
+          npm --version
+
+      # Reads text only, so it runs before any install: a stray em dash in the README
+      # that would ship fails the release in seconds.
+      - name: The prose guard
+        working-directory: .
+        run: node scripts/check-style.mjs
+
+      - name: What this run will do
+        id: mode
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          publish=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            publish=true
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
+            publish=true
+          fi
+          if [ -n "${NPM_TOKEN:-}" ]; then auth=token; else auth=oidc; fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "auth=$auth" >> "$GITHUB_OUTPUT"
+          echo "::notice::upload=$publish, credential=$auth"
+
+      - name: The tag and the manifest agree
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF_NAME#v}"
+            if [ "$tag" != "$version" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match packages/sdk version $version"
+              exit 1
+            fi
+          fi
+          echo "releasing @witness-agent/sdk@$version"
+
+      - name: The version is not already published
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          if npm view "@witness-agent/sdk@$version" version >/dev/null 2>&1; then
+            echo "::error::@witness-agent/sdk@$version is already on the registry; bump packages/sdk/package.json before tagging"
+            exit 1
+          fi
+          echo "@witness-agent/sdk@$version is not on the registry yet, so the tag can take it"
+
+      # The package is generated from app/lib, so the app has to compile before its
+      # integration surface can be called releasable.
+      - name: The app the package is generated from typechecks
+        working-directory: app
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          ./node_modules/.bin/tsc --noEmit
+
+      - run: npm ci --no-audit --no-fund
+
+      # Checked before the build, so a generated tree that disagrees with app/lib fails
+      # here instead of being silently overwritten; the build then regenerates it from
+      # the app, which is where the published bytes come from.
+      - run: bun run check
+      - run: bun run build
+      - run: bun run check:pack
+
+      - name: Rehearse the upload
+        if: steps.mode.outputs.publish != 'true'
+        run: |
+          set -euo pipefail
+          npm publish --access public --dry-run
+          echo "::notice::dry run only: every gate ran, nothing was uploaded"
+
+      - name: Publish with trusted publishing
+        if: steps.mode.outputs.publish == 'true' && steps.mode.outputs.auth == 'oidc'
+        run: npm publish --access public
+
+      - name: Publish with the NPM_TOKEN secret
+        if: steps.mode.outputs.publish == 'true' && steps.mode.outputs.auth == 'token'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+      - name: The registry serves it
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          for attempt in 1 2 3 4 5 6; do
+            if npm view "@witness-agent/sdk@$version" version >/dev/null 2>&1; then
+              echo "the registry serves @witness-agent/sdk@$version (read $attempt)"
+              exit 0
+            fi
+            sleep 10
+          done
+          # A slow read is not a failed publish, so this is reported rather than fatal.
+          # A brand-new scope has taken a few minutes to answer reads before.
+          echo "::warning::published, but the registry has not answered a read of @witness-agent/sdk@$version yet"

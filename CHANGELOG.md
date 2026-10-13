@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-10-13 - a release is a tag, and the gates travel with it
+
+Publishing was a command the maintainer had to remember, run from the right directory, with the
+right account, and the drift check that keeps the package equal to the app only ran because
+somebody knew to run it. A release now carries its checks in a workflow instead of in a head.
+
+- **`.github/workflows/release.yml` publishes a `v*` tag.** It refuses to publish unless the tag
+  equals the version in `packages/sdk/package.json`, that version is not already on the registry,
+  the app the package is generated from typechecks, the generated sources agree with `app/lib`,
+  the prose guard passes, and the tarball carries nothing unexpected.
+- **`packages/sdk/scripts/check-pack.mjs`** is that last gate, and it runs locally too
+  (`bun run check:pack`). It reads the file list npm reports for the real tarball via
+  `npm pack --dry-run --json`, so nothing reaches the registry because nobody looked, and a
+  missing entry point fails as loudly as a stray file.
+- **Trusted publishing first, token second.** npm mints a short-lived OIDC token for the workflow,
+  so the repository holds no long-lived publish credential, and provenance is automatic for a
+  public repository. The `NPM_TOKEN` secret is used only if it exists, with `--provenance` asked
+  for explicitly on that path.
+- **A manual run rehearses.** `workflow_dispatch` executes every gate and ends in
+  `npm publish --dry-run`, which is how the pipeline can be proven before a tag exists. Only a tag
+  push, or a manual run with the dry-run input switched off, uploads anything.
+- **CONTRIBUTING.md** documents both credential paths, the fact that a trusted publisher
+  configuration created after Sep 3, 2026 allows staged publishing until `npm publish` is allowed
+  explicitly, and its two-day expiry when the first publish does not succeed.
+- **The package moves to 0.1.1.** The manifest is part of the published tarball, so the pack gate
+  and its script are a package change, and the release refuses a version the registry already
+  serves, which is why the next release cannot be 0.1.0.
+
 ## 2026-10-13 - the SDK ships from the registry
 
 - **The package publishes as `@witness-agent/sdk`.** The npm org name `witness` was already taken

@@ -86,6 +86,34 @@ It is the place to prove something "on-chain" rather than "on an anvil fork".
   it closes, not the diff.
 - Small pull requests. One claim per change.
 
+## Releasing the SDK
+
+A release is a tag, and the tag is the version:
+
+```bash
+# bump packages/sdk/package.json, add the CHANGELOG entry, commit
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+`.github/workflows/release.yml` does the rest: it checks the tag against the manifest, refuses a
+version the registry already serves, typechecks the app the package is generated from, rebuilds
+the sources from `app/lib`, verifies the tarball's contents, and publishes. A manual run of that
+workflow executes every gate and stops at `npm publish --dry-run`, which is how a release is
+rehearsed without a tag.
+
+Publishing needs one of two credentials, and the first is preferred:
+
+| Credential | One-time setup | What the workflow sends |
+|---|---|---|
+| Trusted publishing | npmjs.com, the package’s Settings, Trusted publishing: GitHub Actions, repository `thesithunyein/witness`, workflow `release.yml`, with `npm publish` among the allowed actions | an OIDC token, no secret in the repository |
+| `NPM_TOKEN` | an npm granular token with publish rights, added under the repository’s Settings, Secrets and variables, Actions | that token, with `--provenance` |
+
+Trusted publishing needs npm CLI 11.5.1 or newer and Node 22.14 or newer, so the workflow upgrades
+npm rather than trusting the runner's. A configuration created after Sep 3, 2026 starts with
+staged publishing only, so `npm publish` has to be allowed explicitly, and it expires if its first
+publish does not succeed within two days, so create it just before the release you intend to make.
+
 ## Deployment changes
 
 Anything that publishes, a contract deploy, an app redeploy, a published site,
