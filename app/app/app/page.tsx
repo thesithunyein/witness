@@ -74,7 +74,7 @@ const VIEWS: { id: View; label: string; caption: string }[] = [
   {
     id: "approvals",
     label: "Approvals",
-    caption: "Approve one exact payment; the contract holding the funds checks the signature.",
+    caption: "One exact payment, checked on-chain.",
   },
   { id: "activity", label: "Activity", caption: "Every decision made in this browser, newest first." },
   { id: "agents", label: "Agents", caption: "Who may act for you, and what it may spend." },
@@ -806,20 +806,21 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
               <strong>Agent identity is not enforced on this deployment.</strong> The approval and
               the spend limit still are.
             </p>
-          )}
-
-          {/*
+          )}          {
+            /*
             The passkey is bound to one origin, and the contracts froze which one
-            at deploy time. Saying so here beats letting a judge click the button
-            and read a SecurityError: the rest of this page is live either way.
+            at deploy time. Saying so beats letting someone click the button and
+            read a SecurityError.
+
+            Only on Approvals: that is the one screen with the passkey action this
+            explains. Printed above the log and the settings it was a warning about
+            something those screens cannot do, on every screen.
           */}
-          {originFit && !originFit.ok && (
+          {view === "approvals" && originFit && !originFit.ok && (
             <p className="notice" role="status">
-              <strong>Approvals need one specific address.</strong> This page is served from
-              somewhere the deployed contracts will not accept a signature from, so the passkey
-              step cannot complete here. {originFit.problem} Everything else on this page is
-              live: the permission, the spend limit and the on-chain check are all real. To
-              approve a payment, open the app from the address the contracts were deployed with.
+              <strong>Approvals need one specific address.</strong> {originFit.problem} Everything
+              else here is real, the permission, the spend limit and the on-chain check included.
+              To approve a payment, open the app from that address.
             </p>
           )}
 
@@ -1391,7 +1392,7 @@ function AgentPanel({
           <AgentAvatar large={details} />
           <div>
             <h2 className="card__title">{config.agentName}</h2>
-            <p className="card__sub">{permissionLine(intent)}</p>
+            {intent && <p className="card__sub">{permissionLine(intent)}</p>}
           </div>
         </div>
         <span
@@ -1425,9 +1426,14 @@ function timeOf(intent: IntentRecord): string {
   });
 }
 
-/** One line for what the permission allows. Shared, so it reads the same anywhere. */
-function permissionLine(intent: IntentRecord | null): string {
-  if (!intent) return "Nothing may be spent until you set a limit";
+/**
+ * One line for what the permission allows. Shared, so it reads the same anywhere.
+ *
+ * Only called when a permission exists. With none, the card's own state chip
+ * says so and the setup card beside it is the instruction, so printing "nothing
+ * may be spent until you set a limit" was a third way of saying the same thing.
+ */
+function permissionLine(intent: IntentRecord): string {
   return intent.expiry === 0n
     ? `May spend up to ${mon(intent.maxAmount)} once, with no expiry`
     : `May spend up to ${mon(intent.maxAmount)} once, until ${timeOf(intent)}`;
@@ -1478,7 +1484,7 @@ function SetupCard({
             aria-describedby="limit-hint"
           />
           <p className="field__hint" id="limit-hint">
-            In MON. A request above this is refused on-chain.
+            In MON. A larger request is refused on-chain.
           </p>
         </div>
         <div className="field">
@@ -1489,7 +1495,7 @@ function SetupCard({
             <option value="30">30 minutes</option>
             <option value="60">1 hour</option>
           </select>
-          <p className="field__hint">After this, the permission stops working on its own.</p>
+          <p className="field__hint">Then it expires on its own.</p>
         </div>
       </div>
 
