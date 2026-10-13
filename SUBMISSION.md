@@ -12,6 +12,9 @@ Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sit
 | canonical origin the contracts are frozen to | https://witness.sithunyein.com (DNS down, read the note below) |
 | older freebuff.page deployment | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
 
+Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
+`contracts/deployments/10143.json`; the app reads them from there, never by hand.
+
 ### Read this before recording or judging on the Vercel host
 
 **`sithunyein.com` is not resolving.** It returns NXDOMAIN, so `witness.sithunyein.com` is offline
@@ -37,9 +40,6 @@ failing with a stack trace. To make the passkey flow work again, either:
    script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast`, which writes a new
    manifest and new addresses. The existing deployment stays valid; it is simply bound to a
    different origin.
-
-Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
-`contracts/deployments/10143.json`; the app reads them from there, never by hand.
 
 ---
 
