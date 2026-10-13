@@ -177,6 +177,16 @@ export function CodeIcon(props: IconProps) {
   );
 }
 
+/** The way out of the app and back to the front door. */
+export function HomeIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4.4 10.5 12 4.3l7.6 6.2v8a1.7 1.7 0 0 1-1.7 1.7H6.1a1.7 1.7 0 0 1-1.7-1.7v-8Z" />
+      <path d="M9.7 20.2v-5.3h4.6v5.3" />
+    </Svg>
+  );
+}
+
 export function ArrowRightIcon(props: IconProps) {
   return (
     <Svg {...props}>

@@ -6,8 +6,37 @@ Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sit
 
 | Environment | URL |
 |---|---|
-| **production (use this as the live link)** | **https://witness.sithunyein.com/** |
+| **live site (use this as the live link)** | **https://witness-agent.vercel.app** |
+| **app** | **https://witness-agent.vercel.app/app** |
+| integration page | https://witness-agent.vercel.app/integrate |
+| canonical origin the contracts are frozen to | https://witness.sithunyein.com (DNS down, read the note below) |
 | older freebuff.page deployment | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
+
+### Read this before recording or judging on the Vercel host
+
+**`sithunyein.com` is not resolving.** It returns NXDOMAIN, so `witness.sithunyein.com` is offline
+and Vercel cannot serve it. The Vercel alias above runs the same application.
+
+The contracts do not care where the HTML comes from. The **passkey does.** The deployed
+`WitnessVerifier` was frozen with `rpId` = `witness.sithunyein.com` and `origin` =
+`https://witness.sithunyein.com`, and `lockConfiguration()` makes both permanent. Two consequences:
+
+- A browser only issues a passkey for the page's own domain, so on the Vercel host the prompt
+  cannot be drawn at all.
+- Even given an assertion, the contract compares the assertion's origin against its own and refuses
+  with `OriginMismatch`.
+
+So on the Vercel host the landing page, the app shell, the developer page, the live `/api/config`
+and every read path work; **approving a payment does not.** The app says so on the page rather than
+failing with a stack trace. To make the passkey flow work again, either:
+
+1. **Restore DNS for `sithunyein.com`** (preferred: nothing on-chain changes), then point
+   `witness.sithunyein.com` at this Vercel project again, or
+2. **Redeploy the contracts with the new origin**:
+   `RP_ID=witness-agent.vercel.app ORIGIN=https://witness-agent.vercel.app forge script
+   script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast`, which writes a new
+   manifest and new addresses. The existing deployment stays valid; it is simply bound to a
+   different origin.
 
 Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
 `contracts/deployments/10143.json`; the app reads them from there, never by hand.
@@ -61,8 +90,8 @@ Everything here is new since §0 was written. The theme: the two things the prev
   three message templates. Outreach itself still needs your hands; that is the one thing here I
   cannot do.
 
-**Verified on production** (`witness.sithunyein.com`, after a Vercel deploy of the current build), so
-none of the above is a claim about a local checkout:
+**Verified on production** (against the live host above, so none of this is a claim about a local
+checkout):
 
 - `GET /api/config` returns the five addresses below with `identityEnforced: true` and
   `configurationLocked: true` (before this pass it returned the *previous* addresses with
@@ -243,7 +272,9 @@ WebAuthn parsing, the replay/revocation state, and a receipt format, which is ex
 
 ## 4. Demo video beats
 
-Film on production (`witness.sithunyein.com`). Nothing needs an account, a wallet or testnet funds:
+Film from the **canonical origin**, `witness.sithunyein.com`, once its DNS is restored (see the note
+at the top): the approve tap needs a passkey, and a page on any other host cannot produce one.
+Nothing needs an account, a wallet or testnet funds:
 registration and gas are relayed, and the approval is a passkey on the recording device, one tap to
 enroll. Re-register a fresh permission immediately before the take, each one is single-use and
 expires in 10 minutes.
@@ -270,7 +301,7 @@ Thirty minutes before the take, not during it.
   70,155,898, status success. Know what the confirmation screen looks like before you need it live.
 - **Terminal already warm.** `npm install` finished at the repo root, so `node examples/agent-request.mjs`
   prints its first line instantly instead of resolving dependencies on camera.
-- **Instance alive:** `curl -s https://witness.sithunyein.com/api/config` returns 200. The queue is
+- **Instance alive:** `curl -s https://witness-agent.vercel.app/api/config` returns 200. The queue is
   process memory, so an instance recycle is the one event that can lose a request mid-take. If the
   agent's `POST` returns a `shareUrl`, open that link rather than waiting for the poll: it carries the
   validated request in the URL.

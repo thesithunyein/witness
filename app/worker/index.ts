@@ -479,7 +479,7 @@ async function handleCreateRequest(request: Request): Promise<Response> {
   return json({
     ok: true,
     request: stored,
-    shareUrl: `${origin}/?req=${encodeRequestToken(stored)}`,
+    shareUrl: `${origin}/app?req=${encodeRequestToken(stored)}`,
     statusUrl: `${origin}/api/requests/${stored.id}`,
     agentIdentity: identity === true ? "verified" : identity === false ? "false" : "unverified",
     note:
@@ -562,6 +562,17 @@ const firstLine = (err: unknown, max = 300): string =>
 // Router
 // ---------------------------------------------------------------------------
 
+/**
+ * Paths the static bundle renders client-side.
+ *
+ * The bundle is one index.html whose entry component reads the path, so each of
+ * these serves that same shell and the browser decides which page to mount. Both
+ * trailing-slash forms are listed: /integrate/ is the same page as /integrate,
+ * and an asset lookup for it would fall through to the single-page fallback in
+ * some environments and to a miss in others, which is a 404 nobody can predict.
+ */
+const CLIENT_ROUTES = new Set(["/app", "/app/", "/integrate", "/integrate/"]);
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -610,6 +621,15 @@ export default {
     }
     if (url.pathname.startsWith("/api/")) {
       return json({ ok: false, error: "not found" }, 404);
+    }
+
+    // The client routes live in the static bundle too: the app at /app and the
+    // integration guide at /integrate. The query string is preserved, because the
+    // agent's share link carries its request to /app?req=…
+    if (CLIENT_ROUTES.has(url.pathname)) {
+      const target = new URL("/index.html", url);
+      target.search = url.search;
+      return env.ASSETS.fetch(new Request(target, request));
     }
 
     return env.ASSETS.fetch(request);

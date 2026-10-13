@@ -51,20 +51,22 @@
   /* ink ramp. faint is the small-label colour and still clears 4.5:1. */
   --ink: #10141d;
   --ink-dim: #46505f;
-  --ink-faint: #687385;
+  --ink-faint: #5f6b7c;
 
-  /* The brand, sampled from the logo: a lime tile with ink on it. Lime is a
+  /* The brand, sampled from logo.png: a lime tile with ink on it. The mean of
+     the tile's greens is #bcf020, and the family runs #a8f018 to #d0f028, so
+     the fills below sit on that hue and the ramp is two steps of it. Lime is a
      FILL colour, never a text colour, so --accent-text is the readable member
      of the family for links, labels and numbers. */
-  --accent: #c2f325;
-  --accent-light: #cdf538;
-  --accent-2: #aad916;
+  --accent: #bcf020;
+  --accent-light: #cbf53a;
+  --accent-2: #a8dc14;
   --accent-2-bright: #7a9a00;
   --accent-ink: #131600;
   --accent-text: #3f5400;
-  --accent-soft: rgba(194, 243, 37, 0.16);
-  --accent-2-soft: rgba(194, 243, 37, 0.1);
-  --ramp: linear-gradient(90deg, #cdf538 0%, #aad916 100%);
+  --accent-soft: rgba(188, 240, 32, 0.16);
+  --accent-2-soft: rgba(188, 240, 32, 0.1);
+  --ramp: linear-gradient(90deg, #cbf53a 0%, #a8dc14 100%);
 
   /* semantic state, never the only signal */
   --ok: #067647;
@@ -77,6 +79,7 @@
   /* two voices: Inter for words, JetBrains Mono for figures */
   --sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
   --display: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
+  --serif: var(--font-serif), "Instrument Serif", Georgia, "Times New Roman", serif;
   --mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
@@ -111,7 +114,7 @@ body {
 }
 
 ::selection {
-  background: rgba(194, 243, 37, 0.4);
+  background: rgba(188, 240, 32, 0.4);
   color: var(--ink);
 }
 
@@ -212,20 +215,6 @@ body {
   padding: 11px 14px;
 }
 
-.appbar__nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-top: 1px solid var(--line);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.appbar__nav::-webkit-scrollbar {
-  display: none;
-}
-
 .brand {
   display: flex;
   align-items: center;
@@ -276,6 +265,27 @@ body {
   align-items: center;
   gap: 10px;
   flex: none;
+  /* Keeps the utilities at the bar's right-hand edge when they wrap onto their
+     own row on a narrow screen, instead of falling to the left under the brand. */
+  margin-left: auto;
+}
+
+/*
+ * The bar's links are touch targets, not caption text.
+ *
+ * Home and the page's own link are 10.5px uppercase, which measured 16px tall
+ * and is a miss on a phone. The padding buys them a 34px row without changing
+ * the type: the bar grows 8px and every link in it is reachable with a thumb.
+ */
+.appbar .micro--icon {
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+}
+
+.appbar .micro--icon:hover {
+  background: rgba(15, 22, 36, 0.05);
+  color: var(--ink);
 }
 
 /* a factual readout, not a claim. Neutral body, one lime dot as the signal. */
@@ -313,59 +323,100 @@ body {
   }
 }
 
-/* --- nav: a segmented control, sized for a thumb --- */
+/* --- the app frame: navigation beside the work, or under the thumb ---------
+   A desktop screen has room for a rail, so the sections sit in their own column
+   and stay put while the work scrolls. A phone does not, and a row of labels
+   squeezed into the bar was the wrong answer: the rail becomes a bar across the
+   foot of the screen, inside thumb reach, and the content keeps its full width.
+   Both layouts are the same tablist, so the counts and the ids cannot diverge. */
 
-.tabs {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
+.appframe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2.4dvh, 24px);
+  align-items: start;
 }
 
-.tab {
+.appframe__main {
+  min-width: 0;
+}
+
+.appnav {
+  min-width: 0;
+}
+
+.appnav__label {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.appnav__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navitem {
   appearance: none;
-  background: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  background: none;
   color: var(--ink-dim);
-  padding: 8px 14px;
-  margin: 0;
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 550;
   letter-spacing: -0.005em;
+  text-align: left;
   cursor: pointer;
-  white-space: nowrap;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   box-shadow: none;
   transition: background-color 150ms var(--soft), color 150ms var(--soft),
     border-color 150ms var(--soft), box-shadow 150ms var(--soft);
 }
 
-.tab:hover {
+.navitem svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.navitem:hover {
   color: var(--ink);
   background: rgba(15, 22, 36, 0.05);
 }
 
-.tab[aria-selected="true"] {
+.navitem[aria-selected="true"] {
   color: var(--ink);
   border-color: var(--line);
   background: #ffffff;
   box-shadow: var(--shadow-sm);
 }
 
-.tab:focus-visible {
+.navitem[aria-selected="true"] svg {
+  opacity: 1;
+}
+
+.navitem:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
-.tab__count {
+.navitem__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.navitem__count {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--accent-text);
@@ -886,7 +937,35 @@ code.state {
   display: flex;
   align-items: center;
   gap: 12px;
+  row-gap: 10px;
+  /* A card in the side column is narrow, and a title plus its status chip do not
+     both fit on one line there. Squeezing the name to buy the chip a seat is the
+     wrong trade: the chip drops to its own line instead. */
+  flex-wrap: wrap;
   margin-bottom: 14px;
+}
+
+/* The text block in a card head takes the room it can and no more, so the
+   avatar keeps its place beside the title instead of being pushed onto its own
+   line by a long name. */
+/* The avatar and the text beside it are one item: wrapped separately, a long
+   subtitle pushes the avatar onto a line of its own and strands it above the
+   name it belongs to. */
+.card__head-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.card__head > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.card__head-main > div {
+  min-width: 0;
 }
 
 .card__title {
@@ -1000,7 +1079,9 @@ code.state {
   font-size: 11.5px;
   color: var(--ink-faint);
   margin-top: 6px;
-  word-break: break-all;
+  /* anywhere breaks only when a token cannot fit; break-all was breaking words
+     like "enforced" in the middle of the technical detail rows. */
+  overflow-wrap: anywhere;
 }
 
 /* =========================================================================
@@ -1160,7 +1241,9 @@ code.state {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--ink-dim);
-  word-break: break-all;
+  /* anywhere breaks only when a token cannot fit; break-all was breaking words
+     like "enforced" in the middle of the technical detail rows. */
+  overflow-wrap: anywhere;
 }
 
 details.security > summary {
@@ -1228,7 +1311,9 @@ details.security > summary:focus-visible {
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--ink-dim);
-  word-break: break-all;
+  /* anywhere breaks only when a token cannot fit; break-all was breaking words
+     like "enforced" in the middle of the technical detail rows. */
+  overflow-wrap: anywhere;
 }
 
 /* --- numeric readouts --- */
@@ -1315,62 +1400,274 @@ a:hover {
 }
 
 /* =========================================================================
-   Developer page
-   ========================================================================= */
+   Developer page: a document, not a screen of the app
+   =========================================================================
+   Where the app is operated, this page is read, so it is laid out like the
+   documentation an engineer already uses: a rail of sections on the left, the
+   guide itself in a single measured column, and code in dark wells that carry
+   their own filename and copy control. On a phone the rail turns into one
+   scrollable row of chips above the guide instead of a list nobody scrolls. */
 
-.integrate-grid {
+.dev {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
-  margin-bottom: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 34px);
+  align-items: start;
 }
 
-.integrate-step {
+.dev__body {
+  min-width: 0;
+}
+
+.dev__toc-label {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dev__toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dev__toc-list a {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.dev__toc-list a:hover {
+  color: var(--ink);
+  background: rgba(15, 22, 36, 0.05);
+}
+
+.dev__toc-n {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+/* --- the head of the guide ------------------------------------------------ */
+
+.dev__head {
+  padding-bottom: clamp(22px, 3dvh, 30px);
+  border-bottom: 1px solid var(--line);
+}
+
+.dev__title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 3.4vw, 42px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 12px 0 0;
+}
+
+.dev__title em {
+  font-style: normal;
+  color: var(--accent-text);
+}
+
+.dev__lede {
+  margin: 16px 0 0;
+  max-width: 64ch;
+  font-size: 16px;
+  line-height: 1.62;
+  color: var(--ink-dim);
+}
+
+/*
+ * The facts an integrator needs before reading a line of code. A closed grid on
+ * one hairline, so it reads as a spec table rather than as four more cards.
+ */
+.dev__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  margin: 24px 0 0;
+  padding: 0;
+  background: var(--line);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--bg-2);
-  padding: 16px;
-  min-width: 0;
-  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-/* Code blocks are the one dark surface in the product: documentation is read
-   by engineers, and a dark well is what makes code feel like it belongs to a
-   tool rather than to the marketing page around it. */
-.code {
-  position: relative;
+.dev__facts > div {
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--bg-2);
+}
+
+.dev__facts dt {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dev__facts dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.dev__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px 0 0;
+}
+
+/* A link that behaves like the primary button: the element selector styles
+   buttons, and a navigation is not a button. */
+.dev__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  text-decoration: none;
+}
+
+.dev__btn:hover {
+  background: var(--accent-light);
+}
+
+.dev__btn--ghost {
+  background: var(--bg-2);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.dev__btn--ghost:hover {
+  background: var(--bg-3);
+}
+
+/* --- sections ------------------------------------------------------------- */
+
+.dev__section {
+  padding-top: clamp(30px, 4.5dvh, 46px);
+  scroll-margin-top: 84px;
+}
+
+.dev__section-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.dev__section-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--bg-2);
+  font-size: 11px;
+  color: var(--accent-text);
+}
+
+.dev__section-title {
+  font-family: var(--display);
+  font-size: clamp(18px, 1.9vw, 22px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.dev__section-lede {
+  margin: 8px 0 0;
+  max-width: 66ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.dev__note {
+  margin: 16px 0 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+/* --- code: the one dark surface, and it says what it is ------------------- */
+
+.codeblock {
+  margin: 0;
   border: 1px solid rgba(15, 22, 36, 0.9);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: #10141d;
   overflow: hidden;
 }
 
-.code::before {
+.codeblock__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* The brand, spent on a 2px hairline at the top of the well rather than on
+   another surface. Same treatment the decision card gets in the app. */
+.codeblock__bar::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
   height: 2px;
   background: var(--ramp);
-  z-index: 1;
 }
 
-.code pre {
-  margin: 0;
-  padding: 16px 16px 46px;
-  overflow-x: auto;
-  font-size: 0.76rem;
-  line-height: 1.7;
-  color: #e6e9f0;
-  tab-size: 2;
+.codeblock__label {
+  font-size: 11.5px;
+  color: #9aa5b8;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.code__copy {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  /* kept at the 40px touch-target floor the rest of the system uses */
-  min-height: 40px;
-  padding: 8px 18px;
+.codeblock__copy {
+  margin-left: auto;
+  min-height: 34px;
+  padding: 6px 14px;
   font-size: 11.5px;
   border-radius: var(--radius-sm);
   color: #e6e9f0;
@@ -1378,19 +1675,104 @@ a:hover {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.code__copy:hover {
+.codeblock__copy:hover:not(:disabled) {
   background: var(--accent);
   border-color: transparent;
   color: var(--accent-ink);
 }
 
+.codeblock pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: #e6e9f0;
+  tab-size: 2;
+}
+
+.codeblock__note {
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #9aa5b8;
+}
+
 @media (min-width: 1024px) {
-  .code pre {
+  .dev {
+    grid-template-columns: 216px minmax(0, 1fr);
+  }
+
+  .dev__toc {
+    position: sticky;
+    top: 84px;
+  }
+}
+
+/*
+ * On a phone the rail becomes a row of chips that scrolls sideways: the section
+ * list is real navigation, so it stays on the page rather than behind a menu,
+ * and each chip is a 36px target. The numbers go: a rail is read down a column,
+ * a chip row is scanned across, and "05" in a chip is a word to decode.
+ */
+@media (max-width: 1023px) {
+  .dev__toc {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 10px var(--gutter);
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .dev__toc-label {
+    display: none;
+  }
+
+  .dev__toc-list {
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .dev__toc-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dev__toc-list a {
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--bg-2);
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+
+  .dev__toc-n {
+    display: none;
+  }
+
+  .dev__section {
+    scroll-margin-top: 68px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .codeblock pre {
     font-size: 0.8rem;
   }
 
-  /* Two columns where there is room for them: the decision beside its context,
-     and panels side by side instead of a long single stack. */
+}
+
+/* The rail takes 212px of the width, so the two-column workspace and the paired
+   panels wait for a screen that can afford all three columns at once instead of
+   squeezing the decision card into a phone-shaped column on a laptop. */
+@media (min-width: 1240px) {
   .workspace {
     grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   }
@@ -1504,23 +1886,128 @@ a:hover {
   }
 }
 
-/* 390px is a real phone width, and navigation that hides its own last item is
-   worse than tighter navigation: the padding comes down so the last tab stays
-   on screen instead of behind a scroll nobody discovers. */
-@media (max-width: 430px) {
-  .appbar__nav {
-    padding: 5px 8px;
+@media (min-width: 1024px) {
+  .appframe {
+    grid-template-columns: 212px minmax(0, 1fr);
+    gap: clamp(20px, 3vw, 34px);
+  }
+
+  .appnav {
+    position: sticky;
+    top: 84px;
+  }
+
+  .shell--app {
+    max-width: 1240px;
+  }
+}
+
+/*
+ * The bar on a phone.
+ *
+ * Four sections, one row, 52px of target each, pinned to the foot of the screen
+ * where a thumb rests, and padded for the home indicator so the labels are never
+ * under it. The counts move to the corner of the icon: a centred column has no
+ * end of the row to put them at.
+ */
+@media (max-width: 1023px) {
+  .appnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border-top: 1px solid var(--line);
+  }
+
+  .appnav__label {
+    display: none;
+  }
+
+  .appnav__list {
+    flex-direction: row;
     gap: 2px;
   }
 
-  .tab {
-    padding: 8px 11px;
-    font-size: 11.5px;
+  .navitem {
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 52px;
+    padding: 6px 4px;
+    font-size: 10.5px;
     letter-spacing: 0;
+    text-align: center;
   }
 
+  .navitem__label {
+    flex: none;
+  }
+
+  .navitem__count {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(9px);
+  }
+}
+
+@media (max-width: 620px) {
+  /*
+   * The bar's right cluster is the tightest space in the product: two links and
+   * the chain readout measured 349px inside a 340px row, and the bar clips its
+   * own overflow, so the chain was silently cut in half. It wraps now, and the
+   * links below drop to their glyphs.
+   */
+  .masthead-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 8px;
+  }
+
+  /* The arrows go before the words: the word is what says where the link goes,
+     and an icon-only link in the bar is a glyph to decode. */
+  .appbar .micro__arrow {
+    display: none;
+  }
+
+  .appbar .micro--icon {
+    padding: 0 10px;
+  }
+}
+
+/*
+ * On a phone the cluster has about 316px for three things, and Home was the one
+ * that pushed the chain readout off the edge of the bar. Home is the glyph that
+ * needs its word least: a house reads as home in every interface, it keeps its
+ * label in the accessibility tree, and the brand mark directly above it goes to
+ * the same place. The section link keeps its word, because "Integrate" is not
+ * something a glyph can say.
+ */
+@media (max-width: 430px) {
   .appbar__top {
     padding: 11px 12px;
+  }
+
+  .shell--app {
+    padding-bottom: 92px;
+  }
+
+  /* Home drops to its glyph: it was the item pushing the chain readout off the
+     edge of the bar. The label stays in the accessibility tree, and the brand
+     mark directly above it goes to the same place. */
+  .appbar .home-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
@@ -1536,7 +2023,7 @@ a:hover {
     background: var(--accent);
   }
 
-  .tab:hover,
+  .navitem:hover,
   .row:hover {
     background: none;
   }
@@ -1549,5 +2036,658 @@ a:hover {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     transition: none !important;
+  }
+}
+
+/* =========================================================================
+   Landing: the editorial front door.
+   =========================================================================
+   The app is a control panel; this page is the argument for it. Where the app
+   uses Inter and metrics, the landing uses one serif voice for its large
+   lines, hairlines instead of stacked cards, and the brand colour reduced to
+   two small marks: the eyebrow dot and the step numbers. No motion at all:
+   on a printed page nothing blinks, and neither does this.
+   ========================================================================= */
+
+.ln {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ln-micro {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-text);
+  margin: 0 0 10px;
+}
+
+/* --- nav ---------------------------------------------------------------- */
+
+.ln-nav {
+  border-bottom: 1px solid var(--line);
+  background: rgba(246, 247, 249, 0.9);
+}
+
+.ln-nav__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.ln-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.ln-nav__links {
+  display: flex;
+  gap: 28px;
+  margin: 0 auto;
+}
+
+.ln-nav__links a {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  text-decoration: none;
+  transition: color 150ms var(--soft);
+  /* A 20px-tall link is a mouse target, not a thumb target. The padding is
+     paid back by the negative margin, so nothing moves on screen. */
+  padding: 12px 0;
+  margin: -12px 0;
+}
+
+.ln-nav__links a:hover {
+  color: var(--ink);
+}
+
+/* --- the ink pill -------------------------------------------------------- */
+
+.ln-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 11px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 160ms var(--soft), transform 110ms var(--soft),
+    box-shadow 160ms var(--soft);
+}
+
+.ln-btn:hover {
+  background: #232b3d;
+  border-color: #232b3d;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.ln-btn:active {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.ln-btn:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.ln-btn--lg {
+  min-height: 50px;
+  padding: 14px 28px;
+  font-size: 14.5px;
+}
+
+.ln-btn--ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.ln-btn--ghost:hover {
+  background: var(--bg-2);
+  border-color: var(--ink-faint);
+}
+
+/* The primary action wears the logo itself: the lime tile with ink on it. */
+.ln-btn--brand {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ln-btn--brand:hover {
+  background: var(--accent-light);
+  border-color: var(--accent-light);
+  color: var(--accent-ink);
+}
+
+/* --- hero ---------------------------------------------------------------- */
+
+.ln-hero {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(72px, 13dvh, 132px) var(--gutter) 0;
+  text-align: center;
+}
+
+.ln-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.ln-eyebrow__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--accent-2);
+  flex: none;
+}
+
+.ln-hero__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(48px, 9.5vw, 102px);
+  line-height: 1.03;
+  letter-spacing: -0.01em;
+  margin: 26px 0 0;
+}
+
+.ln-hero__title em,
+.ln-final__line em {
+  font-style: italic;
+}
+
+.ln-hero__sub {
+  max-width: 56ch;
+  margin: 24px auto 0;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--ink-dim);
+}
+
+.ln-hero__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+
+/* --- the plate between the buttons and the facts -------------------------- */
+
+/*
+ * Two hands reaching for each other, printed in halftone on the page colour. It
+ * runs the same measure as the sections around it and needs no frame: the paper
+ * is the page, so only the ink shows.
+ *
+ * The asset is cropped to the drawing with a thin margin around it (963x298), so
+ * its paper edges carry no dead space and all of the breathing room is the
+ * margin below. Give the drawing more air here, never inside the file.
+ */
+.ln-art {
+  width: 100%;
+  max-width: 1120px;
+  margin: clamp(20px, 3dvh, 36px) auto 0;
+  padding: 0 var(--gutter);
+}
+
+.ln-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* --- the four facts ------------------------------------------------------ */
+
+.ln-trust {
+  max-width: 1120px;
+  margin: clamp(40px, 6dvh, 72px) auto 0;
+  padding: 0 var(--gutter);
+}
+
+.ln-trust__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+.ln-trust__cell {
+  padding: 24px 22px 30px;
+  min-width: 0;
+}
+
+.ln-trust__cell + .ln-trust__cell {
+  border-left: 1px solid var(--line);
+}
+
+.ln-trust__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+/* --- the three steps ----------------------------------------------------- */
+
+.ln-steps {
+  max-width: 1120px;
+  margin: clamp(72px, 11dvh, 116px) auto 0;
+  padding: 0 var(--gutter);
+  scroll-margin-top: 24px;
+}
+
+.ln-steps__intro {
+  text-align: center;
+}
+
+.ln-steps__heading {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(30px, 4.6vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 18px 0 0;
+}
+
+.ln-steps__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.ln-step {
+  padding: 32px 30px 38px;
+  min-width: 0;
+}
+
+.ln-step + .ln-step {
+  border-left: 1px solid var(--line);
+}
+
+.ln-step__num {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--accent-text);
+  margin: 0;
+}
+
+.ln-step__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 16px 0 12px;
+}
+
+.ln-step__body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.68;
+  color: var(--ink-dim);
+}
+
+/* --- the closing line ----------------------------------------------------- */
+
+.ln-final {
+  text-align: center;
+  padding: clamp(80px, 13dvh, 132px) var(--gutter) 0;
+}
+
+.ln-final__line {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 7vw, 76px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.ln-final__note {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 34px auto 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.ln-final__note svg {
+  color: var(--accent-text);
+}
+
+/* --- footer --------------------------------------------------------------- */
+
+/*
+ * A footer with a job, not a signature line.
+ *
+ * Three columns on one hairline grid: who made this and on what chain, where to
+ * go next, and the deployed addresses a sceptic can check against the claims
+ * above. Links are grouped by the question they answer rather than piled into
+ * one row, and the legal line stays a separate, smaller band under its own rule
+ * so a disclaimer never reads as navigation.
+ */
+.ln-footer {
+  margin-top: clamp(72px, 11dvh, 116px);
+  border-top: 1px solid var(--line);
+}
+
+.ln-footer__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(40px, 6dvh, 56px) var(--gutter) 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
+  gap: clamp(28px, 4dvh, 48px);
+}
+
+.ln-footer__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.ln-footer__tag {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.ln-footer__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ln-footer__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-2-bright);
+  flex: none;
+}
+
+.ln-footer__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px 24px;
+}
+
+.ln-footer__heading {
+  margin: 0 0 14px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ln-footer__col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/*
+ * The links are 13.5px text with a 26px minimum height, because a footer on a
+ * phone is a list of touch targets and 10px of line spacing is not one.
+ */
+.ln-footer__col a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.ln-footer__col a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ln-footer__legal {
+  max-width: 1120px;
+  margin: clamp(30px, 4.5dvh, 46px) auto 0;
+  padding: 18px var(--gutter) 26px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  flex-wrap: wrap;
+}
+
+.ln-footer__legal p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.ln-footer__legal-links {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.ln-footer__legal-links a {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+
+.ln-footer__legal-links a:hover {
+  color: var(--ink);
+}
+
+/* --- FAQ ------------------------------------------------------------------ */
+
+/*
+ * The FAQ shares the page's measure. It used to cap its own column at 720px,
+ * and because the section is a flex item with auto margins it shrunk to fit the
+ * text, which left the list about half the width of the sections above it. The
+ * rows now run the same 1120px grid as the four facts and the steps; the answer
+ * text keeps its own readable cap.
+ */
+.ln-faq {
+  width: 100%;
+  max-width: 1120px;
+  margin: clamp(72px, 11dvh, 116px) auto 0;
+  padding: 0 var(--gutter);
+  scroll-margin-top: 24px;
+}
+
+.ln-faq__heading {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(30px, 4.6vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 18px 0 26px;
+}
+
+.ln-faq__item {
+  border-top: 1px solid var(--line);
+}
+
+.ln-faq__item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.ln-faq__q {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 19px 0;
+  font-size: 17px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.ln-faq__q::-webkit-details-marker {
+  display: none;
+}
+
+.ln-faq__q::after {
+  content: "+";
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 17px;
+  color: var(--accent-text);
+  transition: transform 160ms var(--soft);
+}
+
+.ln-faq__item[open] .ln-faq__q::after {
+  transform: rotate(45deg);
+}
+
+.ln-faq__q:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
+.ln-faq__a {
+  margin: 0;
+  padding: 0 0 22px;
+  max-width: 58ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+/* --- landing on a small screen -------------------------------------------- */
+
+@media (max-width: 900px) {
+  .ln-nav__links {
+    display: none;
+  }
+
+  .ln-trust__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ln-trust__cell + .ln-trust__cell {
+    border-left: none;
+  }
+
+  .ln-trust__cell:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+
+  .ln-trust__cell:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .ln-steps__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ln-step + .ln-step {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 900px) {
+  .ln-footer__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .ln-nav__inner .ln-btn {
+    margin-left: auto;
+  }
+
+  .ln-trust__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ln-trust__cell:nth-child(even) {
+    border-left: none;
+  }
+
+  .ln-trust__cell:nth-child(n + 2) {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Two columns of links still fit at 390px, and a 3-row stack of single links
+     would run the footer longer than the section above it. */
+  .ln-footer__cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 26px 18px;
+  }
+
+  /* 26px rows are comfortable with a mouse and tight with a thumb. */
+  .ln-footer__col a {
+    min-height: 34px;
+  }
+
+  .ln-footer__legal {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .ln-footer__cols {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

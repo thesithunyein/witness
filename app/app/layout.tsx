@@ -1,24 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 /**
- * Two faces, each with one job:
+ * Three faces, each with one job:
  *
- *   Inter          the interface, labels, body, buttons and every display
- *                  line. One grotesque, weight and tracking carry the
- *                  hierarchy, which is what keeps a security product looking
- *                  like a tool instead of a poster.
- *   JetBrains Mono every figure and identifier: amounts, addresses, hashes,
- *                  countdowns. Tabular, so a ticking number does not reflow.
+ *   Inter            the interface, labels, body, buttons and every display
+ *                    line inside the app. One grotesque, weight and tracking
+ *                    carry the hierarchy.
+ *   Instrument Serif the landing page only: the one editorial voice that makes
+ *                    the first screen read like a printed argument rather than
+ *                    a dashboard. Italic for the single word that carries the
+ *                    decision.
+ *   JetBrains Mono   every figure and identifier: amounts, addresses, hashes,
+ *                    countdowns. Tabular, so a ticking number does not reflow.
  *
- * Both are self-hosted by next/font, so there is no third-party request at
+ * All three are self-hosted by next/font, so there is no third-party request at
  * runtime and no layout shift when they load.
  */
 const sans = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
+});
+
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  display: "swap",
+  weight: "400",
+  variable: "--font-serif",
 });
 
 const mono = JetBrains_Mono({
@@ -30,7 +40,10 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   // The tab icon is public/logo.png, the same file the app bar and the README use.
   icons: { icon: "/logo.png" },
-  title: "Witness Approvals: your agent asks, you decide",
+  title: {
+    default: "Witness: passkey approvals for AI agents",
+    template: "%s · Witness",
+  },
   description:
     "Before an AI agent spends your money, you approve that exact action with a passkey. Enforced on Monad.",
   openGraph: {
@@ -49,7 +62,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

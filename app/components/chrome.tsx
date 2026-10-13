@@ -1,11 +1,21 @@
 /*
- * Chrome shared by both pages.
+ * Chrome shared by every screen.
  *
- * The navigation lives in the app bar now, so it has to be one component: the
- * product page puts its tabs in it, the developer page puts a single link back.
- * It is presentation only, no state, no hooks, so either page can render it.
+ * Two rules, both learned from operating this thing:
+ *
+ *   the brand goes home. A mark in the corner that goes to the screen you are
+ *   already on is decoration. This one points at /, the same place the browser's
+ *   back button should mean, and the explicit Home link beside it exists because
+ *   a logo is not a label: on a phone, a reader who has never seen the mark
+ *   cannot tell where it goes.
+ *
+ *   section navigation is not in here. The app's sections are a rail on a
+ *   desktop and a bar at the bottom of a phone, so they belong to the app's own
+ *   frame, not to a component the developer page also renders. This bar is the
+ *   same everywhere: who you are, where you can go back to, what chain you are on.
  */
 import type { ReactNode } from "react";
+import { HomeIcon } from "@/components/icons";
 
 /**
  * The mark: the logo file itself, not a redrawing of it.
@@ -22,16 +32,13 @@ export function AppBar({
   chainId,
   locked,
   actions,
-  children,
 }: {
   /** Chain the app is configured against. Undefined while the config loads. */
   chainId?: number;
   /** True once the deployment froze its trust-critical settings. */
   locked?: boolean;
-  /** Right-hand controls, before the chain readout. */
+  /** Right-hand controls, after Home and before the chain readout. */
   actions?: ReactNode;
-  /** The nav row. Omitted, the bar is a single row. */
-  children?: ReactNode;
 }) {
   const chain = chainId ? (chainId === 143 ? "Monad · 143" : "Testnet · 10143") : "Connecting…";
 
@@ -49,6 +56,10 @@ export function AppBar({
         </a>
 
         <div className="masthead-right">
+          <a className="micro micro--icon home-link" href="/">
+            <HomeIcon size={13} />
+            <span>Home</span>
+          </a>
           {actions}
           <span className="pill" title="The chain this deployment is configured against">
             <span className="pill__dot" aria-hidden />
@@ -56,8 +67,6 @@ export function AppBar({
           </span>
         </div>
       </div>
-
-      {children ? <div className="appbar__nav">{children}</div> : null}
     </header>
   );
 }

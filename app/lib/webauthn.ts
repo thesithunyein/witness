@@ -161,6 +161,54 @@ export function derToRaw(der: Uint8Array): { r: bigint; s: bigint } {
 const stripLeadingZero = (b: Uint8Array): Uint8Array =>
   b.length > 1 && b[0] === 0x00 ? stripLeadingZero(b.slice(1)) : b;
 
+/**
+ * Whether this page can produce an approval the deployed verifier will accept.
+ *
+ * Two independent gates must pass, and they fail differently:
+ *
+ *   1. The browser. WebAuthn only issues a passkey for the page's own domain or
+ *      a parent of it. Ask for any other `rpId` and `navigator.credentials.*`
+ *      throws a SecurityError before a prompt is ever drawn.
+ *   2. The contract. `WitnessVerifier` stores the accepted `rpId` and `origin`
+ *      from deploy time and compares them against the assertion. Deployment
+ *      calls `lockConfiguration()`, so they can never be changed: a page on any
+ *      other origin is refused on-chain with OriginMismatch, even if the browser
+ *      did hand over an assertion.
+ *
+ * So serving this same app from a second hostname is not cosmetic. The passkey
+ * flow works on exactly one origin, the one the contracts were deployed with.
+ * This function exists so the app states that plainly instead of failing with a
+ * raw DOMException that reads like a bug in the app.
+ */
+export function passkeyOriginFits(
+  rpId: string,
+  origin: string
+): { ok: boolean; problem: string | null } {
+  // Server render, or a build with no window: nothing to compare yet.
+  if (typeof window === "undefined") return { ok: true, problem: null };
+
+  const here = window.location.host;
+  if (here !== rpId && !here.endsWith(`.${rpId}`)) {
+    return {
+      ok: false,
+      problem:
+        `A browser only issues a passkey for its own domain, and this page is on ${here}. ` +
+        `The passkey is bound to ${rpId}, so no prompt can appear here.`,
+    };
+  }
+
+  if (window.location.origin !== origin) {
+    return {
+      ok: false,
+      problem:
+        `The deployed verifier only accepts assertions signed from ${origin}, ` +
+        `and this page is on ${window.location.origin}.`,
+    };
+  }
+
+  return { ok: true, problem: null };
+}
+
 /** Whether the passkey platform is usable here at all. */
 export async function passkeyAvailable(): Promise<boolean> {
   if (typeof window === "undefined" || !window.PublicKeyCredential) return false;

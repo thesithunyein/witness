@@ -14,7 +14,7 @@ cd packages/sdk && npm pack        # writes witness-sdk-0.1.0.tgz (14.9 kB, 9 fi
 npm i ./witness-sdk-0.1.0.tgz viem # in your app
 ```
 
-Used by the reference app at [witness.sithunyein.com](https://witness.sithunyein.com),
+Used by the reference app at [witness-agent.vercel.app](https://witness-agent.vercel.app),
 which imports this package's source directly, so the product and the integration
 surface cannot drift apart.
 

@@ -41,9 +41,22 @@ exact amount, verified on Monad through the native P256 precompile.
 
 | What | Where |
 |---|---|
-| App | https://witness.sithunyein.com/ |
-| Integration page | https://witness.sithunyein.com/integrate |
+| Live site | https://witness-agent.vercel.app |
+| App | https://witness-agent.vercel.app/app |
+| Integration page | https://witness-agent.vercel.app/integrate |
 | Chain | Monad testnet, chain id 10143 |
+
+### The passkey is bound to one origin
+
+The deployed `WitnessVerifier` stores the `rpId` and `origin` it accepts, and deployment calls
+`lockConfiguration()`, so they can never be changed afterwards. This deployment was frozen to
+`https://witness.sithunyein.com`. That hostname is currently unreachable while its DNS is repaired.
+
+Everything above is served and live on the Vercel alias, but **the approve step needs a passkey,
+and a browser only issues one for the page's own domain.** So on the Vercel host the passkey prompt
+cannot appear, and the app says exactly that on the page instead of failing silently. Restoring
+`witness.sithunyein.com`, or redeploying the contracts with a new origin, is what makes the passkey
+flow work from another address. Both ways are described in [SUBMISSION.md](SUBMISSION.md).
 
 No wallet and no testnet funds are needed to use it: registration and gas are relayed by the
 server, and the approval is a passkey on the visitor's own device. The relayer can never approve
@@ -402,7 +415,7 @@ The digest is always read from the contract (`DemoSafe.actionHash` / `nativeActi
 recomputed off-chain in parallel, so the bytes the passkey signs and the bytes the contract
 recomputes cannot drift.
 
-Worked example: **https://witness.sithunyein.com/integrate** (and `app/app/integrate/page.tsx`),
+Worked example: **https://witness-agent.vercel.app/integrate** (and `app/app/integrate/page.tsx`),
 including a live preflight that calls the deployed verifier from the browser.
 
 ---
@@ -538,7 +551,7 @@ node examples/agent-request.mjs      # a real agent asks a real deployment for m
 Or ask production what it is running, this is the same response a judge can read:
 
 ```bash
-curl -s https://witness.sithunyein.com/api/config
+curl -s https://witness-agent.vercel.app/api/config
 # { chainId: 10143, rpId: "witness.sithunyein.com", payee: "0x…",
 #   agentId: "2148", identityEnforced: true, configurationLocked: true, … }
 ```
