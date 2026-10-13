@@ -120,6 +120,12 @@ type Entry = {
   title: string;
   detail: string;
   at: number;
+  /**
+   * The chip word. A refusal is the healthy outcome for the system and the bad
+   * one for the attacker, so the tone stays positive while the word has to say
+   * Blocked, not Allowed.
+   */
+  label?: string;
   /** The contract's own reason name, kept for Security details. */
   reason?: string;
   hash?: string;
@@ -609,6 +615,7 @@ export default function Page() {
       });
       addEntry({
         tone: result.allowed ? "bad" : "ok",
+        label: result.allowed ? "Executed" : "Blocked",
         title: "Unapproved request blocked",
         detail: `An injected instruction asked for ${mon(injectionAmount)}; the chain refused it.`,
         reason: result.allowed ? undefined : result.name,
@@ -630,6 +637,7 @@ export default function Page() {
       await refreshIntent(intentId);
       addEntry({
         tone: "bad",
+        label: "Withdrawn",
         title: "Permission withdrawn",
         detail: `${config?.agentName ?? "The agent"} can no longer act under this permission.`,
       });
@@ -994,7 +1002,7 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                           ) : (
                             <DotIcon size={13} />
                           )}
-                          {e.tone === "ok" ? "Allowed" : e.tone === "bad" ? "Refused" : "Info"}
+                          {e.label ?? (e.tone === "ok" ? "Allowed" : e.tone === "bad" ? "Refused" : "Info")}
                         </span>
                         <div className="row__main">
                           <p className="row__title">{e.title}</p>
