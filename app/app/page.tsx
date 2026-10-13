@@ -130,12 +130,12 @@ const FOOTER: {
     links: [
       {
         label: "WitnessVerifier",
-        href: "https://testnet.monadscan.com/address/0xced20751479A13E76A67cC33C911e8eF61a81165",
+        href: "https://testnet.monadscan.com/address/0x7836f1bDDdBF491c23a285B5015441a5A147D096",
         external: true,
       },
       {
         label: "Intent registry",
-        href: "https://testnet.monadscan.com/address/0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521",
+        href: "https://testnet.monadscan.com/address/0x84502BA6Bf4A565b84E8eC1747568d54610E71E2",
         external: true,
       },
       {

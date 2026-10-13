@@ -41,20 +41,26 @@ its manifest at build time so the site and the chain cannot silently disagree.
 
 ---
 
-## 0. Current state (updated after the second deployment)
+## 0. Current state (updated after the third deployment)
 
-The stack was **redeployed** and the trust-critical configuration frozen. Everything below §1 that
-mentions the *first* addresses describes a deployment that is now superseded, the behaviour it
-records is still valid, the addresses are not.
+The stack has been **redeployed twice** and the trust-critical configuration frozen each time.
+Everything below that mentions the *earlier* addresses describes a deployment that is now
+superseded: the behaviour it records is still valid, the addresses are not.
 
-| | Now |
+| | Live now (third stack, frozen to the Vercel origin) |
 |---|---|
-| `WitnessIntentRegistry` | `0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521` |
-| `WitnessVerifier` | `0xced20751479A13E76A67cC33C911e8eF61a81165` |
-| `DemoSafe` (holds value) | `0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309` |
-| `AgentExecutor` | `0x5b451F0700df77293a5A737189BdbA3C37362d23` |
-| `DemoUSD` | `0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c` |
-| ERC-8004 identity | **`#2148`**, owned by `AgentExecutor`, in the official registry `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| `WitnessIntentRegistry` | `0x84502BA6Bf4A565b84E8eC1747568d54610E71E2` |
+| `WitnessVerifier` | `0x7836f1bDDdBF491c23a285B5015441a5A147D096` |
+| `DemoSafe` (holds value) | `0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8` |
+| `AgentExecutor` | `0x7010c0474AA1c8E8039712d314d105D1aDe0a87d` |
+| `DemoUSD` | `0xd5588C6f78d720D4a89929b4b68C546Dc788D65A` |
+| ERC-8004 identity | **`#2240`**, owned by `AgentExecutor`, in the official registry `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Accepted origin | `witness-agent.vercel.app` / `https://witness-agent.vercel.app`, frozen |
+| Source verification | all five `exact_match` on MonadVision, matchIds `2053971` to `2053975` |
+
+Superseded stacks, kept for the record and still on-chain: the second (`WitnessVerifier`
+`0xced20751…`, identity `#2148`) was frozen to `witness.sithunyein.com`, and the first was the
+pre-ERC-8004 deployment. Both accept assertions only from an origin that no longer resolves.
 
 ### Third pass, the agent actually asks
 
