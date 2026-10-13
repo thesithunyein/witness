@@ -187,7 +187,13 @@ export class WitnessClient {
   constructor(config: WitnessConfig, transport: WriteTransport) {
     this.config = config;
     this.transport = transport;
-    this.f = transport.kind === "relayer" ? (transport.fetchImpl ?? fetch) : fetch;
+    // fetch must be called with the global object as its receiver. Firefox
+    // brands it and refuses anything else, so a method call on this instance
+    // (this.f(...)) or a detached reference throws "'fetch' called on an object
+    // that does not implement interface Window". Binding here fixes every call
+    // site at once, and leaves a caller-supplied fetchImpl untouched.
+    const impl = transport.kind === "relayer" ? (transport.fetchImpl ?? globalThis.fetch) : globalThis.fetch;
+    this.f = impl.bind(globalThis);
     this.publicClient = createPublicClient({
       chain: config.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET,
       transport: http(),

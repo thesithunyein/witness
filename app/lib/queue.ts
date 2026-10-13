@@ -257,7 +257,9 @@ export function withDecision(
 export async function reportDecision(
   id: string,
   decision: RequestDecision,
-  f: typeof fetch = fetch
+  // Bound to the global object for the same reason as the SDK client: Firefox
+  // brands fetch, so a detached call throws instead of reaching the server.
+  f: typeof fetch = globalThis.fetch.bind(globalThis)
 ): Promise<boolean> {
   try {
     const res = await f(`/api/requests/${encodeURIComponent(id)}/decision`, {
