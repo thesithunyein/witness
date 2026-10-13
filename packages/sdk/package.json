@@ -44,6 +44,7 @@
     "check": "bun run scripts/sync.mjs --check",
     "build": "bun run scripts/build.mjs",
     "check:pack": "bun run scripts/check-pack.mjs",
+    "test:pack": "bun run scripts/check-pack.test.mjs",
     "prepack": "bun run scripts/build.mjs",
     "prepublishOnly": "bun run scripts/sync.mjs --check && bun run scripts/build.mjs"
   },

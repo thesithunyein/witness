@@ -16,7 +16,6 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const manifest = JSON.parse(readFileSync(resolve(pkgDir, "package.json"), "utf8"));
 
 /** Everything the tarball may contain, and nothing else. */
 const ALLOWED = [
@@ -39,55 +38,95 @@ const REQUIRED = [
   "package.json",
 ];
 
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const packed = spawnSync(npm, ["pack", "--dry-run", "--json"], {
-  cwd: pkgDir,
-  encoding: "utf8",
-  // Windows refuses to spawn a .cmd without a shell; no argument here is user input.
-  shell: process.platform === "win32",
-  maxBuffer: 32 * 1024 * 1024,
-});
-
-if (packed.error) throw packed.error;
-if (packed.status !== 0) {
-  process.stderr.write(packed.stderr ?? "");
-  throw new Error(`npm pack --dry-run exited ${packed.status}`);
+/**
+ * Pick the report out of `npm pack --json` output.
+ *
+ * Two npm shapes are live: 11.x answers with an array of reports, 12.x answers with an
+ * object keyed by the package it packed. And a lifecycle script (`prepack` runs the
+ * build) prints to the same stream before the report, so the JSON has to be located
+ * rather than assumed to be the whole output. Reading only one shape is exactly how
+ * this gate passed here and failed on the runner, whose npm the workflow upgrades.
+ */
+export function reportFrom(stdout, name) {
+  const start = stdout.search(/(^|\n)\s*[[{]/);
+  if (start < 0) return { error: "npm pack --json printed no report" };
+  const text = stdout.slice(start);
+  const end = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]")) + 1;
+  let parsed;
+  try {
+    parsed = JSON.parse(text.slice(0, end));
+  } catch (err) {
+    return { error: `npm pack --json printed no parseable report: ${err.message}` };
+  }
+  const report = Array.isArray(parsed)
+    ? parsed[0]
+    : (parsed[name] ?? Object.values(parsed)[0]);
+  if (!report || !Array.isArray(report.files)) {
+    return { error: "the npm pack report carried no file list" };
+  }
+  return { report };
 }
 
-// The report goes to stdout, but a lifecycle script that prints anything can appear
-// before it, so the array is located rather than assumed to start the output.
-const stdout = packed.stdout ?? "";
-const start = stdout.search(/(^|\n)\s*\[/);
-if (start < 0) {
-  process.stderr.write(stdout);
-  throw new Error("npm pack --dry-run printed no JSON report");
+/** Everything a release would want to hear about one report, worst-first. */
+export function classify(report, name) {
+  const files = report.files.map((file) => file.path).sort();
+  return {
+    files,
+    misnamed: report.name === name ? null : report.name,
+    stray: files.filter((path) => !ALLOWED.some((rule) => rule.test(path))),
+    missing: REQUIRED.filter((path) => !files.includes(path)),
+  };
 }
-const json = stdout.slice(start, stdout.lastIndexOf("]") + 1);
-const report = JSON.parse(json)[0];
 
-const files = report.files.map((file) => file.path).sort();
-const stray = files.filter((path) => !ALLOWED.some((rule) => rule.test(path)));
-const missing = REQUIRED.filter((path) => !files.includes(path));
+function main() {
+  const manifest = JSON.parse(readFileSync(resolve(pkgDir, "package.json"), "utf8"));
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+  const packed = spawnSync(npm, ["pack", "--dry-run", "--json"], {
+    cwd: pkgDir,
+    encoding: "utf8",
+    // Windows refuses to spawn a .cmd without a shell; no argument here is user input.
+    shell: process.platform === "win32",
+    maxBuffer: 64 * 1024 * 1024,
+  });
 
-const kb = (bytes) => `${(bytes / 1024).toFixed(1)} kB`;
-console.log(
-  `${report.name}@${report.version} -> ${report.filename} (${kb(report.size)}, ${kb(report.unpackedSize)} unpacked)`
-);
-for (const file of files) console.log(`  ${file}`);
+  if (packed.error) throw packed.error;
+  if (packed.status !== 0) {
+    process.stderr.write(packed.stderr ?? "");
+    throw new Error(`npm pack --dry-run exited ${packed.status}`);
+  }
 
-if (report.name !== manifest.name) {
-  console.error(`\nthe tarball is named ${report.name}, the manifest says ${manifest.name}`);
-  process.exit(1);
-}
-if (missing.length > 0) {
-  console.error(`\nmissing from the tarball: ${missing.join(", ")}`);
-  process.exit(1);
-}
-if (stray.length > 0) {
-  console.error(
-    `\n${stray.length} file(s) outside the allowlist (${ALLOWED.map((rule) => rule.what).join(", ")}):`
+  const { report, error } = reportFrom(packed.stdout ?? "", manifest.name);
+  if (error) {
+    process.stderr.write(packed.stdout ?? "");
+    console.error(`\n${error}`);
+    process.exit(1);
+  }
+
+  const { files, misnamed, stray, missing } = classify(report, manifest.name);
+  const kb = (bytes) => `${(bytes / 1024).toFixed(1)} kB`;
+  console.log(
+    `${report.name}@${report.version} -> ${report.filename} (${kb(report.size)}, ${kb(report.unpackedSize)} unpacked)`
   );
-  for (const file of stray) console.error(`  ${file}`);
-  process.exit(1);
+  for (const file of files) console.log(`  ${file}`);
+
+  if (misnamed) {
+    console.error(`\nthe tarball is named ${misnamed}, the manifest says ${manifest.name}`);
+    process.exit(1);
+  }
+  if (missing.length > 0) {
+    console.error(`\nmissing from the tarball: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+  if (stray.length > 0) {
+    console.error(
+      `\n${stray.length} file(s) outside the allowlist (${ALLOWED.map((rule) => rule.what).join(", ")}):`
+    );
+    for (const file of stray) console.error(`  ${file}`);
+    process.exit(1);
+  }
+  console.log(`\n${files.length} files, nothing outside the allowlist`);
 }
-console.log(`\n${files.length} files, nothing outside the allowlist`);
+
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("check-pack.mjs")) {
+  main();
+}

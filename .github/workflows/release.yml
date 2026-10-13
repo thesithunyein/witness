@@ -137,6 +137,7 @@ jobs:
       # the app, which is where the published bytes come from.
       - run: bun run check
       - run: bun run build
+      - run: bun run test:pack
       - run: bun run check:pack
 
       - name: Rehearse the upload

@@ -13,7 +13,9 @@ somebody knew to run it. A release now carries its checks in a workflow instead 
 - **`packages/sdk/scripts/check-pack.mjs`** is that last gate, and it runs locally too
   (`bun run check:pack`). It reads the file list npm reports for the real tarball via
   `npm pack --dry-run --json`, so nothing reaches the registry because nobody looked, and a
-  missing entry point fails as loudly as a stray file.
+  missing entry point fails as loudly as a stray file. npm 11 answers that command with an array
+  and npm 12 with an object keyed by package name, which the first CI run of this gate is what
+  discovered, so `bun run test:pack` holds both shapes and the release runs it before the gate.
 - **Trusted publishing first, token second.** npm mints a short-lived OIDC token for the workflow,
   so the repository holds no long-lived publish credential, and provenance is automatic for a
   public repository. The `NPM_TOKEN` secret is used only if it exists, with `--provenance` asked

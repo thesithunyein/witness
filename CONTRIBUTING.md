@@ -102,6 +102,9 @@ the sources from `app/lib`, verifies the tarball's contents, and publishes. A ma
 workflow executes every gate and stops at `npm publish --dry-run`, which is how a release is
 rehearsed without a tag.
 
+The pack gate reads `npm pack --json`, and npm 11 answers with an array while npm 12 answers with
+an object keyed by package name, so `bun run test:pack` checks that gate against both shapes.
+
 Publishing needs one of two credentials, and the first is preferred:
 
 | Credential | One-time setup | What the workflow sends |
