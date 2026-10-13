@@ -1,4 +1,4 @@
-# @witness/sdk
+# @witness-agent/sdk
 
 **An agent can prove who it is. Witness proves what the human actually authorized.**
 
@@ -6,12 +6,15 @@ Your agent asks to spend money. The human approves *that exact action* with a
 passkey. Your contract verifies the approval on-chain before it moves anything,
 without trusting the agent, and without asking the human to hold a wallet.
 
-Not on the public registry yet, so build it from a checkout of the repo. Once it is released, the
-same package installs as `npm i @witness/sdk viem`.
+```bash
+npm i @witness-agent/sdk viem
+```
+
+Building from a checkout is also supported, and produces the same package:
 
 ```bash
-cd packages/sdk && npm pack        # writes witness-sdk-0.1.0.tgz (14.9 kB, 9 files)
-npm i ./witness-sdk-0.1.0.tgz viem # in your app
+cd packages/sdk && npm pack        # writes witness-agent-sdk-0.1.0.tgz (15.6 kB, 9 files)
+npm i ./witness-agent-sdk-0.1.0.tgz viem # in your app
 ```
 
 Used by the reference app at [witness-agent.vercel.app](https://witness-agent.vercel.app),
@@ -34,7 +37,7 @@ different number.
 ## Quickstart
 
 ```ts
-import { WitnessClient, NATIVE_ACTION_TYPE } from "@witness/sdk";
+import { WitnessClient, NATIVE_ACTION_TYPE } from "@witness-agent/sdk";
 
 const client = new WitnessClient(
   {

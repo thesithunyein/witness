@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-10-13 - the SDK ships from the registry
+
+- **The package publishes as `@witness-agent/sdk`.** The npm org name `witness` was already taken
+  at the registry, so the package ships under the `witness-agent` scope, created for this project
+  and matching the app's own hostname. Every file that named `@witness/sdk` was renamed: the
+  manifest and lockfile, both READMEs, the SDK sources and its build script, the docs page,
+  `SUBMISSION.md` and `INTEGRATOR-KIT.md`. The tarball is `witness-agent-sdk-0.1.0.tgz` (9 files,
+  15.6 kB), and `0.1.0` was pushed on 2026-10-13 (`+ @witness-agent/sdk@0.1.0`). A brand-new scope
+  can take a few minutes before the registry serves reads; the local build and the published
+  tarball share shasum `9e53a41499c100dcac2e1ff7cf82d60a5e3cf5b3`.
+- **The docs point at the published name.** `npm i @witness-agent/sdk viem` replaces the
+  "not on the registry yet" notes in the root README, the SDK's README and the integrator kit.
+
 ## 2026-10-13 - the front door names the pages it links to
 
 The site had three names for the same developer surface, a footer whose links did not all resolve, and

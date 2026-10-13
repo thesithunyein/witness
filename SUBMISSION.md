@@ -78,7 +78,7 @@ Everything here is new since §0 was written. The theme: the two things the prev
 - **The demo pays a real merchant.** `payee` is recorded in the deployment manifest by the deploy
   script (default: the deployer), so the money lands at an address with an on-chain history instead
   of `0x1111…1111`.
-- **`@witness/sdk` is a package**, not four files to copy: `packages/sdk` builds ESM + CJS + type
+- **`@witness-agent/sdk` is a package**, not four files to copy: `packages/sdk` builds ESM + CJS + type
   declarations from the app's own modules, so the product and the integration surface cannot drift.
   Verified by installing the packed tarball into a separate consumer and importing it three ways.
 - **Verified on an explorer, keylessly.** All five contracts are `exact_match` on Sourcify
@@ -216,22 +216,12 @@ Exercised **on production, in a real browser**:
 5. ~~Optional: ERC-8004 binding.~~ **DONE**, the registry is configured and verified on-chain, and
    identity `#2148` is owned by `AgentExecutor`. Enforcement is active in the deployed contracts, and
    the hosted app and the chain agree, see item 7.
-6. **Publish the SDK**, which is the one step left that makes the documented install path real. It
-   needs your npm account and nothing else:
-
-   ```bash
-   cd packages/sdk
-   npm publish --access public    # `prepublishOnly` runs the drift check and the build for you
-   ```
-
-   Inspect first with `npm pack --dry-run`: 9 files, 14.9 kB, `witness-sdk-0.1.0.tgz`, and nothing
-   outside `dist`, `README.md`, `LICENSE` and `package.json`. **One caveat to resolve before you
-   run it:** the package is named `@witness/sdk`, and a scoped publish needs the `witness` scope to
-   be yours. That could not be checked from here (the registry's scope endpoint needs an
-   authenticated account). If the publish returns 403, the scope is not yours and the two names
-   that are known to be unclaimed are `@thesithunyein/sdk` (your own user scope, always available to
-   you) and the unscoped `witness-sdk`. Either way, three files name the package: `packages/sdk/package.json`,
-   the SDK's README and the root README, so a rename is three lines and a doc pass.
+6. ~~Publish the SDK.~~ **DONE**: `@witness-agent/sdk@0.1.0` is on npm (pushed 2026-10-13).
+   The org name `witness` was taken, so the package ships under the `witness-agent` scope created
+   for it; the registry serves it (shasum `9e53a41499c100dcac2e1ff7cf82d60a5e3cf5b3`), and
+   `npm i @witness-agent/sdk viem` was verified from a clean consumer, ESM and CJS both importing.
+   Future versions ship with `cd packages/sdk && npm publish --access public`; `prepublishOnly`
+   runs the drift check and the build.
 
 7. ~~Rebuild and redeploy the hosted app.~~ **DONE**, and verified against production rather than
    assumed, see "Verified on production" in §0. Passkeys are bound to the hostname, and the verifier's accepted origin is

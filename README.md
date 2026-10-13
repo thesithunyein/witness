@@ -235,9 +235,8 @@ operator-callable arbitrary-call function.
 
 ## SDK
 
-`packages/sdk` builds `@witness/sdk` from the app's own modules (ESM, CJS and type declarations), so
-there is one copy of the truth. It is not on the public registry yet: publishing needs the
-maintainer's npm account.
+`packages/sdk` builds `@witness-agent/sdk` from the app's own modules (ESM, CJS and type declarations), so
+there is one copy of the truth. It installs from the registry as `npm i @witness-agent/sdk viem`.
 
 | Call | What it does |
 |---|---|
@@ -259,7 +258,7 @@ app/                the product: Next.js for development, a static bundle plus a
   app/              the landing page, the approvals app, the docs page, and the API routes
   lib/              the SDK the app imports, WebAuthn, the queue, server helpers
   worker/           the same routes for the edge deployment
-packages/sdk/       @witness/sdk, generated from app/lib, with a drift check
+packages/sdk/       @witness-agent/sdk, generated from app/lib, with a drift check
 examples/           the agent half, a third-party integration, and a live end-to-end test
 scripts/            assertion generation, signing, precompile probes, the style guard
 THREAT-MODEL.md     actors, attacks, residual risk

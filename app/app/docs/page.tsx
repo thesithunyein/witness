@@ -58,7 +58,7 @@ const SECTIONS: { id: string; n: string; label: string }[] = [
   { id: "limits", n: "06", label: "Guarantees and limits" },
 ];
 
-const SNIPPET_SETUP = `import { WitnessClient, NATIVE_ACTION_TYPE } from "@witness/sdk";
+const SNIPPET_SETUP = `import { WitnessClient, NATIVE_ACTION_TYPE } from "@witness-agent/sdk";
 
 const witness = new WitnessClient(
   {
@@ -312,7 +312,7 @@ export default function Docs() {
             <dl className="dev__facts">
               <div>
                 <dt>Package</dt>
-                <dd className="mono">@witness/sdk</dd>
+                <dd className="mono">@witness-agent/sdk</dd>
               </div>
               <div>
                 <dt>Network</dt>
@@ -352,10 +352,10 @@ export default function Docs() {
               </a>
               <button
                 className="mono"
-                onClick={() => copy("install", "npm i @witness/sdk viem")}
+                onClick={() => copy("install", "npm i @witness-agent/sdk viem")}
                 aria-label="Copy the install command"
               >
-                {copied === "install" ? "Copied" : "npm i @witness/sdk viem"}
+                {copied === "install" ? "Copied" : "npm i @witness-agent/sdk viem"}
               </button>
             </div>
           </header>
@@ -428,7 +428,7 @@ export default function Docs() {
               ))}
             </ul>
             <p className="dev__note">
-              Install it rather than copying it: <span className="mono">npm i @witness/sdk viem</span>
+              Install it rather than copying it: <span className="mono">npm i @witness-agent/sdk viem</span>
               , built from the same modules this page uses.
             </p>
           </section>

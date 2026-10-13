@@ -1,5 +1,5 @@
 /**
- * @witness/sdk, the integration surface for third-party Monad apps.
+ * @witness-agent/sdk, the integration surface for third-party Monad apps.
  *
  * Witness lets a human approve one specific action with a passkey, and lets the
  * counterparty that holds the value verify that approval on-chain. This client
