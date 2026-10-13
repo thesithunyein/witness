@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRightIcon, LockIcon, ShieldCheckIcon, TargetIcon } from "@/components/icons";
+import { ArrowRightIcon, BotIcon, LockIcon, ShieldCheckIcon } from "@/components/icons";
 
 /**
  * The landing page: the front door.
@@ -269,7 +269,7 @@ export default function Landing() {
         <p className="ln-final__note">
           <ShieldCheckIcon size={13} /> One payment per approval.
           <LockIcon size={13} /> Configuration frozen.
-          <TargetIcon size={13} /> Identity verified.
+          <BotIcon size={13} /> Identity verified.
         </p>
       </section>
 

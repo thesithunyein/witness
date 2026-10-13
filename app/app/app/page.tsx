@@ -14,6 +14,7 @@ import { passkeyOriginFits } from "@/lib/webauthn";
 import { AppBar } from "@/components/chrome";
 import {
   ArrowRightIcon,
+  BotIcon,
   CheckCircleIcon,
   CheckIcon,
   ChevronRightIcon,
@@ -23,11 +24,12 @@ import {
   ExternalLinkIcon,
   FingerprintIcon,
   InboxIcon,
+  KeyIcon,
   LockIcon,
   PulseIcon,
+  SettingsIcon,
   ShieldCheckIcon,
-  SlidersIcon,
-  TargetIcon,
+  TrashIcon,
   XIcon,
 } from "@/components/icons";
 import {
@@ -89,8 +91,8 @@ const VIEWS: { id: View; label: string; caption: string }[] = [
 const VIEW_ICONS: Record<View, ComponentType<{ size?: number }>> = {
   approvals: CheckCircleIcon,
   activity: PulseIcon,
-  agents: TargetIcon,
-  settings: SlidersIcon,
+  agents: BotIcon,
+  settings: SettingsIcon,
 };
 
 type Config = {
@@ -982,10 +984,8 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
                         Newest first. Kept in this browser only.
                       </p>
                     </div>
-                    <button
-                      onClick={clearActivity}
-                      style={{ marginLeft: "auto", padding: "8px 14px", minHeight: 36, border: "none" }}
-                    >
+                    <button className="card__action" onClick={clearActivity}>
+                      <TrashIcon size={14} />
                       Clear log
                     </button>
                   </div>
@@ -1073,77 +1073,20 @@ WITNESS_OPERATOR_PRIVATE_KEY=0x...   # submits the agent's attempts`}
 
           {view === "settings" && (
             <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
-              <div className="panel-grid">
-                <div className="card">
-                  <div className="card__head">
-                    <div>
-                      <h2 className="card__title">How this is enforced</h2>
-                      <p className="card__sub">What is checked before any money moves.</p>
-                    </div>
-                  </div>
-                  <ul className="rows">
-                    <li className="row">
-                      <span className={`state ${config.identityEnforced ? "state--ok" : "state--quiet"}`}>
-                        {config.identityEnforced ? <CheckIcon size={13} /> : <DotIcon size={13} />}
-                        {config.identityEnforced ? "Enforced" : "Not configured"}
-                      </span>
-                      <div className="row__main">
-                        <p className="row__title">Agent identity</p>
-                        <p className="row__meta">
-                          The agent must own the ERC-8004 identity it claims, checked on-chain.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="row">
-                      <span className={`state ${config.configurationLocked ? "state--ok" : "state--wait"}`}>
-                        {config.configurationLocked ? <CheckIcon size={13} /> : <DotIcon size={13} />}
-                        {config.configurationLocked ? "Frozen" : "Mutable"}
-                      </span>
-                      <div className="row__main">
-                        <p className="row__title">Configuration</p>
-                        <p className="row__meta">
-                          {config.configurationLocked
-                            ? "The accepted origin and identity registry were frozen at deploy and cannot be changed by anyone."
-                            : "This deployment still lets the operator change the accepted origin. Re-deploy with the lock enabled."}
-                        </p>
-                      </div>
-                    </li>
-                    <li className="row">
-                      <span className="state state--ok">
-                        <CheckIcon size={13} />
-                        Enforced
-                      </span>
-                      <div className="row__main">
-                        <p className="row__title">Exact action binding</p>
-                        <p className="row__meta">
-                          The approval covers this recipient, this amount, this contract and this
-                          chain.
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                  <SecurityDetails config={config} intent={intent} passkey={passkey} defaultOpen />
-                </div>
-
-                <div className="card">
-                  <div className="card__head">
-                    <div>
-                      <h2 className="card__title">This browser</h2>
-                      <p className="card__sub">
-                        Your passkey stays on your device; this page keeps only its public key and
-                        your local history.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="section-actions" style={{ marginTop: 0 }}>
-                    <button onClick={resetBrowser}>Clear this browser&rsquo;s Witness data</button>
-                  </div>
-                  <p className="note" style={{ marginTop: 14 }}>
-                    Witness relays gas only, so trying it needs no wallet and no testnet funds. The
-                    relaying key cannot approve anything: it does not hold your passkey.
-                  </p>
-                </div>
-              </div>
+              <SettingsPanel
+                config={config}
+                intent={intent}
+                passkey={passkey}
+                originFit={originFit}
+                limitMon={limitMon}
+                expiryMinutes={expiryMinutes}
+                activityCount={activity.length}
+                onLimit={setLimitMon}
+                onExpiry={setExpiryMinutes}
+                onClearLog={clearActivity}
+                onForget={resetBrowser}
+                onOpenApprovals={() => setView("approvals")}
+              />
             </section>
           )}
         </>
@@ -1172,16 +1115,18 @@ function isCancellation(e: unknown): boolean {
   return name === "NotAllowedError" || name === "AbortError";
 }
 
+/**
+ * The agent's face.
+ *
+ * The same bot the Agents tab carries, at the size of an avatar, so the sidebar,
+ * the request and the tab all show one thing. It used to be a crosshair, which
+ * said "target" about the party being authorized, and a target is the wrong word
+ * for the process acting on your behalf.
+ */
 function AgentAvatar({ large }: { large?: boolean }) {
   return (
     <span className={`agent-avatar${large ? " agent-avatar--lg" : ""}`} aria-hidden>
-      <svg viewBox="0 0 24 24" width={large ? 22 : 18} height={large ? 22 : 18} focusable="false">
-        <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <line x1="12" y1="2" x2="12" y2="22" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-        </g>
-        <circle cx="12" cy="12" r="3.4" fill="currentColor" />
-      </svg>
+      <BotIcon size={large ? 22 : 18} />
     </span>
   );
 }
@@ -1510,6 +1455,249 @@ function SetupCard({
         Your device will ask for your fingerprint, face, or PIN. That passkey, and nothing else,
         approves a payment.
       </p>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Settings
+   -------------------------------------------------------------------------- */
+
+/**
+ * A user's settings screen, not a debug readout.
+ *
+ * Four questions, in the order somebody actually asks them:
+ *
+ *   Signing       what can approve money for me, and is it still valid here
+ *   Defaults      what my next permission will be worth before I make it
+ *   Enforcement   what the chain checks without asking anyone, including me
+ *   This device   what is stored in this browser, and how to get rid of it
+ *
+ * The rules: every control here does something the app really does, every row
+ * carries one fact, and the technical disclosure stays a disclosure instead of
+ * being the whole screen. Settings shows state; it never argues.
+ */
+function SettingsPanel({
+  config,
+  intent,
+  passkey,
+  originFit,
+  limitMon,
+  expiryMinutes,
+  activityCount,
+  onLimit,
+  onExpiry,
+  onClearLog,
+  onForget,
+  onOpenApprovals,
+}: {
+  config: Config;
+  intent: IntentRecord | null;
+  passkey: EnrolledPasskey | null;
+  originFit: { ok: boolean; problem: string | null } | null;
+  limitMon: string;
+  expiryMinutes: string;
+  activityCount: number;
+  onLimit: (v: string) => void;
+  onExpiry: (v: string) => void;
+  onClearLog: () => void;
+  onForget: () => void;
+  onOpenApprovals: () => void;
+}) {
+  const originOk = originFit?.ok ?? true;
+
+  return (
+    <div className="panel-grid">
+      <div className="card">
+        <div className="card__head">
+          <div>
+            <h2 className="card__title">Signing</h2>
+            <p className="card__sub">The only thing that can approve a payment: your passkey.</p>
+          </div>
+        </div>
+        <ul className="rows">
+          <li className="row">
+            <span className={`state ${passkey ? "state--ok" : "state--quiet"}`}>
+              {passkey ? <CheckIcon size={13} /> : <DotIcon size={13} />}
+              {passkey ? "Registered" : "Not set up"}
+            </span>
+            <div className="row__main">
+              <p className="row__title">Device passkey</p>
+              <p className="row__meta">
+                {passkey
+                  ? `Credential ${passkey.credentialId.slice(0, 12)}…, held by this device. This page keeps the public half only.`
+                  : "Created the first time you set up a permission. The private key never leaves your device."}
+              </p>
+            </div>
+          </li>
+          <li className="row">
+            <span className={`state ${originOk ? "state--ok" : "state--bad"}`}>
+              {originOk ? <CheckIcon size={13} /> : <XIcon size={13} />}
+              {originOk ? "Matches" : "Wrong address"}
+            </span>
+            <div className="row__main">
+              <p className="row__title">Accepted origin</p>
+              <p className="row__meta">
+                {originOk
+                  ? `A passkey is bound to one address, and ${config.origin} was frozen at deploy time. Open the app here and approvals work.`
+                  : originFit?.problem}
+              </p>
+            </div>
+          </li>
+        </ul>
+        <div className="section-actions">
+          <button onClick={onOpenApprovals}>
+            <FingerprintIcon size={15} />
+            {passkey ? "Set up a new passkey" : "Set up a passkey"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          <div>
+            <h2 className="card__title">Approval defaults</h2>
+            <p className="card__sub">
+              What your next permission starts as. The chain enforces the number you create, never
+              this screen.
+            </p>
+          </div>
+        </div>
+        <div className="field-grid">
+          <div className="field">
+            <label htmlFor="set-limit">Maximum amount</label>
+            <input
+              id="set-limit"
+              inputMode="decimal"
+              value={limitMon}
+              onChange={(e) => onLimit(e.target.value)}
+              aria-describedby="set-limit-hint"
+            />
+            <p className="field__hint" id="set-limit-hint">
+              In MON. A larger request is refused on-chain.
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="set-expiry">Expires in</label>
+            <select id="set-expiry" value={expiryMinutes} onChange={(e) => onExpiry(e.target.value)}>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+            </select>
+            <p className="field__hint">Then it expires on its own.</p>
+          </div>
+        </div>
+        <p className="note" style={{ marginTop: 18 }}>
+          These are the numbers the Approvals screen opens with. Changing them here changes nothing
+          that already exists on-chain.
+        </p>
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          <div>
+            <h2 className="card__title">Enforcement</h2>
+            <p className="card__sub">What is checked before any money moves.</p>
+          </div>
+        </div>
+        <ul className="rows">
+          <li className="row">
+            <span className={`state ${config.identityEnforced ? "state--ok" : "state--quiet"}`}>
+              {config.identityEnforced ? <CheckIcon size={13} /> : <DotIcon size={13} />}
+              {config.identityEnforced ? "Enforced" : "Not configured"}
+            </span>
+            <div className="row__main">
+              <p className="row__title">Agent identity</p>
+              <p className="row__meta">
+                The agent must own the ERC-8004 identity it claims, checked on-chain.
+              </p>
+            </div>
+          </li>
+          <li className="row">
+            <span className={`state ${config.configurationLocked ? "state--ok" : "state--wait"}`}>
+              {config.configurationLocked ? <CheckIcon size={13} /> : <DotIcon size={13} />}
+              {config.configurationLocked ? "Frozen" : "Mutable"}
+            </span>
+            <div className="row__main">
+              <p className="row__title">Configuration</p>
+              <p className="row__meta">
+                {config.configurationLocked
+                  ? "The accepted origin and identity registry were frozen at deploy and cannot be changed by anyone."
+                  : "This deployment still lets the operator change the accepted origin. Re-deploy with the lock enabled."}
+              </p>
+            </div>
+          </li>
+          <li className="row">
+            <span className="state state--ok">
+              <CheckIcon size={13} />
+              Enforced
+            </span>
+            <div className="row__main">
+              <p className="row__title">Exact action binding</p>
+              <p className="row__meta">
+                The approval covers this recipient, this amount, this contract and this chain.
+              </p>
+            </div>
+          </li>
+        </ul>
+        <SecurityDetails config={config} intent={intent} passkey={passkey} />
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          <div>
+            <h2 className="card__title">This device</h2>
+            <p className="card__sub">
+              The app runs without a wallet and without testnet funds, so the only state it keeps is
+              local.
+            </p>
+          </div>
+        </div>
+        <ul className="rows">
+          <li className="row">
+            <span className="state state--quiet">
+              <DotIcon size={13} />
+              Local
+            </span>
+            <div className="row__main">
+              <p className="row__title">Decision log</p>
+              <p className="row__meta">
+                {activityCount === 0
+                  ? "Empty. A decision appears here the moment you approve or block a request."
+                  : `${activityCount} ${activityCount === 1 ? "decision" : "decisions"} kept in this browser. The on-chain record is the real one; this is a copy.`}
+              </p>
+            </div>
+          </li>
+          <li className="row">
+            <span className="state state--quiet">
+              <CoinIcon size={13} />
+              Relayed
+            </span>
+            <div className="row__main">
+              <p className="row__title">Gas</p>
+              <p className="row__meta">
+                Witness pays the gas. The relaying key cannot approve anything, because it does not
+                hold your passkey.
+              </p>
+            </div>
+          </li>
+        </ul>
+        <div className="section-actions">
+          <button onClick={onClearLog} disabled={activityCount === 0}>
+            <TrashIcon size={15} />
+            Clear the decision log
+          </button>
+          <button onClick={onForget}>
+            <XIcon size={15} />
+            Forget this browser
+          </button>
+        </div>
+        <p className="note" style={{ marginTop: 18 }}>
+          Forgetting removes the passkey pointer, the permission id and the log from this browser.
+          It cannot withdraw a permission: do that from Agents, which is one transaction.
+        </p>
+      </div>
     </div>
   );
 }

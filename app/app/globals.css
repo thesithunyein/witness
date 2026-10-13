@@ -18,9 +18,9 @@
  *     except the dark olive --accent-text which carries small labels.
  *   - SMALL radii. 12px on cards, 8px on wells and inputs, pills reserved for
  *     chips and tabs. The 22px corner is what made the old UI feel soft.
- *   - ONE typeface for words. Inter carries interface and display alike;
- *     weight and tracking make the hierarchy. JetBrains Mono still owns every
- *     figure and identifier. Two voices, not three.
+ *   - ONE typeface, two widths. Geist carries interface and display alike:
+ *     weight, size and tracking make the hierarchy. Geist Mono owns every
+ *     figure and identifier. One family, not three.
  *   - Buttons do not jump. Hover changes surface and border; the lift shadow
  *     appears only where a control promotes an action. The primary is a flat
  *     lime fill with ink text, no inner gloss.
@@ -76,11 +76,14 @@
   --warn: #b54708;
   --warn-soft: rgba(181, 71, 8, 0.08);
 
-  /* two voices: Inter for words, JetBrains Mono for figures */
-  --sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
-  --display: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
-  --serif: var(--font-serif), "Instrument Serif", Georgia, "Times New Roman", serif;
-  --mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* One family, two widths: Geist for words, Geist Mono for figures. The old
+     editorial serif is gone on purpose: the reference is a single grotesque
+     carrying both the display line and the 13px label, so `--serif` and
+     `--display` point at the same face and every screen reads as one voice. */
+  --sans: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: var(--font-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: var(--font-mono), "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
   --decide: cubic-bezier(0.16, 1, 0.3, 1);
@@ -321,6 +324,34 @@ body {
   50% {
     opacity: 0.3;
   }
+}
+
+/* Inside the settings grid a row is a fact, not a table line: the card is half
+   the page, so the state sits above its own sentence instead of squeezing the
+   sentence into the column left over beside it. */
+.panel-grid .row {
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A button whose label sits beside a glyph: one control, centred together,
+   instead of an inline image riding the text baseline. */
+.section-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* A control that belongs to a card's heading, parked on the heading's right. */
+.card__action {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 13px;
+  font-size: 12.5px;
 }
 
 /* --- the app frame: navigation beside the work, or under the thumb ---------
@@ -582,6 +613,15 @@ body {
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(14px, 2dvh, 18px);
   align-items: start;
+}
+
+/* Settings is a set of independent questions, not one long read, so on a wide
+   screen it is two columns of cards instead of a single stack. */
+@media (min-width: 1024px) {
+  .panel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(16px, 1.6vw, 22px);
+  }
 }
 
 /* Cards are grid items here, so the stacked-cards margin must not double the gap. */
@@ -2249,18 +2289,31 @@ a:hover {
   flex: none;
 }
 
+/* One grotesque carries the whole product, so the display line is the same face
+   as the 13px label under it: heavier, tighter, larger. The reference sets its
+   headline that way, and a second family for the hero would read as a second
+   product. */
 .ln-hero__title {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(48px, 9.5vw, 102px);
-  line-height: 1.03;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(44px, 8.8vw, 94px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
   margin: 26px 0 0;
 }
 
+/* Emphasis is colour, never a synthesised slant: this family has no italic, and
+   a browser-faked oblique reads as a mistake. */
 .ln-hero__title em,
 .ln-final__line em {
-  font-style: italic;
+  font-style: normal;
+  color: var(--accent-text);
+}
+
+/* A hairline under the display line, the way the reference underlines its
+   sub-line, so the headline sits on the page instead of floating above it. */
+.ln-hero__title {
+  text-wrap: balance;
 }
 
 .ln-hero__sub {
@@ -2348,11 +2401,11 @@ a:hover {
 }
 
 .ln-steps__heading {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(30px, 4.6vw, 46px);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(28px, 4.2vw, 42px);
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
   margin: 18px 0 0;
 }
 
@@ -2386,11 +2439,11 @@ a:hover {
 }
 
 .ln-step__title {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 27px;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 23px;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
   margin: 16px 0 12px;
 }
 
@@ -2409,11 +2462,11 @@ a:hover {
 }
 
 .ln-final__line {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(40px, 7vw, 76px);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(38px, 6.6vw, 72px);
+  line-height: 1.04;
+  letter-spacing: -0.034em;
   margin: 0;
 }
 
@@ -2588,11 +2641,11 @@ a:hover {
 }
 
 .ln-faq__heading {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(30px, 4.6vw, 46px);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(28px, 4.2vw, 42px);
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
   margin: 18px 0 26px;
 }
 

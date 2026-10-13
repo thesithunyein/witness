@@ -1,37 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 /**
- * Three faces, each with one job:
+ * One family, everywhere.
  *
- *   Inter            the interface, labels, body, buttons and every display
- *                    line inside the app. One grotesque, weight and tracking
- *                    carry the hierarchy.
- *   Instrument Serif the landing page only: the one editorial voice that makes
- *                    the first screen read like a printed argument rather than
- *                    a dashboard. Italic for the single word that carries the
- *                    decision.
- *   JetBrains Mono   every figure and identifier: amounts, addresses, hashes,
- *                    countdowns. Tabular, so a ticking number does not reflow.
+ *   Geist        every word on every screen: the landing headline, the app's
+ *                labels, the request sentence, the numbers. A neo-grotesque with
+ *                squared curves and a straight-tailed y, so a 64px display line
+ *                and a 13px nav label read as the same voice at two sizes.
+ *   Geist Mono   addresses, hashes, amounts and countdowns. Tabular, so a
+ *                ticking number does not reflow the row it sits in.
  *
- * All three are self-hosted by next/font, so there is no third-party request at
+ * Both are self-hosted by next/font, so there is no third-party request at
  * runtime and no layout shift when they load.
  */
-const sans = Inter({
+const sans = Geist({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
 });
 
-const serif = Instrument_Serif({
-  subsets: ["latin"],
-  display: "swap",
-  weight: "400",
-  variable: "--font-serif",
-});
-
-const mono = JetBrains_Mono({
+const mono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
@@ -62,7 +52,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );
