@@ -21,6 +21,7 @@ cd contracts && forge build    # the contracts
 ## The checks that must pass
 
 ```bash
+cd contracts && forge fmt --check          # the formatter CI runs first
 cd contracts && forge test                 # 40 tests, real P-256 signatures
 cd app && bunx tsc --noEmit                # types
 cd app && bun run build-worker.mjs         # the Worker bundle must build
@@ -91,6 +92,23 @@ Anything that publishes, a contract deploy, an app redeploy, a published site,
 should be recorded in the README's live table and in `CHANGELOG.md`, with the
 evidence (a transaction hash, an `/api/config` response, a verification job id).
 "This is deployed" without an artifact is not a status.
+
+## Deploying the app
+
+The Vercel project behind `witness-agent.vercel.app` must have its **Root Directory**
+set to `app`. The repository root has a `package.json` too, and it has no `next` in it,
+so a build that starts at the root stops with `No Next.js version detected` and the
+check on the commit goes red. That setting lives in the project, not in a file: no
+`vercel.json` key can move it, and a `vercel.json` in `app/` is invisible to a build
+that started at the root.
+
+Because of that, a push to `main` is not by itself the deployment path. The app is
+published from its own directory, which is how every live deployment in the README's
+table was produced:
+
+```bash
+cd app && vercel --prod
+```
 
 ## Conduct
 

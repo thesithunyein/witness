@@ -94,6 +94,23 @@ const data = {
   testPrivateKey: hex(PRIV),
 };
 
+// Foundry owns the layout of the file below, because CI runs `forge fmt --check`
+// before it runs a single test. It wraps a declaration once its single line passes
+// foundry.toml's line_length (100 columns), and the long literals here always do, so
+// the wrapped form is emitted directly: regenerating the vector must never be the
+// commit that breaks the format check.
+const LINE_LENGTH = 100;
+/**
+ * A `constant` declaration, laid out the way forge would lay it out.
+ *
+ * The measured line is the indent (4), the declaration, a space, the value and
+ * the semicolon, which is the same span forge measures before it decides to wrap.
+ */
+const declaration = (decl, value) =>
+  4 + decl.length + 1 + value.length + 1 > LINE_LENGTH
+    ? `${decl}\n        ${value};`
+    : `${decl} ${value};`;
+
 const solidity = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -105,21 +122,21 @@ library AssertionVector {
     string internal constant RP_ID = "${data.rpId}";
     string internal constant ORIGIN = "${data.origin}";
 
-    bytes32 internal constant CHALLENGE = ${data.challenge};
+    ${declaration("bytes32 internal constant CHALLENGE =", data.challenge)}
     string internal constant CHALLENGE_B64 = "${data.challengeB64}";
 
-    bytes32 internal constant MESSAGE_HASH = ${data.messageHash};
+    ${declaration("bytes32 internal constant MESSAGE_HASH =", data.messageHash)}
 
-    string internal constant CLIENT_DATA_JSON = '${data.clientDataJSON}';
+    ${declaration("string internal constant CLIENT_DATA_JSON =", `'${data.clientDataJSON}'`)}
 
     // rpIdHash || flags(UP|UV) || signCount
     bytes internal constant AUTHENTICATOR_DATA =
         hex"${data.authenticatorData.slice(2)}";
 
-    uint256 internal constant R = ${BigInt(data.r)};
-    uint256 internal constant S = ${BigInt(data.s)};
-    uint256 internal constant QX = ${BigInt(data.qx)};
-    uint256 internal constant QY = ${BigInt(data.qy)};
+    ${declaration("uint256 internal constant R =", BigInt(data.r).toString())}
+    ${declaration("uint256 internal constant S =", BigInt(data.s).toString())}
+    ${declaration("uint256 internal constant QX =", BigInt(data.qx).toString())}
+    ${declaration("uint256 internal constant QY =", BigInt(data.qy).toString())}
 
     // messageHash || r || s || qx || qy -> input for the 0x0100 precompile
     bytes internal constant PRECOMPILE_INPUT =
