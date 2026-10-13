@@ -6,8 +6,8 @@
 //   node scripts/sign-action.mjs <challengeHex> [options]
 //
 // Options (all optional, defaults match the test relying party):
-//   --rpId=<string>     relying party id           (default: witness.sithunyein.com)
-//   --origin=<string>   full origin                (default: https://witness.sithunyein.com)
+//   --rpId=<string>     relying party id           (default: the manifest's rpId)
+//   --origin=<string>   full origin                (default: the manifest's origin)
 //   --key=<seed>        key derivation seed; a different seed = a different
 //                       passkey, which must be REJECTED against an enrolled key
 //   --type=<string>     clientData type            (default: webauthn.get)
@@ -21,6 +21,9 @@
 
 import { p256 } from "@noble/curves/nist.js";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
 const challengeHex = args[0];
@@ -34,8 +37,20 @@ function opt(name, fallback) {
   return hit ? hit.slice(name.length + 3) : fallback;
 }
 
-const rpId = opt("rpId", "witness.sithunyein.com");
-const origin = opt("origin", "https://witness.sithunyein.com");
+// The default relying party comes from the deployment manifest rather than from
+// this file, because the Foundry suite shells out to this script with no options
+// at all. A hard-coded default that disagrees with the deployed rpId/origin makes
+// every assertion fail `RpIdMismatch`, which tests the signer's defaults instead
+// of the contracts. RP_ID/ORIGIN in the environment override, and so do --rpId
+// and --origin.
+const CHAIN_ID = process.env.WITNESS_CHAIN_ID ?? "10143";
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(
+  readFileSync(resolve(ROOT, "contracts", "deployments", `${CHAIN_ID}.json`), "utf8")
+);
+
+const rpId = opt("rpId", process.env.RP_ID ?? manifest.rpId);
+const origin = opt("origin", process.env.ORIGIN ?? manifest.origin);
 const keySeed = opt("key", "witness:test:key:1");
 const type = opt("type", "webauthn.get");
 const flags = parseInt(opt("flags", "5"), 10);

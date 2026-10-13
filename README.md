@@ -46,21 +46,51 @@ exact amount, verified on Monad through the native P256 precompile.
 | Integration page | https://witness-agent.vercel.app/integrate |
 | Chain | Monad testnet, chain id 10143 |
 
-### The passkey is bound to one origin
+### The passkey is bound to one origin, and it is this one
 
 The deployed `WitnessVerifier` stores the `rpId` and `origin` it accepts, and deployment calls
-`lockConfiguration()`, so they can never be changed afterwards. This deployment was frozen to
-`https://witness.sithunyein.com`. That hostname is currently unreachable while its DNS is repaired.
+`lockConfiguration()`, so neither can ever change. This deployment is frozen to
+`witness-agent.vercel.app` and `https://witness-agent.vercel.app`, the URL above, so the approve
+step works from the live link with nothing else to configure.
 
-Everything above is served and live on the Vercel alias, but **the approve step needs a passkey,
-and a browser only issues one for the page's own domain.** So on the Vercel host the passkey prompt
-cannot appear, and the app says exactly that on the page instead of failing silently. Restoring
-`witness.sithunyein.com`, or redeploying the contracts with a new origin, is what makes the passkey
-flow work from another address. Both ways are described in [SUBMISSION.md](SUBMISSION.md).
+An earlier stack was frozen to `witness.sithunyein.com`. When that domain stopped resolving, the
+prompt could no longer be drawn on any reachable host and the approve step was dead everywhere. The
+fix was a redeploy against the origin that actually serves the product: the addresses below are that
+stack. The client-side origin check in `app/lib/webauthn.ts` exists because the failure was invisible
+otherwise, and the manifest is baked at build time so the site and the chain can only agree or fail
+loudly.
 
-No wallet and no testnet funds are needed to use it: registration and gas are relayed by the
-server, and the approval is a passkey on the visitor's own device. The relayer can never approve
-anything, approving requires the enrolled passkey, which never leaves the user's device.
+No wallet and no testnet funds are needed to use it: registration and gas are relayed by the server,
+and the approval is a passkey on the visitor's own device.
+
+### What replaces the wallet
+
+A wallet does three jobs in a normal dApp. Witness replaces all three, and the replacement is the
+product:
+
+| The wallet's job | In a normal dApp | In Witness |
+|---|---|---|
+| Prove who you are | a secp256k1 key in an extension | a passkey on your device; `createIntent` enrolls its P-256 public key on-chain |
+| Sign the action | you sign every transaction | you sign one digest, for one action, once |
+| Pay gas | you pay per click | the server's relayer pays |
+
+Two of those are worth stating precisely, because the loose version is wrong:
+
+- **The expiry is not inside the signed digest.** The digest binds the chain id, the enforcing
+  contract, the intent id, the action type, the token, the recipient and the amount. Expiry and the
+  spend ceiling live on the permission record and are checked at verification time, so the passkey
+  signs *what* may happen while the record bounds *how much* and *for how long*.
+- **The relayer owns the permission it registers for you.** `createIntent` sets the author from
+  `msg.sender`, and the relayer is the caller, so the relayer can revoke. It cannot approve *your*
+  permission, because that needs an assertion from your passkey and the server never holds it, but a
+  compromised relayer could register a permission naming its own passkey. That is
+  [THREAT-MODEL.md](THREAT-MODEL.md) §6.3, and the production fix is a second passkey ceremony over
+  the registration itself.
+
+The two server keys are separate roles by design: the relayer registers permissions and pays gas,
+the operator submits the agent's attempts, and neither can authorize anything. In *this* deployment
+both roles are the deployer's single key, the same trade the threat model records under
+`setOperator`.
 
 **What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
 `keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
@@ -78,14 +108,14 @@ that could approve an action on its own.
 
 | Contract | Address |
 |---|---|
-| `WitnessIntentRegistry` | [`0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521`](https://testnet.monadscan.com/address/0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521) |
-| `WitnessVerifier` | [`0xced20751479A13E76A67cC33C911e8eF61a81165`](https://testnet.monadscan.com/address/0xced20751479A13E76A67cC33C911e8eF61a81165) |
-| `DemoSafe` (holds the value) | [`0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309`](https://testnet.monadscan.com/address/0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309) |
-| `AgentExecutor` (agent identity) | [`0x5b451F0700df77293a5A737189BdbA3C37362d23`](https://testnet.monadscan.com/address/0x5b451F0700df77293a5A737189BdbA3C37362d23) |
-| `DemoUSD` (valueless asset) | [`0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c`](https://testnet.monadscan.com/address/0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c) |
+| `WitnessIntentRegistry` | [`0x84502BA6Bf4A565b84E8eC1747568d54610E71E2`](https://testnet.monadscan.com/address/0x84502BA6Bf4A565b84E8eC1747568d54610E71E2) |
+| `WitnessVerifier` | [`0x7836f1bDDdBF491c23a285B5015441a5A147D096`](https://testnet.monadscan.com/address/0x7836f1bDDdBF491c23A285B5015441a5A147D096) |
+| `DemoSafe` (holds the value) | [`0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8`](https://testnet.monadscan.com/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8) |
+| `AgentExecutor` (agent identity) | [`0x7010c0474AA1c8E8039712d314d105D1aDe0a87d`](https://testnet.monadscan.com/address/0x7010c0474AA1c8E8039712d314d105D1aDe0a87d) |
+| `DemoUSD` (valueless asset) | [`0xd5588C6f78d720D4a89929b4b68C546Dc788D65A`](https://testnet.monadscan.com/address/0xd5588C6f78d720D4a89929b4b68C546Dc788D65A) |
 | ERC-8004 Identity Registry | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.monadscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
 
-The agent's identity is **ERC-8004 token `#2148`**, owned by `AgentExecutor`. The verifier requires
+The agent's identity is **ERC-8004 token `#2240`**, owned by `AgentExecutor`. The verifier requires
 `ownerOf(agentId) == intent.agentWallet`, so the claimed id is a real identity rather than a label
 the agent typed. This is enforced, not optional: `identityRegistry` is set at deployment and frozen
 by `lockConfiguration()`.
@@ -242,7 +272,7 @@ Server environment (never exposed to the browser):
 ```bash
 WITNESS_CHAIN_ID=10143
 WITNESS_OPERATOR_PRIVATE_KEY=0x…   # drives the agent's attempts
-WITNESS_RELAYER_PRIVATE_KEY=0x…    # registers/revokes permissions (may be the same key)
+WITNESS_RELAYER_PRIVATE_KEY=0x…    # registers/revokes permissions (the same key here)
 ```
 
 Neither key can approve an action. Approving needs the passkey.
@@ -552,8 +582,8 @@ Or ask production what it is running, this is the same response a judge can read
 
 ```bash
 curl -s https://witness-agent.vercel.app/api/config
-# { chainId: 10143, rpId: "witness.sithunyein.com", payee: "0x…",
-#   agentId: "2148", identityEnforced: true, configurationLocked: true, … }
+# { chainId: 10143, rpId: "witness-agent.vercel.app", payee: "0x…",
+#   agentId: "2240", identityEnforced: true, configurationLocked: true, … }
 ```
 
 ---
@@ -575,8 +605,8 @@ has a Node process produce a genuine P-256 signature over exactly those bytes (r
 platform authenticator does), and submits it to contracts that verify through the real precompile. A
 passing happy path means the whole path is wired: digest → passkey → precompile → funds moved.
 
-Gas, measured on the deployed stack: an approved passkey authorized transfer costs **326,925 gas**
-end to end (tx `0x59616dd8…`, block 70,155,898). Inside the contracts, `executeTransfer` runs 75k to
+Gas, measured on the deployed stack: an approved passkey authorized transfer costs **336,107 gas**
+end to end (tx `0x13d7cd50…`, block 70,639,621). Inside the contracts, `executeTransfer` runs 75k to
 273k and `executeTransferNative` 78k to 268k depending on which check refuses the call, and
 `createIntent` averages 253k. Reproduce with `forge test --gas-report`.
 

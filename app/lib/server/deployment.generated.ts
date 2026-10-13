@@ -8,22 +8,22 @@
 //     ../contracts is outside the serverless file-tracing root and cannot be
 //     read at runtime
 export const DEPLOYMENT = {
-  "agentId": 2148,
+  "agentId": 2240,
   "agentName": "Research Agent",
-  "agentURI": "https://witness.sithunyein.com/agent.json",
+  "agentURI": "https://witness-agent.vercel.app/agent.json",
   "chainId": 10143,
   "configurationLocked": true,
   "contracts": {
-    "AgentExecutor": "0x5b451F0700df77293a5A737189BdbA3C37362d23",
-    "DemoSafe": "0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309",
-    "DemoUSD": "0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c",
-    "WitnessIntentRegistry": "0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521",
-    "WitnessVerifier": "0xced20751479A13E76A67cC33C911e8eF61a81165"
+    "AgentExecutor": "0x7010c0474AA1c8E8039712d314d105D1aDe0a87d",
+    "DemoSafe": "0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8",
+    "DemoUSD": "0xd5588C6f78d720D4a89929b4b68C546Dc788D65A",
+    "WitnessIntentRegistry": "0x84502BA6Bf4A565b84E8eC1747568d54610E71E2",
+    "WitnessVerifier": "0x7836f1bDDdBF491c23a285B5015441a5A147D096"
   },
   "deployer": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
   "erc8004IdentityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
-  "origin": "https://witness.sithunyein.com",
+  "origin": "https://witness-agent.vercel.app",
   "payee": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
-  "rpId": "witness.sithunyein.com",
+  "rpId": "witness-agent.vercel.app",
   "safeFunding": "1000000000000000000000"
 };

@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-10-13 - redeployed against the origin that serves the product
+
+The submission link and the origin the contracts accept were different hosts. `WitnessVerifier`
+freezes `rpId`/`origin` at deploy and `lockConfiguration()` makes them permanent, so the deployed
+stack accepted assertions signed only from `https://witness.sithunyein.com`, and that domain had gone
+NXDOMAIN at the TLD. Every read path kept working and the one interaction the product exists for
+could not be drawn on any host a judge could reach.
+
+The fix is a second deployment frozen to `witness-agent.vercel.app`, the URL the submission actually
+uses. The first stack is untouched on-chain; it is simply bound to an origin nobody can visit.
+
+- **New stack, same source.** `WitnessIntentRegistry` `0x84502BA6…`, `WitnessVerifier` `0x7836f1bD…`,
+  `DemoSafe` `0x17fc3f96…`, `AgentExecutor` `0x7010c047…`, `DemoUSD` `0xd5588C6f…`, ERC-8004 identity
+  `#2240` owned by the new executor. All five verified `exact_match` on MonadVision (matchIds
+  2053971 to 2053975). `configurationLocked: true`, identity enforced, operator and relayer keys
+  unchanged, so the hosted app needed no environment change: only the baked manifest.
+- **The relying party is now read from the manifest, not hard-coded.** `scripts/sign-action.mjs`,
+  `scripts/gen-assertion.mjs`, the Foundry fixture and the two test files all carried their own copy
+  of `witness.sithunyein.com`. That is why the first live run after the redeploy reported
+  `RpIdMismatch` on the approved path while the refusals passed: the refusals never need a valid
+  signature, so they cannot catch a fixture pinned to the wrong origin. Both scripts now default to
+  `contracts/deployments/<chain>.json`, and the tests were updated to match it.
+- **Live evidence re-run against the new stack**, not carried over: `examples/live-e2e.mjs` 4/4, the
+  approved path landing as tx `0x13d7cd50…` in block 70,639,621 (336,107 gas, status success).
+- **`agent.json` points at the host that answers.** The ERC-8004 `tokenURI` is
+  `https://witness-agent.vercel.app/agent.json`, and the document's own `image` and service endpoints
+  now name the same origin instead of the dead one.
+- **The README says what replaces a wallet, precisely enough to be wrong if it were loose:** the
+  signed digest binds chain, contract, intent, action type, asset, recipient and amount, and does
+  *not* contain the expiry, which lives on the permission record; and the relayer owns the permission
+  it registers, because `createIntent` takes the author from `msg.sender`.
+
 ## 2026-10-12 (app) - the landing page left, and an app screen arrived
 
 The first screen was a pitch. A 46px headline, a four-line lede, three explainer cards

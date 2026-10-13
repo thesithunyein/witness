@@ -32,8 +32,10 @@ contract WitnessHardeningTest is Test {
     address attacker = address(0xBAD);
     address operatorKey = address(0x0BE7);
 
-    string constant RP_ID = "witness.sithunyein.com";
-    string constant ORIGIN = "https://witness.sithunyein.com";
+    // Must match the fixture in ./vectors/AssertionVector.sol, which is generated
+    // from contracts/deployments/<chain>.json by scripts/gen-assertion.mjs.
+    string constant RP_ID = "witness-agent.vercel.app";
+    string constant ORIGIN = "https://witness-agent.vercel.app";
 
     uint256 constant LIMIT = 1e18;
     uint256 constant NATIVE_FUNDING = 10e18;

@@ -16,15 +16,24 @@
 
 import { p256 } from "@noble/curves/nist.js";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
-const RP_ID = "witness.sithunyein.com";
-const ORIGIN = "https://witness.sithunyein.com";
+// The relying party this vector is generated for MUST be the one the deployment
+// accepts. A fixture pinned to a different origin proves a signature that the
+// deployed verifier refuses with `RpIdMismatch`, which is the right answer and a
+// useless test. So read it from the manifest the deploy script wrote instead of
+// hard-coding it; RP_ID/ORIGIN override for a one-off.
+const CHAIN_ID = process.env.WITNESS_CHAIN_ID ?? "10143";
+const manifest = JSON.parse(
+  readFileSync(resolve(ROOT, "contracts", "deployments", `${CHAIN_ID}.json`), "utf8")
+);
+const RP_ID = process.env.RP_ID ?? manifest.rpId;
+const ORIGIN = process.env.ORIGIN ?? manifest.origin;
 
 const sha256 = (buf) => createHash("sha256").update(buf).digest();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -130,6 +139,11 @@ const doubleHashed = p256.verify(compact, messageHash, PUB, { prehash: true });
 if (doubleHashed) throw new Error("signature is over the digest, not a re-hash - bad fixture");
 console.log(`local noble verify: ${localOk ? "PASS" : "FAIL"}`);
 console.log(`rpId       : ${RP_ID}`);
+console.log(
+  "note: Witness.t.sol and WitnessHardening.t.sol carry their own RP_ID/ORIGIN" +
+    " constants. They must name the same relying party as this fixture, so update" +
+    " them with it when a redeploy changes the origin."
+);
 console.log(`messageHash: ${data.messageHash}`);
 console.log(`r          : ${data.r}`);
 console.log(`s          : ${data.s}`);
