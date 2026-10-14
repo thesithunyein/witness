@@ -371,9 +371,9 @@ export class WitnessClient {
    * digest, so the signature the human produces covers the recipient, the amount,
    * the asset, this contract and this chain, nothing less.
    */
-  async requestApproval(request: ActionRequest) {
+  async requestApproval(request: ActionRequest, credentialId?: string) {
     const digest = await this.actionDigest(request);
-    return assertPasskey(this.config.rpId, digest);
+    return assertPasskey(this.config.rpId, digest, credentialId);
   }
 
   /**

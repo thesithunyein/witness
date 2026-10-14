@@ -27,7 +27,7 @@ export type Assertion = {
   s: bigint;
 };
 
-const b64urlToBytes = (s: string): Uint8Array => {
+const b64urlToBytes = (s: string): Uint8Array<ArrayBuffer> => {
   const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
   const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(b64);
@@ -108,16 +108,25 @@ export async function enrollPasskey(rpId: string, label = "Witness human"): Prom
 
 export async function assertPasskey(
   rpId: string,
-  actionHash: `0x${string}`
+  actionHash: `0x${string}`,
+  credentialId?: string
 ): Promise<Assertion> {
-  const cred = (await navigator.credentials.get({
-    publicKey: {
-      challenge: hexToBytes(actionHash),
-      rpId,
-      userVerification: "required",
-      timeout: 60_000,
-    },
-  })) as PublicKeyCredential | null;
+  const publicKey: PublicKeyCredentialRequestOptions = {
+    challenge: hexToBytes(actionHash),
+    rpId,
+    userVerification: "required",
+    timeout: 60_000,
+  };
+
+  // Pin the credential the permission names. Without this, the platform may answer
+  // with any passkey it holds for this rpId, and a stale one from an earlier
+  // enrollment produces a signature the contract refuses as BadSignature, which
+  // reads to the human as "there was no approval" for an approval they just gave.
+  if (credentialId) {
+    publicKey.allowCredentials = [{ type: "public-key", id: b64urlToBytes(credentialId) }];
+  }
+
+  const cred = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential | null;
 
   if (!cred) throw new Error("Passkey approval was cancelled.");
 

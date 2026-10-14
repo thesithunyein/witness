@@ -469,7 +469,7 @@ export default function Page() {
     setErr(null);
     setVerdict(null);
     try {
-      const assertion = await client.requestApproval(request);
+      const assertion = await client.requestApproval(request, passkey?.credentialId);
       const result = await client.executeAuthorizedAction(request, assertion);
 
       if (result.allowed) {
