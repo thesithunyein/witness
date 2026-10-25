@@ -252,6 +252,28 @@ contract WitnessTest is Test {
         assertEq(safe.balance(), SAFE_FUNDING, "safe untouched");
     }
 
+    /// @notice The spend ceiling is a rule of its own, separate from the digest
+    ///         check. Here the passkey signs the oversized action itself, so the
+    ///         digest the executor submits matches what was signed and no other
+    ///         check could refuse it: only the human's ceiling can. The verifier
+    ///         reads `amount > maxAmount` before it ever looks at the signature,
+    ///         which is why the reason is OverLimit and not a challenge error.
+    function test_blocked_ceilingRefusesASignedOverCeilingAction() public {
+        intentId = _createIntent(_defaultExpiry(), 0); // maxAmount = LIMIT (1 DemoUSD)
+
+        // Signed over 2 DemoUSD, twice the ceiling, to the real recipient.
+        bytes32 oversized = safe.actionHash(intentId, alice, 2e18);
+        WebAuthn.Assertion memory a = _sign(oversized);
+
+        vm.prank(operatorKey);
+        _expectUnauthorized(Reason.OverLimit);
+        agent.executeTransfer(intentId, alice, 2e18, a);
+
+        assertEq(dusd.balanceOf(alice), 0, "nothing leaves the vault above the ceiling");
+        assertEq(safe.balance(), SAFE_FUNDING, "safe untouched");
+        assertTrue(registry.isActive(intentId), "a refused attempt does not burn the approval");
+    }
+
     /// @notice Same approval, different recipient: the signature does not transfer
     ///         to an action the human never saw.
     function test_blocked_approvalDoesNotCoverDifferentRecipient() public {
