@@ -193,9 +193,21 @@ const QY = 218031811213225827689524858334753519275770245840722098684738877401932
 
 /** Ask the Node signer for an assertion over `digest`, exactly as a passkey would. */
 function signAsPasskey(digest) {
-  const out = execFileSync("node", [resolve(ROOT, "scripts", "sign-action.mjs"), digest], {
-    encoding: "utf8",
-  });
+  // Sign for the relying party THIS deployment accepts, taken from the manifest
+  // the scripts already load. sign-action.mjs defaults to whatever origin it was
+  // written with, and an assertion signed for another origin is refused with
+  // RpIdMismatch, so passing these explicitly is what makes this a test of the
+  // deployed stack rather than of the signer's defaults.
+  const out = execFileSync(
+    "node",
+    [
+      resolve(ROOT, "scripts", "sign-action.mjs"),
+      digest,
+      `--rpId=${manifest.rpId}`,
+      `--origin=${manifest.origin}`,
+    ],
+    { encoding: "utf8" }
+  );
   const lines = out.trim().split("\n").map((l) => l.trim());
   if (lines.length < 4) throw new Error(`unexpected signer output: ${out.slice(0, 200)}`);
   return {

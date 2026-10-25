@@ -32,7 +32,7 @@ import {
   intentRegistryAbi,
   witnessVerifierAbi,
 } from "../abi";
-import { MONAD_MAINNET, MONAD_TESTNET, decodeUnauthorized, secondsLeft } from "../witness";
+import { chainFor, decodeUnauthorized, secondsLeft } from "../witness";
 import { assertPasskey, enrollPasskey } from "../webauthn";
 
 // ---------------------------------------------------------------------------
@@ -187,9 +187,15 @@ export class WitnessClient {
   constructor(config: WitnessConfig, transport: WriteTransport) {
     this.config = config;
     this.transport = transport;
-    this.f = transport.kind === "relayer" ? (transport.fetchImpl ?? fetch) : fetch;
+    // Never store `fetch` and call it as a method: browsers require its `this` to
+    // be the global scope and throw "Illegal invocation" otherwise, which broke
+    // every relayer call from the browser (the whole in-page flow).
+    this.f =
+      transport.kind === "relayer" && transport.fetchImpl
+        ? transport.fetchImpl
+        : (input, init) => globalThis.fetch(input, init);
     this.publicClient = createPublicClient({
-      chain: config.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET,
+      chain: chainFor(config.chainId),
       transport: http(),
     }) as PublicClient;
   }
@@ -418,7 +424,7 @@ export class WitnessClient {
           allowed: false,
           code: -1,
           name: "Unknown(-1)",
-          message: j.error ?? "the relayer could not submit this action",
+          message: j.detail ?? j.error ?? "the relayer could not submit this action",
           detail: j.detail,
         };
       }

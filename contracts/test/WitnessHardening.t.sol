@@ -7,6 +7,7 @@ import {DemoSafe} from "../src/DemoSafe.sol";
 import {AgentExecutor} from "../src/AgentExecutor.sol";
 import {WitnessIntentRegistry} from "../src/WitnessIntentRegistry.sol";
 import {WitnessVerifier} from "../src/WitnessVerifier.sol";
+import {P256Verifier} from "../src/libraries/P256Verifier.sol";
 import {WebAuthn} from "../src/libraries/WebAuthn.sol";
 import {WitnessAction} from "../src/libraries/WitnessAction.sol";
 import {IWitnessVerifier, Reason} from "../src/interfaces/IWitness.sol";
@@ -19,10 +20,11 @@ import {MockERC8004Identity} from "./mocks/MockERC8004Identity.sol";
 ///         arbitrary-call escape hatch.
 ///
 /// @dev Same discipline as the main suite: real P-256 signatures produced by a Node
-///      process over the real canonical digest, verified through the real precompile.
+///      process over the real canonical digest, verified by the real P256Verifier.
 contract WitnessHardeningTest is Test {
     DemoUSD dusd;
     WitnessIntentRegistry registry;
+    P256Verifier p256;
     WitnessVerifier verifier;
     DemoSafe safe;
     AgentExecutor agent;
@@ -45,7 +47,8 @@ contract WitnessHardeningTest is Test {
     function setUp() public {
         dusd = new DemoUSD();
         registry = new WitnessIntentRegistry();
-        verifier = new WitnessVerifier(address(registry), RP_ID, ORIGIN);
+        p256 = new P256Verifier();
+        verifier = new WitnessVerifier(address(registry), RP_ID, ORIGIN, address(p256));
         registry.setVerifier(address(verifier));
 
         safe = new DemoSafe(address(verifier), address(dusd));
@@ -81,11 +84,16 @@ contract WitnessHardeningTest is Test {
     }
 
     /// @notice Ask an independent Node process to sign `challenge` as a passkey would.
+    /// @dev RP identity is pinned to this suite's constants. The script would
+    ///      otherwise default to the live deployment manifest, which would make the
+    ///      suite depend on whatever was deployed last.
     function _sign(bytes32 challenge) internal returns (WebAuthn.Assertion memory a) {
-        string[] memory cmd = new string[](3);
+        string[] memory cmd = new string[](5);
         cmd[0] = "node";
         cmd[1] = "../scripts/sign-action.mjs";
         cmd[2] = vm.toString(challenge);
+        cmd[3] = string.concat("--rpId=", RP_ID);
+        cmd[4] = string.concat("--origin=", ORIGIN);
 
         bytes memory out = vm.ffi(cmd);
         string[] memory L = _splitLines(out);
@@ -184,11 +192,13 @@ contract WitnessHardeningTest is Test {
     }
 
     function _sign_withKey(bytes32 challenge) internal returns (WebAuthn.Assertion memory a) {
-        string[] memory cmd = new string[](4);
+        string[] memory cmd = new string[](6);
         cmd[0] = "node";
         cmd[1] = "../scripts/sign-action.mjs";
         cmd[2] = vm.toString(challenge);
         cmd[3] = "--key=witness:agent:key:9";
+        cmd[4] = string.concat("--rpId=", RP_ID);
+        cmd[5] = string.concat("--origin=", ORIGIN);
 
         string[] memory L = _splitLines(vm.ffi(cmd));
         require(L.length >= 6, "sign-action: expected 6 output lines");

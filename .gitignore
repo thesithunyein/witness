@@ -13,3 +13,6 @@ Thumbs.db
 .secrets/
 app/worker-dist/
 *.tsbuildinfo
+
+.vercel
+.env*

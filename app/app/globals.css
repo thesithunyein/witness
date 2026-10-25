@@ -1,23 +1,24 @@
 /*
- * Witness: light control panel.
+ * Witness: warm editorial control panel.
  *
- * The dark version was a console. This is the same product for someone opening it
- * at a desk in daylight, and for the person who has to be persuaded that an agent
- * is safe to leave running. Light surfaces are less forgiving, so the rules are
- * stricter here than they were on black:
+ * A product about trust should not look like a toy, and it should not look like a
+ * console either. The register here is a printed document: warm paper, black ink,
+ * a serif for the few lines that are statements, and thin rules doing the work
+ * borders used to do. The rules are strict on purpose:
  *
- *   - TWO surfaces only: a near-white page (#f5f6f8) and white cards on top of it.
- *     Depth comes from a hairline plus a two-layer shadow, never from a heavy
- *     border, and the page never uses pure #fff as its own background.
- *   - The brand ramp (indigo to teal) is used for fills and for the few large
- *     display words. Both stops clear 4.5:1 against white text, and no body copy
- *     is ever set in a gradient: small gradient text is the fastest way to make a
- *     light UI look cheap.
+ *   - TWO surfaces only: warm paper (#f7f5f1) and white panels laid on it. Depth
+ *     comes from the paper-versus-panel step plus a hairline. Shadow is nearly
+ *     gone: on a warm page a soft grey shadow turns the paper muddy.
+ *   - A serif is for display only. The brand, the statement, the page title, the
+ *     request, the verdict. Everything that is read as ordinary text stays Inter,
+ *     because a serif card title inside a dense panel reads as decoration.
+ *   - The brand lime survives as a SIGNAL, not as a surface: the verified tick,
+ *     the focus ring, the one small count. Fills, gradients and glows are gone,
+ *     so the colour means something the moment it appears.
  *   - Semantic colour keeps its own tokens and is always paired with an icon and
  *     a word, so status survives for a colour-blind reader and on a projector.
- *   - Type: Inter for the interface, Space Grotesk for display lines, JetBrains
- *     Mono for figures. Micro-labels stay tracked and uppercase, because that is
- *     what lets a dense panel be skimmed.
+ *   - Figures keep JetBrains Mono: amounts, addresses, hashes, countdowns are
+ *     tabular so a ticking number does not reflow.
  *   - Motion is short and only marks a change of state.
  *
  * Every class name from the previous systems is preserved, so the page markup did
@@ -25,41 +26,44 @@
  */
 
 :root {
-  /* surfaces */
-  --bg: #f5f6f8;
+  /* surfaces: warm paper, white panel, and the two steps a panel uses inside
+     itself. Nothing here is a gradient. */
+  --bg: #f7f5f1;
   --bg-2: #ffffff;
-  --bg-3: #f1f3f7;
-  --bg-4: #e8ecf3;
-  --bg-deep: #f8fafc;
+  --bg-3: #f1eee7;
+  --bg-4: #e7e3da;
+  --bg-deep: #fbfaf7;
   --card: #ffffff;
 
-  /* raised surfaces */
-  --glass: linear-gradient(180deg, #ffffff 0%, #fdfdff 100%);
-  --glass-hover: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
-  --line: rgba(13, 21, 38, 0.1);
-  --line-strong: rgba(13, 21, 38, 0.2);
-  --inset: rgba(13, 21, 38, 0.04);
+  /* raised surfaces: flat, because a warm page plus a grey shadow reads as dirt */
+  --glass: #ffffff;
+  --glass-hover: #fdfcfa;
+  --line: rgba(19, 19, 19, 0.12);
+  --line-strong: rgba(19, 19, 19, 0.24);
+  --inset: rgba(19, 19, 19, 0.04);
 
-  /* ink: 16.9 / 6.5 / 5.2 against the page. faint is the small-label colour, so
-     it has to clear 4.5:1, which the previous #68738a missed at 4.41. */
-  --ink: #0d1526;
-  --ink-dim: #4d586b;
-  --ink-faint: #5d6779;
+  /* ink: 15.6 / 7.3 / 5.9 against the paper. faint carries the small labels, so
+     it has to clear 4.5:1 on the warm page, not just on white. Matched to the
+     bear in public/logo.png, which is exactly #0d0d0d. */
+  --ink: #0d0d0d;
+  --ink-dim: #55514a;
+  --ink-faint: #635e56;
 
-  /* The brand, taken straight from the logo: a lime tile with ink on it. Lime is
-     a FILL colour, never a text colour, so --accent-text is the readable
-     member of the family for links, labels and numbers. */
-  /* Sampled from the artwork itself (app/public/logo.png): the tile runs from
-     #c9f429 at the light end to #a9f41e at the deep end, and the bear is #0d0d0d. */
+  /* The brand lime, kept exactly as sampled from the artwork (public/logo.png:
+     the tile runs #c9f429 to #a9f41e, the bear is #0d0d0d). It is a SIGNAL
+     only: the verified tick, the small counts, the focus ring. The mark itself
+     renders in full colour in the bar (see .mark), so black ink leads and the
+     lime is the one thing that means "checked". */
   --accent: #c2f325;
   --accent-light: #c9f429;
   --accent-2: #a9f41e;
-  --accent-2-bright: #86ab00;
-  --accent-ink: #0d0d0d;
+  --accent-2-bright: #7f9c00;
+  --accent-ink: #fbfaf7;
   --accent-text: #4b6100;
-  --accent-soft: rgba(194, 243, 37, 0.24);
-  --accent-2-soft: rgba(194, 243, 37, 0.18);
-  --ramp: linear-gradient(135deg, #c9f429 0%, #a9f41e 100%);
+  --accent-soft: rgba(19, 19, 19, 0.05);
+  --accent-2-soft: rgba(194, 243, 37, 0.22);
+  /* Ink, not a gradient: the primary action is the darkest thing on the page. */
+  --ramp: linear-gradient(135deg, #1d1d1b 0%, #0d0d0d 100%);
 
   /* semantic state, never the only signal */
   --ok: #047857;
@@ -70,22 +74,23 @@
   --warn-soft: rgba(180, 83, 9, 0.1);
 
   --sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
-  --display: var(--font-display), "Space Grotesk", var(--sans);
+  --display: var(--font-display), "Newsreader", Georgia, "Times New Roman", serif;
   --mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --soft: cubic-bezier(0.25, 0.8, 0.28, 1);
   --decide: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* The logo is a thick ribbon with round ends on a rounded tile, so every
-     corner in the product is generous and every single-line control is a pill. */
-  --radius: 22px;
-  --radius-sm: 14px;
+  /* Corners come down from the old 22px: the mark is a rounded tile, but a panel
+     that holds a table of facts is a document, and documents have square-ish
+     corners. Single-line controls stay pills. */
+  --radius: 16px;
+  --radius-sm: 12px;
   --radius-pill: 999px;
   --gutter: 5vw;
 
-  --shadow: 0 1px 2px rgba(13, 21, 38, 0.06), 0 10px 26px -14px rgba(13, 21, 38, 0.18);
-  --shadow-lift: 0 1px 2px rgba(13, 21, 38, 0.07), 0 18px 40px -22px rgba(13, 21, 38, 0.22);
-  --shadow-sm: 0 1px 2px rgba(13, 21, 38, 0.07);
+  --shadow: 0 1px 2px rgba(19, 19, 19, 0.03), 0 14px 32px -26px rgba(19, 19, 19, 0.28);
+  --shadow-lift: 0 1px 2px rgba(19, 19, 19, 0.03), 0 24px 52px -36px rgba(19, 19, 19, 0.32);
+  --shadow-sm: none;
 }
 
 * {
@@ -105,9 +110,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Two very soft tints and a hairline grid, both fixed, so the page keeps its
-   shape while content scrolls over it. Kept under 8% opacity: on a light page,
-   background art competes with the content the moment it gets any stronger. */
+/* The field, fixed, so the page keeps its shape while content scrolls over it.
+
+   The previous wash was a lime glow across the top, which turned the whole page
+   into the brand colour. This is the opposite move: the top of the page is lit
+   slightly brighter than the rest of the paper, and a halftone dot field blooms
+   out of that light and dies before the first card. The dots are the one image in
+   the interface, and they are made of the same ink as the type, so nothing on the
+   page introduces a second colour. */
 body::before,
 body::after {
   content: "";
@@ -118,22 +128,18 @@ body::after {
 }
 
 body::before {
-  background:
-    radial-gradient(760px 420px at 8% -8%, rgba(194, 243, 37, 0.26), transparent 70%),
-    radial-gradient(680px 380px at 98% 2%, rgba(140, 200, 10, 0.16), transparent 72%);
+  background: linear-gradient(180deg, #fffefb 0%, rgba(255, 254, 251, 0) 520px);
 }
 
 body::after {
-  background-image:
-    linear-gradient(rgba(13, 21, 38, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(13, 21, 38, 0.035) 1px, transparent 1px);
-  background-size: 68px 68px;
-  mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
-  -webkit-mask-image: radial-gradient(1100px 620px at 50% 0%, #000 0%, transparent 76%);
+  background-image: radial-gradient(rgba(19, 19, 19, 0.2) 1px, transparent 1.3px);
+  background-size: 7px 7px;
+  mask-image: radial-gradient(760px 300px at 50% -4%, #000 0%, transparent 74%);
+  -webkit-mask-image: radial-gradient(760px 300px at 50% -4%, #000 0%, transparent 74%);
 }
 
 ::selection {
-  background: rgba(79, 70, 229, 0.18);
+  background: rgba(194, 243, 37, 0.45);
   color: var(--ink);
 }
 
@@ -147,21 +153,21 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd3e1;
+  background: #d8d3c9;
   border-radius: 999px;
   border: 2px solid var(--bg-3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b3bdcd;
+  background: #c2bcb0;
 }
 
 .shell {
   position: relative;
   z-index: 1;
-  max-width: 1120px;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: clamp(18px, 3dvh, 30px) var(--gutter) 104px;
+  padding: clamp(22px, 4dvh, 40px) var(--gutter) 104px;
 }
 
 /* --- micro-label: the workhorse of the hierarchy --- */
@@ -170,7 +176,7 @@ body::after {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   color: var(--ink-faint);
   margin: 0;
 }
@@ -212,35 +218,50 @@ body::after {
    App bar: the only navigation, and it follows the reader
    ========================================================================= */
 
+/* A masthead, not a floating card: a hairline under it and the paper showing
+   through. It bleeds to the shell's gutters so the rule spans the page, the way
+   a header rule does in print. */
 .appbar {
   position: sticky;
   top: 0;
   z-index: 30;
-  margin: 0 0 clamp(16px, 2.6dvh, 26px);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  margin: 0 calc(var(--gutter) * -1) clamp(18px, 3dvh, 32px);
+  padding-inline: var(--gutter);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: rgba(247, 245, 241, 0.93);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  overflow: visible;
 }
 
+/* The two ends are equal columns, so the sections sit on the centre line of the
+   bar rather than on the centre of whatever is left over. */
 .appbar__top {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 16px;
+  gap: 28px;
+  padding: 12px 0;
 }
 
+.appbar__top > .brand {
+  justify-self: start;
+}
+
+.appbar__top > .masthead-right {
+  justify-self: end;
+}
+
+/* The nav cell is the flexible one, so the sections sit centred in the bar and
+   the two ends stay pinned. Narrow screens move it to its own row below. */
 .appbar__nav {
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-width: 0;
   gap: 4px;
-  padding: 6px 12px;
-  border-top: 1px solid var(--line);
-  background: var(--bg-2);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -259,14 +280,18 @@ body::after {
 }
 
 /* The mark IS the logo file (public/logo.png), the same one the tab icon and the
-   README show, so the three cannot drift apart. */
+   README show, so the three cannot drift apart.
+
+   The artwork is a lime tile with a near-black mark on it. The greyscale first
+   lifts the lime to a light grey and leaves the mark black, then the inversion
+   swaps them: an ink tile with a paper mark. Same drawing, same file, and it is
+   the one version of this mark that belongs on a warm page. */
 .mark {
   width: 30px;
   height: 30px;
   flex: none;
   display: block;
   border-radius: 9px;
-  box-shadow: 0 8px 18px -10px rgba(120, 150, 0, 0.8);
   transition: transform 200ms var(--decide);
 }
 
@@ -280,17 +305,18 @@ body::after {
 
 .brand-name {
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.022em;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
 .brand-sub {
   display: block;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -302,7 +328,8 @@ body::after {
   flex: none;
 }
 
-/* a factual readout, not a claim */
+/* a factual readout, not a claim. Quiet hairline, and the lime is spent on the
+   dot alone, which is the part that says the app is talking to the chain. */
 .pill {
   display: inline-flex;
   align-items: center;
@@ -311,19 +338,19 @@ body::after {
   padding: 7px 13px;
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--accent-text);
-  background: var(--accent-2-soft);
-  border: 1px solid rgba(160, 190, 0, 0.4);
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
 }
 
 .pill__dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-2-bright);
+  background: var(--accent-2);
   animation: pulse-dot 2.6s var(--soft) infinite;
 }
 
@@ -337,66 +364,87 @@ body::after {
   }
 }
 
-/* --- nav: a pill segmented control, sized for a thumb --- */
+/* --- nav: plain sections in a row, ruled underneath, like a contents page ---
+
+   The segmented pill was a control. These are sections of one document, so the
+   selected one is marked by an ink rule sitting on the masthead's hairline and by
+   its colour, never by weight: a weight change would re-measure the centred row
+   and slide every other label sideways as you move along it. */
 
 .tabs {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   align-items: center;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--bg-3);
-  box-shadow: inset 0 1px 2px rgba(13, 21, 38, 0.05);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .tab {
+  position: relative;
   appearance: none;
   background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border: 0;
+  border-radius: 0;
   color: var(--ink-dim);
-  padding: 8px 15px;
+  padding: 0 14px;
   margin: 0;
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 500;
   letter-spacing: -0.005em;
   cursor: pointer;
   white-space: nowrap;
-  min-height: 40px;
+  min-height: 46px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  /* The global button carries a lift shadow; inside the segmented control that
-     reads as four outlined capsules, which is not what a segmented control is. */
   box-shadow: none;
-  transition: background-color 150ms var(--soft), color 150ms var(--soft),
-    border-color 150ms var(--soft), box-shadow 150ms var(--soft);
+  transition: color 150ms var(--soft);
+}
+
+/* A pseudo-element cannot shift the bar's height, and it cannot disagree with
+   aria-selected about which section is current. */
+.tab::after {
+  content: "";
+  position: absolute;
+  inset: auto 10px -1px;
+  height: 1.5px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transition: transform 180ms var(--decide);
+}
+
+.tab[aria-selected="true"]::after {
+  transform: scaleX(1);
 }
 
 .tab:hover {
   color: var(--ink);
-  background: rgba(13, 21, 38, 0.05);
+  background: none;
 }
 
 .tab[aria-selected="true"] {
   color: var(--ink);
-  border-color: var(--line);
-  background: #ffffff;
-  box-shadow: var(--shadow-sm);
+  border: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .tab:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
+/* The only lime tint in the navigation: a count of things that actually want the
+   reader, which is exactly the kind of fact the brand colour should be spent on. */
 .tab__count {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--accent-text);
-  background: var(--accent-soft);
+  background: var(--accent-2-soft);
   border-radius: 999px;
   padding: 1px 6px;
 }
@@ -407,75 +455,113 @@ body::after {
    ========================================================================= */
 
 .status {
-  margin-bottom: clamp(14px, 2.2dvh, 20px);
+  margin-bottom: clamp(18px, 2.8dvh, 26px);
 }
 
 .status__head {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 12px 20px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+/* The statement takes the room it needs; the quiet action sits at the far end
+   of the same line, the way a hero pairs a sentence with a secondary link. */
+.status__action {
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--ink-dim);
+  transition: color 150ms var(--soft);
+}
+
+.status__action:hover {
+  color: var(--ink);
 }
 
 .status__title {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(20px, 2.4vw, 25px);
-  line-height: 1.1;
-  letter-spacing: -0.025em;
+  font-weight: 400;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.14;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 /* The heading is the screen's one line of context. Its name is the selected tab
-   directly above, so it is not printed here as well. */
+   directly above, so it is not printed here as well.
+
+   This is the only display line on the operational screen, so it carries the
+   whole editorial idea: a real serif, normal weight, a reading measure instead of
+   full width. Serif pushed to bold at this size shouts, which is the opposite of
+   what a page about careful approval should do. */
 .status__title--lead {
-  font-size: clamp(16px, 1.5vw, 18px);
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  line-height: 1.35;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  line-height: 1.18;
   color: var(--ink);
-  max-width: 74ch;
+  max-width: 30ch;
+  text-wrap: balance;
 }
 
 /* The developer page's heading: same display face, sized for a page that is read
    rather than operated. */
 .page-title {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(24px, 3.2vw, 34px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  font-weight: 400;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
+/* The one accented word is drawn in ink and marked with the brand rule, so the
+   emphasis does not need a second colour. */
 .page-title em {
-  font-style: normal;
-  color: var(--accent-text);
+  font-style: italic;
+  color: var(--ink);
+  box-shadow: inset 0 -0.14em 0 var(--accent-2-soft);
 }
 
-/* --- the four facts --- */
+/* --- the four facts: a ruled row, not four boxes ---
+
+   Four bordered cards said "four separate widgets". They are four readings of one
+   state, so they sit on two rules with hairlines between them, like a data row in
+   a printed report, and the columns take the page's full measure. */
 
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
 }
 
 .metric {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-2);
-  padding: 12px 13px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 18px;
   min-width: 0;
-  box-shadow: var(--shadow-sm);
+}
+
+.metric:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.metric:last-child {
+  padding-right: 0;
 }
 
 .metric__label {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.15em;
   color: var(--ink-faint);
   margin: 0 0 6px;
   display: flex;
@@ -491,9 +577,10 @@ body::after {
 }
 
 .metric__value {
-  font-size: 15.5px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
   color: var(--ink);
   margin: 0;
   overflow: hidden;
@@ -501,11 +588,13 @@ body::after {
   white-space: nowrap;
 }
 
-/* Money and counts are figures, so they keep the tabular face. Words do not. */
+/* Money and counts are figures, so they keep the tabular face. Words do not: a
+   mono setting is a machine's voice, and "Nothing has asked yet" is not. */
 .metric__value--num {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .metric__value--ok {
@@ -575,22 +664,25 @@ body::after {
   margin-left: auto;
 }
 
+/* The section numeral lost its lime capsule. As a bare tracked figure it reads as
+   a contents-page number instead of a badge, and the sections stop competing with
+   the actions for attention. */
 .section-num {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--accent-text);
-  border: 1px solid rgba(160, 190, 0, 0.4);
-  background: var(--accent-2-soft);
-  border-radius: var(--radius-pill);
-  padding: 3px 9px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  border: 0;
+  background: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .section-title {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.16em;
   color: var(--ink-dim);
   margin: 0;
 }
@@ -599,22 +691,25 @@ body::after {
    The request: the one thing the human has to decide
    ========================================================================= */
 
+/* The decision card is the one surface on the page with a rule over it and the
+   one surface allowed any shadow at all. It is also the only panel with an ink
+   border rather than a hairline, because it is the thing waiting on the reader. */
 .request {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(160, 190, 0, 0.45);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: clamp(18px, 3dvh, 30px);
   background: var(--bg-2);
   box-shadow: var(--shadow-lift);
 }
 
-/* the ramp marks the decision and nothing else */
+/* the ink rule marks the decision and nothing else */
 .request::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 3px;
+  height: 2px;
   background: var(--ramp);
 }
 
@@ -631,10 +726,10 @@ body::after {
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  border: 1px solid rgba(160, 190, 0, 0.4);
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  border-radius: 12px;
+  border: 0;
+  background: var(--ink);
+  color: var(--accent-ink);
 }
 
 .agent-avatar--lg {
@@ -645,19 +740,23 @@ body::after {
 
 .request__sentence {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(22px, 2.8vw, 32px);
-  line-height: 1.15;
-  letter-spacing: -0.025em;
-  margin: 0 0 8px;
-  max-width: 28ch;
+  font-weight: 400;
+  font-size: clamp(26px, 3.4vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  margin: 0 0 10px;
+  max-width: 26ch;
+  text-wrap: balance;
 }
 
-/* the amount is the decision, so it is the one coloured word */
+/* The amount is the decision, so it is the marked word: ink underlined by the
+   brand's own colour rather than set in it, which keeps the sentence one voice
+   and the amount impossible to miss. */
 .request__sentence em {
   font-style: normal;
-  color: var(--accent-text);
+  color: var(--ink);
   white-space: nowrap;
+  box-shadow: inset 0 -0.16em 0 var(--accent-2-soft);
 }
 
 .request__sub {
@@ -747,27 +846,26 @@ button {
   padding: 12px 22px;
   min-height: 44px;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
   transition: background-color 160ms var(--soft), border-color 160ms var(--soft),
     color 160ms var(--soft), transform 110ms var(--soft), box-shadow 160ms var(--soft);
 }
 
+/* A secondary control states its boundary on hover instead of lifting off the
+   page: on a flat document, movement reads as jitter. */
 button:hover:not(:disabled) {
-  background: var(--bg-3);
-  border-color: var(--ink-faint);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  background: var(--bg-deep);
+  border-color: var(--ink);
 }
 
 button:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: var(--shadow-sm);
 }
 
-/* Lime is a fill, so it is not a usable focus ring on a white page: the dark
-   member of the family marks the focused control instead. */
+/* Lime is a fill, so it is not a usable focus ring on a warm page: it fails the
+   3:1 a focus indicator needs. Ink marks the focused control instead, and the
+   lime keeps its one job, which is to say "checked". */
 button:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -780,15 +878,15 @@ button:disabled {
 
 button.primary {
   background: var(--ramp);
-  border-color: transparent;
+  border-color: var(--ink);
   color: var(--accent-ink);
-  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.5) inset, 0 10px 22px -12px rgba(150, 180, 0, 0.85);
+  box-shadow: 0 1px 2px rgba(19, 19, 19, 0.16), 0 14px 30px -22px rgba(19, 19, 19, 0.6);
 }
 
 button.primary:hover:not(:disabled) {
-  filter: brightness(1.04) saturate(1.05);
-  border-color: transparent;
-  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.55) inset, 0 14px 28px -12px rgba(120, 150, 0, 0.75);
+  background: #000000;
+  border-color: #000000;
+  box-shadow: 0 1px 2px rgba(19, 19, 19, 0.2), 0 18px 36px -22px rgba(19, 19, 19, 0.65);
 }
 
 button.danger:hover:not(:disabled) {
@@ -899,7 +997,6 @@ code.state {
   border-radius: var(--radius);
   background: var(--glass);
   padding: clamp(16px, 2.4dvh, 24px);
-  box-shadow: var(--shadow-lift);
 }
 
 .card + .card {
@@ -915,9 +1012,9 @@ code.state {
 
 .card__title {
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -1049,7 +1146,7 @@ code.state {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 3px;
+  height: 2px;
   background: var(--ramp);
 }
 
@@ -1066,10 +1163,10 @@ code.state {
 .verdict-label,
 .verdict-card__label {
   font-family: var(--display);
-  font-weight: 600;
-  font-size: clamp(30px, 4.2vw, 50px);
-  line-height: 1.03;
-  letter-spacing: -0.035em;
+  font-weight: 400;
+  font-size: clamp(34px, 4.6vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
   margin: 6px 0 10px;
 }
 
@@ -1136,8 +1233,8 @@ code.state {
 .field input:focus-visible,
 .field select:focus-visible {
   outline: none;
-  border-color: var(--accent-text);
-  box-shadow: 0 0 0 3px rgba(75, 97, 0, 0.2);
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(19, 19, 19, 0.1);
 }
 
 .field__hint {
@@ -1218,8 +1315,12 @@ details.security > summary::-webkit-details-marker {
    marker and the panel cannot disagree about which way it goes. */
 .disclosure-caret {
   flex: none;
-  color: var(--accent);
+  color: var(--ink-dim);
   transition: transform 160ms var(--soft);
+}
+
+details.security[open] > summary .disclosure-caret {
+  color: var(--ink);
 }
 
 details.security[open] > summary .disclosure-caret {
@@ -1227,7 +1328,7 @@ details.security[open] > summary .disclosure-caret {
 }
 
 details.security > summary:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -1324,18 +1425,20 @@ details.security > summary:focus-visible {
   color: var(--danger);
 }
 
+/* Links are ink, and they show their affordance on hover as a one-pixel rule.
+   Most links in this app are small tracked labels, and a permanent underline
+   turns a quiet masthead into a minefield of blue-ish text. */
 a {
-  color: var(--accent-text);
+  color: var(--ink);
   text-decoration: none;
   text-underline-offset: 3px;
   transition: color 150ms var(--soft);
 }
 
 a:hover {
-  color: var(--ink);
   text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink);
 }
 
 /* =========================================================================
@@ -1355,7 +1458,6 @@ a:hover {
   background: var(--bg-2);
   padding: 16px;
   min-width: 0;
-  box-shadow: var(--shadow-lift);
 }
 
 .code {
@@ -1397,8 +1499,8 @@ a:hover {
 }
 
 .code__copy:hover {
-  border-color: var(--accent-text);
-  color: var(--accent-text);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 @media (min-width: 1024px) {
@@ -1473,13 +1575,47 @@ a:hover {
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* The row wraps, so the rules have to follow the new geometry: an odd column
+     starts a row and therefore carries no left rule, and every row after the
+     first needs a rule along its top. Without this the second row opened with a
+     divider hanging off the left edge of the page. */
+  .metric:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .metric:nth-child(even) {
+    padding-right: 0;
+  }
+
+  .metric:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 1000px) {
+  /* The bar keeps its two ends and gives the sections a row of their own. */
+  .appbar__top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+
+  .brand {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+
+  .masthead-right {
+    grid-area: 1 / 2 / 2 / 3;
+  }
+
+  .appbar__nav {
+    grid-area: 2 / 1 / 3 / 3;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 760px) {
-  .appbar__top {
-    flex-wrap: wrap;
-  }
-
   .disclosure {
     grid-template-columns: 1fr;
     gap: 4px;
@@ -1491,6 +1627,24 @@ a:hover {
 }
 
 @media (max-width: 620px) {
+  /* One reading per line: at this width two columns inside a ruled row would
+     truncate the values, and a five-figure fact with an ellipsis in it is worse
+     than a taller page. */
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric,
+  .metric:nth-child(even) {
+    border-left: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .metric:nth-child(n + 2) {
+    border-top: 1px solid var(--line);
+  }
+
   .facts {
     grid-template-columns: 1fr;
   }
@@ -1524,20 +1678,35 @@ a:hover {
 /* 390px is a real phone width, and navigation that hides its own last item is
    worse than tighter navigation: the padding comes down so the last tab stays
    on screen instead of behind a scroll nobody discovers. */
-@media (max-width: 430px) {
-  .appbar__nav {
-    padding: 5px 8px;
-    gap: 2px;
+/* On a phone the four labels plus four glyphs measure wider than the bar, and
+   the last section ended up clipped behind a scroll. The labels alone fit, and a
+   section nobody can see is worse than a section without its icon. */
+@media (max-width: 500px) {
+  .tab svg {
+    display: none;
   }
 
+  .pill__id {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .tabs {
+    gap: 0;
+  }
+
+  /* The masthead owns the horizontal padding, so the rows inside it must not add
+     a second one: on a phone that would eat the last tab. */
   .tab {
-    padding: 8px 11px;
+    padding: 0 9px;
     font-size: 11.5px;
     letter-spacing: 0;
+    min-height: 44px;
   }
 
   .appbar__top {
-    padding: 11px 12px;
+    padding: 10px 0;
   }
 }
 
@@ -1564,4 +1733,559 @@ a:hover {
     animation-delay: 0ms !important;
     transition: none !important;
   }
+}
+
+/* --- landing page --------------------------------------------------------- */
+
+.land {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 48px;
+}
+
+.land-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(247, 245, 241, 0.86);
+  backdrop-filter: blur(12px);
+}
+
+.land-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.land-brand__mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  align-self: center;
+  display: block;
+}
+
+.land-brand__name {
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.land-brand__tag,
+.land-label,
+.land-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.land-nav__links {
+  display: flex;
+  gap: 22px;
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.land-nav__links a {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.land-nav__links a:hover {
+  color: var(--ink);
+}
+
+/* --- hero ---------------------------------------------------------------- */
+
+.land-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.32fr) minmax(0, 0.82fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+  padding: clamp(40px, 7vw, 76px) 0 clamp(30px, 4vw, 52px);
+}
+
+.land-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.land-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(194, 243, 37, 0.28);
+}
+
+.land-h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(38px, 5.4vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin: 0 0 22px;
+}
+
+.land-h1 em {
+  font-style: italic;
+  border-bottom: 2px solid var(--accent);
+}
+
+.land-h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+}
+
+.land-h2--tight {
+  margin-bottom: 8px;
+}
+
+.land-sub,
+.land-lede {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-dim);
+  max-width: 62ch;
+  margin: 0 0 26px;
+}
+
+.land-lede {
+  margin-bottom: 30px;
+}
+
+.land-sub--tight {
+  margin-bottom: 0;
+}
+
+.land-ctas,
+.land-band__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.land-cta,
+.land-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  text-decoration: none;
+  transition: transform 140ms var(--soft), background 140ms var(--soft);
+}
+
+.land-cta {
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+}
+
+.land-cta:hover {
+  background: #000;
+}
+
+.land-cta--sm {
+  margin-left: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+.land-ghost {
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: transparent;
+}
+
+.land-ghost:hover {
+  background: var(--inset);
+}
+
+.land-fineprint {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* The halftone hands sit under the fineprint as a quiet band, not a hero
+   image: the two hands are the product diagram (agent reaches, human
+   answers), so it earns its place by explaining rather than decorating.
+
+   The frame carries the paper: main.land is its own stacking context, so the
+   multiply below blends inside it and would otherwise find a transparent
+   backdrop, leaving the PNG's white as a white box. */
+.land-hands-frame {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  margin-top: 26px;
+  background: var(--bg);
+}
+
+.land-hands {
+  display: block;
+  width: 100%;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
+/* --- the proof card ------------------------------------------------------ */
+
+.land-proofcard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.land-proofcard__amount {
+  font-family: var(--display);
+  font-size: 42px;
+  line-height: 1.1;
+  margin: 10px 0 16px;
+}
+
+.land-proofcard__amount span {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+
+.land-kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  margin: 0 0 16px;
+}
+
+.land-kv dt {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 3px;
+}
+
+.land-kv dd {
+  margin: 0;
+  font-size: 13px;
+}
+
+.land-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+.land-chip--ok {
+  border-color: rgba(4, 120, 87, 0.28);
+  background: var(--ok-soft);
+  color: var(--ok);
+  margin: 0;
+}
+
+.land-proofcard__note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+  margin: 14px 0 12px;
+}
+
+.land-proofcard__link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: 2px;
+}
+
+/* --- facts strip --------------------------------------------------------- */
+
+.land-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.land-strip__num {
+  display: block;
+  font-family: var(--display);
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.land-strip__label {
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+.land-section {
+  padding: clamp(44px, 6vw, 78px) 0 0;
+}
+
+.land-section--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+
+.land-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.land-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.land-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+}
+
+.land-card--flat {
+  box-shadow: none;
+}
+
+.land-card h3 {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+
+.land-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.land-addr {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.land-addr:hover {
+  color: var(--ink);
+}
+
+.land-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 26px;
+}
+
+.land-step {
+  border-top: 1px solid var(--line-strong);
+  padding-top: 16px;
+}
+
+.land-step__n {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.land-step h3 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 400;
+  margin: 10px 0 8px;
+}
+
+.land-step p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.land-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+}
+
+.land-codeblock {
+  background: #0d0d0d;
+  border-radius: var(--radius);
+  padding: 20px;
+  color: #f4f2ec;
+}
+
+.land-codeblock .land-label {
+  color: rgba(244, 242, 236, 0.55);
+  margin: 0 0 12px;
+}
+
+.land-codeblock pre {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: #e7e4dd;
+}
+
+.land-codeblock__link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* --- closing band and footer --------------------------------------------- */
+
+.land-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 26px;
+  margin-top: clamp(48px, 6vw, 84px);
+  padding: clamp(26px, 4vw, 44px);
+  border-radius: 24px;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.land-band .land-h2 {
+  color: var(--bg);
+}
+
+.land-band .land-sub {
+  color: rgba(247, 245, 241, 0.72);
+  margin-bottom: 0;
+  max-width: 46ch;
+}
+
+.land-band .land-cta {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d0d0d;
+}
+
+.land-band .land-ghost {
+  border-color: rgba(247, 245, 241, 0.3);
+  color: var(--bg);
+}
+
+.land-band .land-ghost:hover {
+  background: rgba(247, 245, 241, 0.1);
+}
+
+.land-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 26px 0 8px;
+  margin-top: 26px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.land-footer p {
+  margin: 0;
+}
+
+.land-footer__links {
+  display: flex;
+  gap: 18px;
+}
+
+.land-footer__links a {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.land-footer__links a:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 960px) {
+  .land-hero,
+  .land-section--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .land-grid,
+  .land-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .land-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .land-nav__links {
+    display: none;
+  }
+
+  .land-band {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* The fixed top wash is tuned for a short app screen; on a long landing page it
+   whitens whatever happens to sit at the top of the viewport, so it is off here
+   and the landing paints above the dotted texture instead. */
+body:has(main.land)::before {
+  display: none;
+}
+
+.land {
+  position: relative;
+  z-index: 1;
 }

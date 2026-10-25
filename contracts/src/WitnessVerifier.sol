@@ -25,6 +25,15 @@ contract WitnessVerifier is IWitnessVerifier {
     address public identityRegistry;
 
     WitnessIntentRegistry public immutable registryContract;
+
+    /// @notice Deployed secp256r1 verifier the passkey signature is checked against.
+    /// @dev Immutable on purpose. The chain this stack runs on (Mezo) has no native
+    ///      P-256 precompile, so the check is a call to a stateless pure-Solidity
+    ///      verifier deployed alongside the rest of the stack. An immutable address
+    ///      means the check can never be pointed somewhere else afterwards, which
+    ///      is the same guarantee `lockConfiguration` gives the other two settings.
+    address public immutable p256Verifier;
+
     address public owner;
 
     /// @dev Relying party identity the passkey was created for.
@@ -45,10 +54,16 @@ contract WitnessVerifier is IWitnessVerifier {
         uint256 indexed intentId, address indexed actor, bytes32 indexed actionHash, uint256 amount
     );
 
-    constructor(address registry_, string memory rpId_, string memory origin_) {
+    constructor(
+        address registry_,
+        string memory rpId_,
+        string memory origin_,
+        address p256Verifier_
+    ) {
         registryContract = WitnessIntentRegistry(registry_);
         rpId = rpId_;
         origin = origin_;
+        p256Verifier = p256Verifier_;
         owner = msg.sender;
     }
 
@@ -160,7 +175,8 @@ contract WitnessVerifier is IWitnessVerifier {
         if (amount > it.maxAmount) return Reason.OverLimit;
 
         // The passkey must have signed THIS digest, using the key the human enrolled.
-        WebAuthn.AuthError err = WebAuthn.verify(actionHash, assertion, it.qx, it.qy, rpId, origin);
+        WebAuthn.AuthError err =
+            WebAuthn.verify(actionHash, assertion, it.qx, it.qy, rpId, origin, p256Verifier);
         return _mapAuthError(err);
     }
 

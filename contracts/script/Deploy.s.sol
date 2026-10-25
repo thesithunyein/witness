@@ -7,6 +7,8 @@ import {DemoSafe} from "../src/DemoSafe.sol";
 import {AgentExecutor} from "../src/AgentExecutor.sol";
 import {WitnessIntentRegistry} from "../src/WitnessIntentRegistry.sol";
 import {WitnessVerifier} from "../src/WitnessVerifier.sol";
+import {P256Verifier} from "../src/libraries/P256Verifier.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
 
 /// @notice Deploys the Witness stack, registers the agent's ERC-8004 identity,
 ///         freezes the trust-critical configuration, and writes the single
@@ -20,12 +22,24 @@ import {WitnessVerifier} from "../src/WitnessVerifier.sol";
 ///   AGENT_URI                   default <ORIGIN>/agent.json
 ///   ERC8004_IDENTITY_REGISTRY   optional; defaults to the official registry for
 ///                               the chain (see _defaultIdentityRegistry)
-///   DEMO_SAFE_FUNDING           default 1000e18 DemoUSD units
+///   ASSET_TOKEN                 optional; an already-deployed ERC-20 the safe will
+///                               hold (on Mezo testnet: MUSD). When unset, the
+///                               script deploys the valueless DemoUSD instead, which
+///                               keeps local/anvil runs self-contained.
+///   ASSET_SYMBOL                optional; label recorded in the manifest. Defaults
+///                               to "MUSD" for an external asset, "DemoUSD" otherwise.
+///   DEMO_SAFE_FUNDING           default 1000e18 asset units. For an external asset
+///                               this is capped at what the deployer actually holds,
+///                               because the script can only transfer, not mint.
 ///   DEMO_PAYEE                  default the deployer; the address the demo agent
 ///                               pays, recorded in the manifest as `payee`
 ///
 /// The manifest is written to deployments/<chainid>.json so no address is ever
 /// hand-copied between the contracts, the SDK, and the app.
+///
+/// Mezo testnet (chain 31611, RPC https://rpc.test.mezo.org, gas paid in BTC):
+///   ASSET_TOKEN=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503  (testnet MUSD,
+///   18 decimals). Mainnet MUSD is 0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186.
 ///
 /// @dev Structured as Config + Deployed rather than a dozen locals, because the
 ///      flat version ran into "stack too deep" the moment the ERC-8004 fields were
@@ -44,11 +58,15 @@ contract Deploy is Script {
         ///      so the request the agent sends names a real, on-chain-visible
         ///      merchant instead of a placeholder. Defaults to the deployer.
         address payee;
+        /// @dev ERC-20 the safe holds. Zero means "deploy DemoUSD for this run".
+        address asset;
+        string assetSymbol;
     }
 
     struct Deployed {
         address dusd;
         address registry;
+        address p256;
         address verifier;
         address safe;
         address agent;
@@ -58,6 +76,11 @@ contract Deploy is Script {
 
     /// @dev The official ERC-8004 Identity Registry, verified on-chain before use.
     ///      Testnets share one address, mainnets share another (erc-8004/erc-8004-contracts).
+    ///      Mezo (31611 / 31612) is deliberately absent: there is no ERC-8004
+    ///      deployment on Mezo testnet (eth_getCode at the shared testnet address
+    ///      returns empty), so the identity binding stays unenforced rather than
+    ///      pointed at an address that would silently never verify. Pass
+    ///      ERC8004_IDENTITY_REGISTRY to enforce it against a registry you deploy.
     function _defaultIdentityRegistry(uint256 chainId) internal pure returns (address) {
         if (chainId == 10143) return 0x8004A818BFB912233c491871b3d84c89A494BD9e; // Monad testnet
         if (chainId == 143) return 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432; // Monad mainnet
@@ -73,6 +96,10 @@ contract Deploy is Script {
         c.identityRegistry =
             vm.envOr("ERC8004_IDENTITY_REGISTRY", _defaultIdentityRegistry(c.chainId));
         c.funding = vm.envOr("DEMO_SAFE_FUNDING", uint256(1000e18));
+        c.asset = vm.envOr("ASSET_TOKEN", address(0));
+        c.assetSymbol = vm.envOr(
+            "ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD")
+        );
     }
 
     function run() external {
@@ -85,11 +112,13 @@ contract Deploy is Script {
         _writeManifest(c, d);
 
         console.log("Witness deployed on chain", c.chainId);
-        console.log("  DemoUSD              ", d.dusd);
-        console.log("  WitnessIntentRegistry", d.registry);
-        console.log("  WitnessVerifier      ", d.verifier);
-        console.log("  DemoSafe             ", d.safe);
-        console.log("  AgentExecutor        ", d.agent);
+        console.log("  asset                 ", c.assetSymbol);
+        console.log("  asset token           ", d.dusd);
+        console.log("  P256Verifier          ", d.p256);
+        console.log("  WitnessIntentRegistry ", d.registry);
+        console.log("  WitnessVerifier       ", d.verifier);
+        console.log("  DemoSafe              ", d.safe);
+        console.log("  AgentExecutor         ", d.agent);
         console.log("  ERC-8004 registry    ", c.identityRegistry);
         console.log("  ERC-8004 agentId     ", d.agentId);
         console.log("  configuration        ", "LOCKED");
@@ -98,15 +127,25 @@ contract Deploy is Script {
     function _deploy(uint256 pk, Config memory c) private returns (Deployed memory d) {
         vm.startBroadcast(pk);
 
-        DemoUSD dusd = new DemoUSD();
-        d.dusd = address(dusd);
+        // The asset the safe holds. On Mezo this is MUSD, passed in as ASSET_TOKEN:
+        // the integration is real value, not a valueless local token. DemoUSD is
+        // only deployed when no external asset is configured.
+        if (c.asset == address(0)) {
+            d.dusd = address(new DemoUSD());
+        } else {
+            d.dusd = c.asset;
+        }
+
+        // The chain has no native P-256 precompile, so the curve math is deployed
+        // as a stateless contract and referenced by the verifier as an immutable.
+        d.p256 = address(new P256Verifier());
 
         WitnessIntentRegistry registry = new WitnessIntentRegistry();
         d.registry = address(registry);
 
         // The deployer is the relayer that registers permissions on the human's
         // behalf and pays gas. It has no authority over funds.
-        WitnessVerifier verifier = new WitnessVerifier(d.registry, c.rpId, c.origin);
+        WitnessVerifier verifier = new WitnessVerifier(d.registry, c.rpId, c.origin, d.p256);
         d.verifier = address(verifier);
         registry.setVerifier(d.verifier);
 
@@ -123,7 +162,20 @@ contract Deploy is Script {
         d.agent = address(agent);
 
         // Pre-fund the safe so the demo can move real value immediately.
-        dusd.mint(d.safe, c.funding);
+        if (c.asset == address(0)) {
+            DemoUSD(d.dusd).mint(d.safe, c.funding);
+        } else {
+            // An external asset (MUSD) cannot be minted. Move what the deployer
+            // actually holds, so a bare testnet wallet does not fail the deploy:
+            // the safe exists and is wired either way, and `fund()` tops it up later.
+            uint256 held = IERC20(d.dusd).balanceOf(c.deployer);
+            uint256 amount = c.funding < held ? c.funding : held;
+            if (amount > 0) {
+                IERC20(d.dusd).transfer(d.safe, amount);
+            }
+            console.log("  safe pre-funding       ", amount);
+            console.log("  deployer asset balance ", held);
+        }
 
         // --- ERC-8004: register the agent's identity, owned by the executor ---
         if (c.identityRegistry != address(0)) {
@@ -153,7 +205,10 @@ contract Deploy is Script {
         // Serialize via the cheatcode rather than one giant string.concat, which
         // overflows the stack with this many fields.
         string memory contractsKey = "contracts";
+        // Key kept as DemoUSD for the app/SDK manifest type. What it points at is
+        // the asset the safe actually holds, which on Mezo is MUSD (see assetSymbol).
         vm.serializeAddress(contractsKey, "DemoUSD", d.dusd);
+        vm.serializeAddress(contractsKey, "P256Verifier", d.p256);
         vm.serializeAddress(contractsKey, "WitnessIntentRegistry", d.registry);
         vm.serializeAddress(contractsKey, "WitnessVerifier", d.verifier);
         vm.serializeAddress(contractsKey, "DemoSafe", d.safe);
@@ -169,6 +224,7 @@ contract Deploy is Script {
         vm.serializeUint(root, "agentId", d.agentId);
         vm.serializeAddress(root, "erc8004IdentityRegistry", c.identityRegistry);
         vm.serializeAddress(root, "payee", c.payee);
+        vm.serializeString(root, "assetSymbol", c.assetSymbol);
         vm.serializeString(root, "contracts", contractsJson);
         vm.serializeString(root, "safeFunding", vm.toString(c.funding));
         string memory json = vm.serializeBool(root, "configurationLocked", true);

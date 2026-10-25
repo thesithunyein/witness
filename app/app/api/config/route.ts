@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadDeployment } from "@/lib/server/deployment";
+import { chainFor } from "@/lib/witness";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export async function GET() {
         erc8004IdentityRegistry: d.erc8004IdentityRegistry,
         /** Where the demo agent's payments settle, from the deployment manifest. */
         payee: d.payee ?? null,
+        /** What the safe holds: MUSD on Mezo. The UI labels amounts with it. */
+        assetSymbol: d.assetSymbol ?? "DemoUSD",
         agentName: d.agentName ?? "Research Agent",
         agentURI: d.agentURI ?? null,
         agentId: agentId.toString(),
@@ -37,8 +40,9 @@ export async function GET() {
          */
         identityEnforced: identityConfigured && agentId !== 0n,
         configurationLocked: d.configurationLocked ?? false,
-        explorer:
-          d.chainId === 143 ? "https://monadscan.com" : "https://testnet.monadscan.com",
+        // Derived from the manifest's chain, so the links follow the deployment
+        // instead of always pointing at Monad.
+        explorer: chainFor(d.chainId).blockExplorers.default.url,
       },
       { headers: { "cache-control": "no-store" } }
     );

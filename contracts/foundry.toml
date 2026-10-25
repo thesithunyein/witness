@@ -4,8 +4,16 @@ out = "out"
 libs = ["lib"]
 optimizer = true
 optimizer_runs = 200
-# Monad supports the Fusaka precompile set (0x0100 P256, 0x1000 staking, 0x1001 reserve).
-evm_version = "osaka"
+# Mezo is an Evmos/Cosmos-SDK EVM and documents "london" as its target EVM version.
+# No contract here needs PUSH0 or anything newer, so the tests run on the same
+# codegen that ships. (The 0x0100 P-256 precompile this repo used to call was a
+# Monad/Fusaka feature; the port removes that dependency entirely.)
+evm_version = "london"
+# Pinned to the compiler the vendored P256Verifier was written and tested against.
+# via_ir is required: the curve arithmetic in P256Verifier has too many live
+# locals for the legacy pipeline on any 0.8.x compiler.
+solc = "0.8.21"
+via_ir = true
 ffi = true
 fs_permissions = [
   { access = "read", path = "./test/vectors" },

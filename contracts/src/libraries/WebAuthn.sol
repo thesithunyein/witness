@@ -2,12 +2,18 @@
 pragma solidity ^0.8.20;
 
 /// @title WebAuthn
-/// @notice On-chain verification of WebAuthn (passkey) assertions using Monad's
-///         native secp256r1/P-256 precompile at 0x0100 (EIP-7951).
+/// @notice On-chain verification of WebAuthn (passkey) assertions.
 ///
-/// @dev Why this library exists, and why "just call the precompile" is not enough:
+/// @dev Portability note: this library used to call the native P-256 precompile at
+///      0x0100 (RIP-7212 / EIP-7951), which Monad ships and Mezo does not. The
+///      signature check now calls a deployed `P256Verifier` instead, using the
+///      exact same 160-byte input and 32-byte output ABI, so nothing about the
+///      approval semantics changed. Only the address the assertion is checked
+///      against is different, and it is an immutable on the verifier.
 ///
-///      The 0x0100 precompile verifies a raw ECDSA signature over a 32-byte hash.
+///      Why this library exists, and why "just verify the signature" is not enough:
+///
+///      A raw ECDSA check verifies a signature over a 32-byte hash.
 ///      It knows nothing about WebAuthn. Verifying only the raw signature would
 ///      accept a signature over ANY digest, which proves nothing about what the
 ///      human approved. WebAuthn's actually-signed payload is:
@@ -33,14 +39,9 @@ pragma solidity ^0.8.20;
 ///      (WitnessIntentRegistry holds the passkey enrolled by the human). Passing a
 ///      caller-supplied key here would let an attacker sign with their own key.
 library WebAuthn {
-    /// @dev Monad's P256 precompile. EIP-7951 supersedes RIP-7212; `0x100` and
-    ///      `0x0100` are the same address and interface.
-    address internal constant P256_PRECOMPILE = address(0x0100);
-
     /// @dev Input is exactly 160 bytes: hash(32) || r(32) || s(32) || qx(32) || qy(32).
-    ///      Returns 32 bytes encoding uint256(1) on success, empty otherwise.
+    ///      The verifier returns 32 bytes encoding uint256(1) on success.
     uint256 internal constant P256_INPUT_LENGTH = 160;
-    uint256 internal constant P256_GAS = 6900;
 
     /// @dev authenticatorData is at least rpIdHash(32) + flags(1) + signCount(4).
     uint256 internal constant MIN_AUTH_DATA_LENGTH = 37;
@@ -81,6 +82,8 @@ library WebAuthn {
     /// @param qy Enrolled passkey public key y-coordinate.
     /// @param expectedRpId Relying party ID, e.g. "witness.example.com".
     /// @param expectedOrigin Full origin, e.g. "https://witness.example.com".
+    /// @param p256Verifier Deployed P-256 verifier (see P256Verifier.sol). A wrong
+    ///        or empty address fails closed with BadSignature.
     /// @return AuthError.None when the assertion is valid and bound to `challenge`.
     function verify(
         bytes32 challenge,
@@ -88,7 +91,8 @@ library WebAuthn {
         uint256 qx,
         uint256 qy,
         string memory expectedRpId,
-        string memory expectedOrigin
+        string memory expectedOrigin,
+        address p256Verifier
     ) internal view returns (AuthError) {
         if (a.authenticatorData.length < MIN_AUTH_DATA_LENGTH) {
             return AuthError.RpIdMismatch;
@@ -127,12 +131,12 @@ library WebAuthn {
         }
 
         // 6. Authenticity: verify the signature over the reconstructed digest.
-        return _verifySignature(a, qx, qy);
+        return _verifySignature(a, qx, qy, p256Verifier);
     }
 
     /// @dev Reconstructs sha256(authenticatorData || sha256(clientDataJSON)) and
-    ///      checks it against the P-256 precompile with the enrolled public key.
-    function _verifySignature(Assertion memory a, uint256 qx, uint256 qy)
+    ///      checks it against the deployed P-256 verifier with the enrolled public key.
+    function _verifySignature(Assertion memory a, uint256 qx, uint256 qy, address p256Verifier)
         private
         view
         returns (AuthError)
@@ -141,7 +145,7 @@ library WebAuthn {
         bytes32 digest = sha256(abi.encodePacked(a.authenticatorData, clientDataHash));
 
         (bool ok, bytes memory out) =
-            P256_PRECOMPILE.staticcall(abi.encodePacked(digest, a.r, a.s, qx, qy));
+            p256Verifier.staticcall(abi.encodePacked(digest, a.r, a.s, qx, qy));
 
         if (!ok || out.length != 32 || abi.decode(out, (uint256)) != 1) {
             return AuthError.BadSignature;

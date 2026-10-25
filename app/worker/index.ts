@@ -39,7 +39,7 @@ import {
   TRANSFER_ACTION_TYPE,
   TRANSFER_NATIVE_ACTION_TYPE,
 } from "../lib/abi";
-import { MONAD_MAINNET, MONAD_TESTNET, decodeUnauthorized } from "../lib/witness";
+import { chainFor, decodeUnauthorized } from "../lib/witness";
 import {
   encodeRequestToken,
   validateRequest,
@@ -70,8 +70,6 @@ const json = (body: unknown, status = 200): Response =>
       "cache-control": "no-store",
     },
   });
-
-const chainFor = (chainId: number) => (chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET);
 
 const walletFor = (key: Hex) => {
   const account = privateKeyToAccount(key);

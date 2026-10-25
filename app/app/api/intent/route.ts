@@ -10,8 +10,9 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { intentRegistryAbi, TRANSFER_ACTION_TYPE, TRANSFER_NATIVE_ACTION_TYPE } from "@/lib/abi";
-import { MONAD_MAINNET, MONAD_TESTNET } from "@/lib/witness";
+import { chainFor } from "@/lib/witness";
 import { loadDeployment, relayerKey } from "@/lib/server/deployment";
+import { withRpcRetry } from "@/lib/server/relay";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ function resolveActionType(raw: string | undefined): Hex | null {
 function client() {
   const deployment = loadDeployment();
   const account = privateKeyToAccount(relayerKey());
-  const chain = deployment.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET;
+  const chain = chainFor(deployment.chainId);
   const wallet = createWalletClient({ account, chain, transport: http() });
   const pub = createPublicClient({ chain, transport: http() });
   return { deployment, wallet, pub };
@@ -104,26 +105,31 @@ export async function POST(req: Request) {
         )
       ) as Hex;
 
-      const hash = await wallet.writeContract({
-        address: deployment.contracts.WitnessIntentRegistry,
-        abi: intentRegistryAbi,
-        functionName: "createIntent",
-        args: [
-          body.agentWallet as Hex,
-          BigInt(body.agentId ?? "0"),
-          actionType,
-          BigInt(body.maxAmount),
-          expiry,
-          policyHash,
-          keccak256(toBytes(body.credentialId)),
-          BigInt(body.qx),
-          BigInt(body.qy),
-        ],
-      });
+      // Retried because the public testnet RPC intermittently rejects a valid
+      // estimate with -32602; see lib/server/relay.ts. Only the send and the
+      // receipt read are retried, never a decoded contract revert.
+      const hash = await withRpcRetry(() =>
+        wallet.writeContract({
+          address: deployment.contracts.WitnessIntentRegistry,
+          abi: intentRegistryAbi,
+          functionName: "createIntent",
+          args: [
+            body.agentWallet as Hex,
+            BigInt(body.agentId ?? "0"),
+            actionType,
+            BigInt(body.maxAmount),
+            expiry,
+            policyHash,
+            keccak256(toBytes(body.credentialId)),
+            BigInt(body.qx),
+            BigInt(body.qy),
+          ],
+        })
+      );
 
       // Read the assigned id from the receipt's event rather than predicting it:
       // predicting from `nextIntentId` races with any concurrent registration.
-      const receipt = await pub.waitForTransactionReceipt({ hash });
+      const receipt = await withRpcRetry(() => pub.waitForTransactionReceipt({ hash }));
       let intentId: string | undefined;
       for (const log of receipt.logs) {
         if (log.address.toLowerCase() !== deployment.contracts.WitnessIntentRegistry.toLowerCase()) {

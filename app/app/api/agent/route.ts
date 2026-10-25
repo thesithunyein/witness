@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentExecutorAbi } from "@/lib/abi";
-import { MONAD_MAINNET, MONAD_TESTNET, decodeUnauthorized } from "@/lib/witness";
+import { chainFor, decodeUnauthorized } from "@/lib/witness";
 import { loadDeployment, operatorKey } from "@/lib/server/deployment";
+import { withRpcRetry } from "@/lib/server/relay";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
   }
 
   const account = privateKeyToAccount(key);
-  const chain = deployment.chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET;
+  const chain = chainFor(deployment.chainId);
   const wallet = createWalletClient({ account, chain, transport: http() });
 
   const assertion = body.assertion
@@ -110,12 +111,16 @@ export async function POST(req: Request) {
   const native = body.kind === "native";
 
   try {
-    const hash = await wallet.writeContract({
-      address: deployment.contracts.AgentExecutor,
-      abi: agentExecutorAbi,
-      functionName: native ? "executeTransferNative" : "executeTransfer",
-      args: [BigInt(body.intentId), body.to, BigInt(body.amount), assertion],
-    });
+    // Same retry as /api/intent: the testnet RPC intermittently rejects a valid
+    // estimate with -32602. A decoded contract revert is never retried.
+    const hash = await withRpcRetry(() =>
+      wallet.writeContract({
+        address: deployment.contracts.AgentExecutor,
+        abi: agentExecutorAbi,
+        functionName: native ? "executeTransferNative" : "executeTransfer",
+        args: [BigInt(body.intentId), body.to, BigInt(body.amount), assertion],
+      })
+    );
 
     return NextResponse.json({
       ok: true,

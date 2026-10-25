@@ -24,6 +24,46 @@ export const MONAD_MAINNET = {
   blockExplorers: { default: { name: "MonadScan", url: "https://monadscan.com" } },
 } as const;
 
+// Mezo is where the MUSD integration lives: gas is paid in BTC (18 decimals), and
+// the safe holds MUSD, the Bitcoin-backed stablecoin the agent is allowed to spend.
+export const MEZO_TESTNET = {
+  id: 31611,
+  name: "Mezo Testnet",
+  nativeCurrency: { name: "Bitcoin", symbol: "BTC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.test.mezo.org"] } },
+  blockExplorers: { default: { name: "Mezo Explorer", url: "https://explorer.test.mezo.org" } },
+} as const;
+
+export const MEZO_MAINNET = {
+  id: 31612,
+  name: "Mezo",
+  nativeCurrency: { name: "Bitcoin", symbol: "BTC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc_evm-mezo.imperator.co"] } },
+  blockExplorers: { default: { name: "Mezo Explorer", url: "https://explorer.mezo.org" } },
+} as const;
+
+/**
+ * Resolve the chain the deployment manifest points at.
+ *
+ * Every route used to do `chainId === 143 ? mainnet : testnet`, which silently
+ * assumed Monad. The manifest is the single source of truth for the chain, so an
+ * unknown id must fail loudly here rather than send requests to the wrong RPC.
+ */
+const CHAINS = {
+  10143: MONAD_TESTNET,
+  143: MONAD_MAINNET,
+  31611: MEZO_TESTNET,
+  31612: MEZO_MAINNET,
+} as const;
+
+export type SupportedChain = (typeof CHAINS)[keyof typeof CHAINS];
+
+export function chainFor(chainId: number): SupportedChain {
+  const chain = (CHAINS as Record<number, SupportedChain | undefined>)[chainId];
+  if (!chain) throw new Error(`no chain configured for id ${chainId}`);
+  return chain;
+}
+
 export type Deployment = {
   chainId: number;
   deployer: Address;
@@ -58,7 +98,7 @@ export type Deployment = {
 // types stay resolvable for anyone who installs the package.
 export const publicClient = (chainId: number): PublicClient =>
   createPublicClient({
-    chain: chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET,
+    chain: chainFor(chainId),
     transport: http(),
   });
 

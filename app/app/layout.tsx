@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 
 /**
  * Three faces, each with one job:
  *
  *   Inter           the interface, labels, body, buttons
- *   Space Grotesk   display lines: the dashboard title, the permission
- *                   sentence, the verdict. Geometric, not decorative.
+ *   Newsreader      display lines only: the wordmark, the statement, the page
+ *                   title, the request, the verdict. A reading serif, so the few
+ *                   lines that are statements carry weight without a bold weight.
  *   JetBrains Mono  every figure and identifier: amounts, addresses, hashes,
  *                   countdowns. Tabular, so a ticking number does not reflow.
  *
@@ -20,7 +21,9 @@ const sans = Inter({
   variable: "--font-sans",
 });
 
-const display = Space_Grotesk({
+// The serif is used at 400 and 500 only. Its real weights matter: a synthesised
+// bold serif is what makes a display line look borrowed from a template.
+const display = Newsreader({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
@@ -35,20 +38,20 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   // The tab icon is public/logo.png, the same file the app bar and the README use.
   icons: { icon: "/logo.png" },
-  title: "Witness Approvals: your agent asks, you decide",
+  title: "Witness: passkey approvals for AI agents",
   description:
-    "Before an AI agent spends your money, you approve that exact action with a passkey. Enforced on Monad.",
+    "Before an AI agent spends your money, you approve that exact action with a passkey, and the contract holding the funds verifies it on-chain. Live on Mezo testnet with MUSD.",
   openGraph: {
-    title: "Witness Approvals: your agent asks, you decide",
+    title: "Witness: passkey approvals for AI agents",
     description:
-      "A passkey-signed, one-time permission for one exact action, checked by the contract that holds the funds. Monad testnet.",
+      "A passkey-signed, one-time permission for one exact action, checked by the contract that holds the funds. Live on Mezo testnet, chain 31611.",
     type: "website",
   },
 };
 
 export const viewport: Viewport = {
   // Matches the page background so the browser chrome does not band against it.
-  themeColor: "#f5f6f8",
+  themeColor: "#f7f5f1",
   colorScheme: "light",
 };
 

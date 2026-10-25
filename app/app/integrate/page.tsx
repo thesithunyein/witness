@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Address, Hex } from "viem";
 import {
-  NATIVE_ACTION_TYPE,
+  TRANSFER_ACTION_TYPE,
   REASON_MESSAGES,
   WitnessClient,
   type Authorization,
@@ -33,13 +33,15 @@ type Config = {
   };
   agentId: string;
   explorer: string;
+  /** Ticker of the asset this deployment moves, e.g. MUSD. */
+  assetSymbol?: string;
 };
 
-const SNIPPET_SETUP = `import { WitnessClient, NATIVE_ACTION_TYPE } from "@witness/sdk";
+const SNIPPET_SETUP = `import { WitnessClient, TRANSFER_ACTION_TYPE } from "@witness/sdk";
 
 const witness = new WitnessClient(
   {
-    chainId: 10143,
+    chainId: <your chain id>,
     rpId: "<your rp id>",
     contracts: {
       DemoSafe: "0x...",              // the contract that holds the value
@@ -53,13 +55,13 @@ const witness = new WitnessClient(
 
 const SNIPPET_LOOP = `// 1. The human registers a permission. One payment, one ceiling, one expiry.
 const { intentId } = await witness.createIntent({
-  actionType: NATIVE_ACTION_TYPE,   // or TRANSFER_ACTION_TYPE for an ERC-20
-  maxAmount: 5n * 10n ** 17n,       // 0.5 MON
+  actionType: TRANSFER_ACTION_TYPE, // the ERC-20 tag, for an ERC-20 asset like MUSD
+  maxAmount: 5n * 10n ** 17n,      // 0.5 tokens (18 decimals)
   expirySeconds: 600,
 });
 
 // 2. Your agent wants to act. Ask the human first.
-const action = { intentId, kind: "native", to: payee, amount: 5n * 10n ** 17n };
+const action = { intentId, kind: "transfer", to: payee, amount: 5n * 10n ** 17n };
 const assertion = await witness.requestApproval(action);
 
 // 3. Preflight. Free, read-only, and it names the exact reason.
@@ -165,11 +167,11 @@ export default function Integrate() {
         amount = BigInt(Math.round(Number(amountMon) * 1e6)) * 10n ** 12n;
         if (amount < 0n) throw new Error("negative");
       } catch {
-        throw new Error("Amount must be a positive number of MON, like 0.5.");
+        throw new Error("Amount must be a positive number of tokens, like 0.5.");
       }
       if (!/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error("Recipient must be a 20-byte hex address.");
 
-      const request = { intentId: BigInt(intentId), kind: "native" as const, to: to as Address, amount };
+      const request = { intentId: BigInt(intentId), kind: "transfer" as const, to: to as Address, amount };
       setDigest(await client.actionDigest(request));
       setResult(await client.checkAuthorization(request));
     } catch (e) {
@@ -184,7 +186,7 @@ export default function Integrate() {
       <AppBar
         chainId={config?.chainId}
         actions={
-          <a className="micro" href="/">
+          <a className="micro" href="/app">
             ← Back to the app
           </a>
         }
@@ -271,7 +273,7 @@ export default function Integrate() {
                 <input id="i-id" inputMode="numeric" value={intentId} onChange={(e) => setIntentId(e.target.value)} />
               </div>
               <div className="field">
-                <label htmlFor="i-amount">Amount (MON)</label>
+                <label htmlFor="i-amount">Amount ({config?.assetSymbol ?? "tokens"})</label>
                 <input id="i-amount" inputMode="decimal" value={amountMon} onChange={(e) => setAmountMon(e.target.value)} />
               </div>
             </div>

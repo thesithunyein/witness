@@ -78,7 +78,10 @@ export async function enrollPasskey(rpId: string, label = "Witness human"): Prom
         userVerification: "required",
         residentKey: "preferred",
       },
-      timeout: 60_000,
+      // Two minutes: a 60s window is not enough for someone who reads the page
+      // before reaching for their fingerprint reader, and the failure looks
+      // identical to a real error (NotAllowedError).
+      timeout: 120_000,
       attestation: "none",
     },
   })) as PublicKeyCredential | null;
@@ -115,7 +118,8 @@ export async function assertPasskey(
       challenge: hexToBytes(actionHash),
       rpId,
       userVerification: "required",
-      timeout: 60_000,
+      // Same reason as enrollment: give a human time to read the decision.
+      timeout: 120_000,
     },
   })) as PublicKeyCredential | null;
 

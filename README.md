@@ -10,6 +10,7 @@
 [![node](https://img.shields.io/badge/node-20.11%2B-3c873a?style=flat-square)](.nvmrc)
 [![solidity](https://img.shields.io/badge/solidity-0.8.20%2B-363636?style=flat-square)](contracts/foundry.toml)
 [![foundry](https://img.shields.io/badge/forge-1.7.x-ff6b35?style=flat-square)](contracts/foundry.toml)
+[![chain](https://img.shields.io/badge/mezo-testnet%2031611-purple?style=flat-square)](contracts/deployments/31611.json)
 [![chain](https://img.shields.io/badge/monad-testnet%2010143-blueviolet?style=flat-square)](contracts/deployments/10143.json)
 
 [![tests](https://img.shields.io/badge/contract%20tests-40%20passing-brightgreen?style=flat-square)](#tests)
@@ -33,7 +34,8 @@ An agent can be prompt-injected, can misread a request, or can act on instructio
 gave. Agent identity alone (ERC-8004) says nothing about whether a person approved *this* action.
 Witness makes that checkable: the approval is a passkey signature over a digest binding the chain,
 the enforcing contract, the permission, the action type, the asset, the exact recipient, and the
-exact amount, verified on Monad through the native P256 precompile.
+exact amount, verified on-chain: through the native P256 precompile on Monad, and through a deployed
+Solidity P-256 verifier on Mezo, which has no precompile.
 
 ---
 
@@ -41,9 +43,16 @@ exact amount, verified on Monad through the native P256 precompile.
 
 | What | Where |
 |---|---|
-| App | https://witness.sithunyein.com/ |
-| Integration page | https://witness.sithunyein.com/integrate |
-| Chain | Monad testnet, chain id 10143 |
+| Landing page | **https://witness-agent.vercel.app** |
+| App (approvals) | https://witness-agent.vercel.app/app |
+| Integration page | https://witness-agent.vercel.app/integrate |
+| Chain | Mezo testnet, chain id 31611 |
+| Asset in the safe | real testnet MUSD (`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`) |
+
+Use that hostname for a passkey demo, not the custom domain: the verifier is frozen to
+`witness-agent.vercel.app`, so a credential enrolled anywhere else cannot produce an assertion it
+accepts. The Monad deployment (chain 10143) that the rest of this README describes is the original
+target and still works; the Mezo one is what the current demo and submission run on.
 
 No wallet and no testnet funds are needed to use it: registration and gas are relayed by the
 server, and the approval is a passkey on the visitor's own device. The relayer can never approve
@@ -51,17 +60,35 @@ anything, approving requires the enrolled passkey, which never leaves the user's
 
 **What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
 `keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
-assertion is checked against that public key by the precompile, so the registry never holds anything
-that could approve an action on its own.
+assertion is checked against that public key by a P-256 verifier (the native precompile on Monad, a
+deployed contract on Mezo), so the registry never holds anything that could approve an action on its
+own.
 
 > **The live build matches the manifest**, verified by asking it: `GET /api/config` on production
-> returns the addresses below, `identityEnforced: true` and `configurationLocked: true`, and the
-> Settings tab reads *Enforced* / *Frozen*. Addresses are baked into the bundle at build time from
+> returns the addresses below with `configurationLocked: true`, and the Settings tab reads *Frozen*.
+> Identity enforcement depends on the network: `true` on Monad, `false` on Mezo (the page states it).
+> Addresses are baked into the bundle at build time from
 > `contracts/deployments/<chainId>.json`, so **a contract redeploy needs an app redeploy too**, or
 > the hosted site keeps talking to the previous stack. That is the one operational trap here; see
 > [Deploying](#deploying).
 
-### Deployed contracts (Monad testnet 10143)
+### Deployed contracts (Mezo testnet 31611)
+
+| Contract | Address |
+|---|---|
+| `WitnessIntentRegistry` | [`0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B`](https://explorer.test.mezo.org/address/0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B) |
+| `WitnessVerifier` | [`0xBE66C46f26fE006B4De2B6441011939F930C8C4D`](https://explorer.test.mezo.org/address/0xBE66C46f26fE006B4De2B6441011939F930C8C4D) |
+| `DemoSafe` (holds MUSD) | [`0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6`](https://explorer.test.mezo.org/address/0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6) |
+| `AgentExecutor` | [`0x6ac484ac42E7eC9942365710b1F8C6106026B45e`](https://explorer.test.mezo.org/address/0x6ac484ac42E7eC9942365710b1F8C6106026B45e) |
+| `P256Verifier` (stands in for `0x0100`) | [`0x817328dec94122b8eCB7f28a5839003352394430`](https://explorer.test.mezo.org/address/0x817328dec94122b8eCB7f28a5839003352394430) |
+| MUSD | [`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`](https://explorer.test.mezo.org/address/0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503) |
+
+A passkey-approved 0.05 MUSD payment, run from the production URL, is
+tx [`0x2f4d2a75…`](https://explorer.test.mezo.org/tx/0x2f4d2a75aa9db940170a1306f58962e3755255b71ee2f6532a2a7bbdb047d9d5)
+(status 1, `AuthorizedTransfer` + MUSD `Transfer`, approval consumed). Identity is **not** enforced on
+this deployment, and the app says so on the page rather than implying otherwise.
+
+#### First target: Monad testnet 10143
 
 | Contract | Address |
 |---|---|
@@ -196,9 +223,9 @@ there is not a permission the agent presents, it is a signature the human produc
 | Tool | Version |
 |---|---|
 | Node | **20.11 ≤ v < 25** (`.nvmrc` pins 22; `engines` enforces it in both `package.json` files) |
-| Foundry | forge 1.7.x, `evm_version = "osaka"` (Monad supports the P256 precompile at `0x0100`) |
+| Foundry | forge 1.7.x, `evm_version = "london"`, `via_ir = true` (portable across EVM chains; see the Mezo note under P-256) |
 | Bun | 1.3+ for the Worker build; `npm ci` also works for the scripts |
-| Solidity | 0.8.20+ (compiles with 0.8.35) |
+| Solidity | 0.8.21 (pinned; the vendored P-256 verifier needs `via_ir` on any 0.8.x) |
 
 The test suite shells out to `node` for real P-256 signatures, so the Node version matters: the
 scripts use only stable APIs available in 20.11+, and CI-equivalent runs were verified on Node 23.
@@ -209,7 +236,7 @@ Nothing in `scripts/` or `examples/` needs a Node 22+-only feature.
 ## Quickstart
 
 ```bash
-# 1. contracts: 40 tests, real P-256 signatures through the real precompile
+# 1. contracts: 40 tests, real P-256 signatures through a real verifier
 cd contracts
 forge test
 
@@ -283,10 +310,20 @@ cast send $DEMO_SAFE --value 1.5ether --private-key $DEPLOYER_PRIVATE_KEY \
 | `type == "webauthn.get"` | a registration ceremony must not authorize an action |
 | `challenge == actionDigest` | the human approved *this* action, not "some" approval |
 | `origin == expected` | anti-phishing |
-| P-256 signature valid | authenticity, via the `0x0100` precompile |
+| P-256 signature valid | authenticity, via `P256Verifier` (same ABI as the `0x0100` precompile) |
 
-Verifying only the raw precompile signature would accept a signature over *any* digest, which proves
-nothing about what the human approved. That distinction is the point of this repo.
+Verifying only the raw signature would accept a signature over *any* digest, which proves nothing
+about what the human approved. That distinction is the point of this repo.
+
+### P-256: why the curve math is deployed, not precompiled
+
+The first deployment checked passkeys through the native secp256r1 precompile at `0x0100`
+(RIP-7212 / EIP-7951), which Monad ships. Mezo, an Evmos/Cosmos-SDK EVM, does not: an `eth_call` of
+a valid P-256 signature against `0x0100` on Mezo testnet returns empty. So the check now calls a
+deployed, stateless `P256Verifier` (vendored from daimo-eth/p256-verifier, MIT) using the *same*
+160-byte input ABI. `WitnessVerifier` holds its address as an immutable, so it can never be
+repointed. Cost is ~200-330k gas per verification instead of ~3.5k, which is the right trade for
+running the same contracts on any EVM chain.
 
 ### The agent actually asks
 
@@ -457,7 +494,9 @@ witness/
 │   │   ├── AgentExecutor.sol           the agent's on-chain identity (ERC-8004 holder)
 │   │   ├── DemoUSD.sol                 valueless test asset
 │   │   ├── libraries/
-│   │   │   ├── WebAuthn.sol            assertion semantics via the 0x0100 P-256 precompile
+│   │   │   ├── WebAuthn.sol            assertion semantics, P-256 check through P256Verifier
+│   │   │   ├── P256Verifier.sol        secp256r1 math in Solidity (vendored, for chains
+│   │   │   │                           without the 0x0100 precompile)
 │   │   │   └── WitnessAction.sol       canonical action digests (ERC-20 + native)
 │   │   └── interfaces/
 │   │       ├── IWitness.sol            integration surface + the Reason enum
@@ -471,7 +510,7 @@ witness/
 │   ├── script/Deploy.s.sol             deploy → register identity → lock → write manifest
 │   ├── deployments/10143.json          the single source of truth for addresses
 │   ├── verify.sh                       publish the source to an explorer (keyless)
-│   ├── foundry.toml                    evm_version = "osaka" (Monad's precompile set)
+│   ├── foundry.toml                    solc 0.8.21, evm_version = "london", via_ir
 │   └── lib/forge-std/                  vendored dependency, untouched
 │
 ├── app/                                the product, Next.js + a Cloudflare Worker
@@ -528,7 +567,7 @@ Every claim in this README has a command behind it, and none of them need a secr
 
 ```bash
 cd contracts && ./verify.sh          # source published to an explorer, keyless (Sourcify)
-cd contracts && forge test           # 40 tests, real P-256 through the real precompile
+cd contracts && forge test           # 40 tests, real P-256 signatures, real verifier
 cd app && bunx tsc --noEmit          # types
 cd packages/sdk && bun run check     # the published SDK has not drifted from the app
 node scripts/check-style.mjs         # no em dashes in prose or copy

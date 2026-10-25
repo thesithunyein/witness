@@ -7,6 +7,7 @@ import {DemoSafe} from "../src/DemoSafe.sol";
 import {AgentExecutor} from "../src/AgentExecutor.sol";
 import {WitnessIntentRegistry} from "../src/WitnessIntentRegistry.sol";
 import {WitnessVerifier} from "../src/WitnessVerifier.sol";
+import {P256Verifier} from "../src/libraries/P256Verifier.sol";
 import {WebAuthn} from "../src/libraries/WebAuthn.sol";
 import {WitnessAction} from "../src/libraries/WitnessAction.sol";
 import {IWitnessVerifier, Reason} from "../src/interfaces/IWitness.sol";
@@ -20,8 +21,10 @@ import {MockERC8004Identity} from "./mocks/MockERC8004Identity.sol";
 ///      test computes the real canonical action digest, has a separate Node process
 ///      produce a genuine P-256 signature over that exact digest (the same bytes a
 ///      platform authenticator signs), and submits it to contracts that verify it
-///      through Monad's real 0x0100 precompile. So a passing happy-path test means
-///      the whole path is genuinely wired: digest -> passkey -> precompile -> funds.
+///      through a real secp256r1 implementation (the deployed P256Verifier, not a
+///      mock and not a precompile the target chain does not have). So a passing
+///      happy-path test means the whole path is genuinely wired:
+///      digest -> passkey -> P-256 verify -> funds.
 ///
 ///      The negative tests matter as much as the positive one. A system that says
 ///      "authorized" in the good case proves little; what matters is that a
@@ -31,6 +34,7 @@ import {MockERC8004Identity} from "./mocks/MockERC8004Identity.sol";
 contract WitnessTest is Test {
     DemoUSD dusd;
     WitnessIntentRegistry registry;
+    P256Verifier p256;
     WitnessVerifier verifier;
     DemoSafe safe;
     AgentExecutor agent;
@@ -57,7 +61,10 @@ contract WitnessTest is Test {
     function setUp() public {
         dusd = new DemoUSD();
         registry = new WitnessIntentRegistry();
-        verifier = new WitnessVerifier(address(registry), RP_ID, ORIGIN);
+        // The chain the contracts target has no native P-256 precompile, so the
+        // signature check runs through this stateless verifier instead.
+        p256 = new P256Verifier();
+        verifier = new WitnessVerifier(address(registry), RP_ID, ORIGIN, address(p256));
         registry.setVerifier(address(verifier));
 
         safe = new DemoSafe(address(verifier), address(dusd));
@@ -100,11 +107,18 @@ contract WitnessTest is Test {
         internal
         returns (WebAuthn.Assertion memory a)
     {
-        string[] memory opts = new string[](3);
+        string[] memory opts = new string[](5);
         uint256 n;
         if (bytes(o1).length > 0) opts[n++] = o1;
         if (bytes(o2).length > 0) opts[n++] = o2;
         if (bytes(o3).length > 0) opts[n++] = o3;
+
+        // The signing script defaults its RP identity to whatever the deployment
+        // manifest currently says. Tests must assert against their own constants,
+        // not against a live deployment, so pin them here unless the caller asked
+        // for a different one (the negative tests deliberately do).
+        if (!_hasOption(opts, n, "--rpId=")) opts[n++] = string.concat("--rpId=", RP_ID);
+        if (!_hasOption(opts, n, "--origin=")) opts[n++] = string.concat("--origin=", ORIGIN);
 
         string[] memory cmd = new string[](3 + n);
         cmd[0] = "node";
@@ -118,6 +132,28 @@ contract WitnessTest is Test {
 
     function _sign(bytes32 challenge) internal returns (WebAuthn.Assertion memory) {
         return _sign(challenge, "", "", "");
+    }
+
+    /// @dev True when one of the first `n` options already sets `prefix`.
+    function _hasOption(string[] memory opts, uint256 n, string memory prefix)
+        internal
+        pure
+        returns (bool)
+    {
+        bytes memory p = bytes(prefix);
+        for (uint256 i = 0; i < n; ++i) {
+            bytes memory o = bytes(opts[i]);
+            if (o.length < p.length) continue;
+            bool hit = true;
+            for (uint256 j = 0; j < p.length; ++j) {
+                if (o[j] != p[j]) {
+                    hit = false;
+                    break;
+                }
+            }
+            if (hit) return true;
+        }
+        return false;
     }
 
     function _parseAssertion(bytes memory out) internal pure returns (WebAuthn.Assertion memory a) {
@@ -137,17 +173,19 @@ contract WitnessTest is Test {
     // 0. The primitive itself
     // ---------------------------------------------------------------------
 
-    /// @notice Documents the foundation: Monad's 0x0100 precompile accepts a real
-    ///         P-256 signature and rejects a tampered one.
-    function test_primitive_p256PrecompileAcceptsRealSignatureOnly() public view {
-        (bool ok, bytes memory out) = address(0x0100).staticcall(AssertionVector.PRECOMPILE_INPUT);
+    /// @notice Documents the foundation: the deployed P-256 verifier accepts a real
+    ///         signature and rejects a tampered one.
+    /// @dev This used to call the native precompile at 0x0100, which the target
+    ///      chain does not have. Same 160-byte input, same uint256 output shape.
+    function test_primitive_p256VerifierAcceptsRealSignatureOnly() public view {
+        (bool ok, bytes memory out) = address(p256).staticcall(AssertionVector.PRECOMPILE_INPUT);
         assertTrue(ok, "staticcall should succeed");
-        assertEq(out.length, 32, "precompile returns uint256");
+        assertEq(out.length, 32, "verifier returns uint256");
         assertEq(abi.decode(out, (uint256)), 1, "valid P-256 signature must verify");
 
         // flip one bit of r -> must be rejected
         uint256 tamperedR = AssertionVector.R ^ 1;
-        (bool ok2, bytes memory out2) = address(0x0100)
+        (bool ok2, bytes memory out2) = address(p256)
             .staticcall(
                 abi.encodePacked(
                     AssertionVector.MESSAGE_HASH,
@@ -158,7 +196,8 @@ contract WitnessTest is Test {
                 )
             );
         assertTrue(ok2, "call itself succeeds");
-        assertEq(out2.length, 0, "tampered signature must return empty");
+        assertEq(out2.length, 32, "verifier answers with a word");
+        assertEq(abi.decode(out2, (uint256)), 0, "tampered signature must be rejected");
     }
 
     // ---------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MONAD_MAINNET, MONAD_TESTNET } from "@/lib/witness";
+import { MONAD_TESTNET, chainFor } from "@/lib/witness";
 import { encodeRequestToken, validateRequest } from "@/lib/queue";
 import { loadDeployment } from "@/lib/server/deployment";
 import { enqueue, identityHeldBy, list } from "@/lib/server/queue";
@@ -90,7 +90,8 @@ export async function POST(request: Request) {
     ok: true,
     request: stored,
     /** Carries the validated request, so delivery survives a cold instance. */
-    shareUrl: `${origin}/?req=${encodeRequestToken(stored)}`,
+    // The approvals screen lives at /app: / is the landing page now.
+    shareUrl: `${origin}/app?req=${encodeRequestToken(stored)}`,
     statusUrl: `${origin}/api/requests/${stored.id}`,
     agentIdentity: identity === true ? "verified" : identity === false ? "false" : "unverified",
     note:
@@ -120,7 +121,7 @@ export async function GET(request: Request) {
   try {
     const deployment = loadDeployment();
     chainId = deployment.chainId;
-    explorer = (chainId === 143 ? MONAD_MAINNET : MONAD_TESTNET).blockExplorers.default.url;
+    explorer = chainFor(chainId).blockExplorers.default.url;
   } catch {
     // Fall back to testnet presentation rather than failing the read.
   }

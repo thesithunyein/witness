@@ -34,6 +34,11 @@ export type Deployment = {
   agentId?: string;
   /** True once the trust-critical configuration was frozen at deployment. */
   configurationLocked?: boolean;
+  /**
+   * Symbol of the asset the safe holds: "MUSD" on Mezo, "DemoUSD" locally. The
+   * UI renders amounts with it rather than assuming the token.
+   */
+  assetSymbol?: string;
 };
 
 /**
