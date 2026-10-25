@@ -227,13 +227,13 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
 
           {/* Headline matching user reference image */}
           <h1 className="text-4xl sm:text-5xl md:text-[64px] lg:text-[70px] font-semibold tracking-[-0.035em] text-[#111110] leading-[1.12] max-w-4xl mx-auto px-4">
-            Contextual assistance<br />
-            for every conversation
+            Your agent asks.<br />
+            You approve that exact payment.
           </h1>
 
           {/* Subtitle matching user reference image */}
           <p className="text-[14px] sm:text-[16px] text-[#555552] font-normal leading-relaxed max-w-xl mx-auto px-4 mt-5 tracking-[-0.015em]">
-            Build an adaptive assistant that understands intent, automates routine tasks, and hands off to humans the moment it matters.
+            One passkey signature over the chain, the contract, the asset, the recipient and the amount, checked before value moves.
           </p>
 
           {/* Two Rectangular CTA Buttons matching user reference image */}
@@ -242,22 +242,26 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
               onClick={onLaunchConsole}
               className="bg-black hover:bg-neutral-800 text-white text-[13px] font-medium px-5 py-2.5 border border-black transition cursor-pointer active:scale-[0.98] select-none"
             >
-              Try for free
+              Open the console
             </button>
 
             <button
               onClick={scrollToFeatures}
               className="bg-white hover:bg-neutral-50 text-black text-[13px] font-medium px-5 py-2.5 border border-black transition cursor-pointer active:scale-[0.98] select-none"
             >
-              Learn more
+              See how it works
             </button>
           </div>
+
+          <p className="text-[12px] text-zinc-500 mt-4 max-w-md mx-auto px-4">
+            No wallet, no seed phrase, no gas. The relayer submits; only your passkey can approve.
+          </p>
 
           {/* Halftone Hands Graphic Spanning the Bottom Viewport from Reference Image */}
           <div className="w-full mt-6 sm:mt-10 overflow-hidden relative flex items-center justify-center select-none pointer-events-none">
             <img
               src="/handshake.png"
-              alt="Contextual assistance hands meeting in halftone raster"
+              alt="Two hands meeting in a halftone field"
               className="w-full max-w-5xl object-contain opacity-100 transition-transform duration-700"
             />
           </div>
