@@ -7,21 +7,26 @@ Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sit
 | Environment | URL |
 |---|---|
 | **live site (use this as the live link)** | **https://witness-agent.vercel.app** |
-| **app** | **https://witness-agent.vercel.app/app** |
-| integration page | https://witness-agent.vercel.app/docs |
-| origin the contracts are frozen to | https://witness-agent.vercel.app (the same URL as above) |
-| earlier stack, bound to a domain whose DNS lapsed | https://witness.sithunyein.com (NXDOMAIN) |
-| older freebuff.page deployment | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
+| **deck** | **https://witness-agent.vercel.app/deck** |
+| console | https://witness-agent.vercel.app/app |
+| docs | https://witness-agent.vercel.app/docs |
+| chain the site renders | Mezo testnet, 31611, `contracts/deployments/31611.json` |
+| second deployment | Monad testnet, 10143, `contracts/deployments/10143.json` |
+| origin the verifier is frozen to | https://witness-agent.vercel.app |
 
-Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
-`contracts/deployments/10143.json`; the app reads them from there, never by hand.
+The live site is static and reads the addresses compiled into `src/data/witnessData.ts`, so deploying
+new contracts means editing that file and redeploying the site. Two app surfaces exist here: the Vite
+site at the repo root, which is what is deployed, and the Next build in `witness-app/`, which owns
+the API routes and the relayer. Everything below that names a Monad address describes the second
+deployment, not the site's chain.
 
 ### Read this before recording or judging
 
 **The submitted link is the origin the contracts accept.** `WitnessVerifier` is frozen to `rpId` =
 `witness-agent.vercel.app` and `origin` = `https://witness-agent.vercel.app`, and
-`lockConfiguration()` makes both permanent, so the passkey prompt can be drawn from the URL above
-and the approve step is demonstrable live. Nothing about the deployment depends on
+`lockConfiguration()` makes both permanent, so the passkey prompt can only be drawn from the URL
+above. The console enrolls a passkey against this origin; the approve path itself is exercised by
+the contracts and the scripts in `examples/`. Nothing about the deployment depends on
 `sithunyein.com` resolving.
 
 This is a deliberate second stack. The first was frozen to `witness.sithunyein.com`; that domain
@@ -41,13 +46,13 @@ its manifest at build time so the site and the chain cannot silently disagree.
 
 ---
 
-## 0. Current state (updated after the third deployment)
+## 0. Monad stack, second deployment (10143)
 
 The stack has been **redeployed twice** and the trust-critical configuration frozen each time.
 Everything below that mentions the *earlier* addresses describes a deployment that is now
 superseded: the behaviour it records is still valid, the addresses are not.
 
-| | Live now (third stack, frozen to the Vercel origin) |
+| | Monad stack (10143, frozen to the Vercel origin) |
 |---|---|
 | `WitnessIntentRegistry` | `0x84502BA6Bf4A565b84E8eC1747568d54610E71E2` |
 | `WitnessVerifier` | `0x7836f1bDDdBF491c23a285B5015441a5A147D096` |

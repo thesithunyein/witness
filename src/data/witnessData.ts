@@ -21,7 +21,7 @@ export const MEZO_DEPLOYMENT: DeploymentConfig = {
     WitnessIntentRegistry: '0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B',
     WitnessVerifier: '0xBE66C46f26fE006B4De2B6441011939F930C8C4D',
   },
-  safeFunding: '1,000.00 MUSD',
+  safeFunding: '4.75 MUSD',
 };
 
 export const MONAD_DEPLOYMENT: DeploymentConfig = {

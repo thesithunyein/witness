@@ -148,45 +148,43 @@ sequenceDiagram
 
 ### 4-Stage Security Pipeline (How It Works)
 
-1. **Step 01 — Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD without direct private key custody, signing a structured EIP-712 intent payload using a temporary session key.
-2. **Step 02 — Policy Engine Evaluates**: `WitnessIntentRegistry.sol` verifies transaction parameters against owner-set spending policies (per-tx ceiling and cumulative daily MUSD limits). If within limits, it executes automatically.
-3. **Step 03 — Hardware Biometric Consent**: If an intent exceeds the ceiling, the keeper receives a cryptographic WebAuthn prompt. A Touch ID, Face ID, or YubiKey tap triggers the physical Secure Enclave to generate an authentic NIST P-256 signature that never leaves the chip.
-4. **Step 04 — Safe Treasury Disbursal**: `P256Verifier.sol` checks the assertion using the EIP-7212 precompile (~6,900 gas overhead). `WitnessModule.sol` executes `execTransactionFromModule()` on the Safe vault to disburse MUSD on Mezo Testnet.
+1. **Step 01, Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD without direct private key custody, signing a structured EIP-712 intent payload using a temporary session key.
+2. **Step 02, Policy Engine Evaluates**: `WitnessIntentRegistry.sol` verifies transaction parameters against owner-set spending policies (per-tx ceiling and cumulative daily MUSD limits). If within limits, it executes automatically.
+3. **Step 03, Hardware Biometric Consent**: If an intent exceeds the ceiling, the keeper receives a cryptographic WebAuthn prompt. A Touch ID, Face ID, or YubiKey tap triggers the physical Secure Enclave to generate an authentic NIST P-256 signature that never leaves the chip.
+4. **Step 04, Safe Treasury Disbursal**: the verifier checks the assertion, natively on Monad through `0x0100` and through the deployed `P256Verifier.sol` on Mezo. `WitnessModule.sol` executes `execTransactionFromModule()` on the Safe vault to disburse MUSD on Mezo Testnet.
 
 ---
 
 ## Live
 
 | What | Where |
-|---|---|
-| Landing page | **https://witness-agent.vercel.app** |
-| App (approvals) | https://witness-agent.vercel.app/app |
-| Integration page | https://witness-agent.vercel.app/integrate |
+|---|---|---|
+| Site | **https://witness-agent.vercel.app** |
+| Deck | https://witness-agent.vercel.app/deck |
+| Console | https://witness-agent.vercel.app/app |
+| Docs | https://witness-agent.vercel.app/docs |
 | Chain | Mezo testnet, chain id 31611 |
-| Asset in the safe | real testnet MUSD (`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`) |
+| Asset in the safe | real testnet MUSD (`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`), 4.75 held |
 
-Use that hostname for a passkey demo, not the custom domain: the verifier is frozen to
-`witness-agent.vercel.app`, so a credential enrolled anywhere else cannot produce an assertion it
-accepts. The Monad deployment (chain 10143) that the rest of this README describes is the original
-target and still works; the Mezo one is what the current demo and submission run on.
+One page, five views: product, console, security, docs, deck. Each view has a URL, and Vercel
+rewrites those paths to `index.html`, so a link survives a reload.
 
-No wallet and no testnet funds are needed to use it: registration and gas are relayed by the
-server, and the approval is a passkey on the visitor's own device. The relayer can never approve
-anything, approving requires the enrolled passkey, which never leaves the user's device.
+Use that hostname, not a custom domain: the verifier is frozen to `witness-agent.vercel.app`, so a
+credential enrolled anywhere else cannot produce an assertion it accepts.
+
+**What the live site is.** Static React, bundled by Vite, served from the repo root. It reads the
+chain with viem and renders the addresses of the deployed stack. The console walks an intent through
+selection, policy, and a passkey prompt; it does not submit a transaction. The on-chain path is what
+the contracts and the scripts in `examples/` exercise, and the payment below is the proof of it.
 
 **What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
 `keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
-assertion is checked against that public key by a P-256 verifier (the native precompile on Monad, a
-deployed contract on Mezo), so the registry never holds anything that could approve an action on its
-own.
+assertion is checked against that public key by a verifier: the native `0x0100` precompile on Monad,
+a deployed `P256Verifier` on Mezo, which has none.
 
-> **The live build matches the manifest**, verified by asking it: `GET /api/config` on production
-> returns the addresses below with `configurationLocked: true`, and the Settings tab reads *Frozen*.
-> Identity enforcement depends on the network: `true` on Monad, `false` on Mezo (the page states it).
-> Addresses are baked into the bundle at build time from
-> `contracts/deployments/<chainId>.json`, so **a contract redeploy needs an app redeploy too**, or
-> the hosted site keeps talking to the previous stack. That is the one operational trap here; see
-> [Deploying](#deploying).
+> **Where the addresses come from.** `contracts/deployments/31611.json` is the deployment record the
+> signing scripts read. The site carries the same addresses in `src/data/witnessData.ts`, so a
+> redeploy means editing that file and redeploying. Nothing is fetched at runtime.
 
 ### Deployed contracts (Mezo testnet 31611)
 
@@ -208,14 +206,14 @@ this deployment, and the app says so on the page rather than implying otherwise.
 
 | Contract | Address |
 |---|---|
-| `WitnessIntentRegistry` | [`0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521`](https://testnet.monadscan.com/address/0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521) |
-| `WitnessVerifier` | [`0xced20751479A13E76A67cC33C911e8eF61a81165`](https://testnet.monadscan.com/address/0xced20751479A13E76A67cC33C911e8eF61a81165) |
-| `DemoSafe` (holds the value) | [`0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309`](https://testnet.monadscan.com/address/0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309) |
-| `AgentExecutor` (agent identity) | [`0x5b451F0700df77293a5A737189BdbA3C37362d23`](https://testnet.monadscan.com/address/0x5b451F0700df77293a5A737189BdbA3C37362d23) |
-| `DemoUSD` (valueless asset) | [`0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c`](https://testnet.monadscan.com/address/0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c) |
+| `WitnessIntentRegistry` | [`0x84502BA6Bf4A565b84E8eC1747568d54610E71E2`](https://testnet.monadscan.com/address/0x84502BA6Bf4A565b84E8eC1747568d54610E71E2) |
+| `WitnessVerifier` | [`0x7836f1bDDdBF491c23A285B5015441a5A147D096`](https://testnet.monadscan.com/address/0x7836f1bDDdBF491c23A285B5015441a5A147D096) |
+| `DemoSafe` (holds the value) | [`0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8`](https://testnet.monadscan.com/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8) |
+| `AgentExecutor` (agent identity) | [`0x7010c0474AA1c8E8039712d314d105D1aDe0a87d`](https://testnet.monadscan.com/address/0x7010c0474AA1c8E8039712d314d105D1aDe0a87d) |
+| `DemoUSD` (valueless asset) | [`0xd5588C6f78d720D4a89929b4b68C546Dc788D65A`](https://testnet.monadscan.com/address/0xd5588C6f78d720D4a89929b4b68C546Dc788D65A) |
 | ERC-8004 Identity Registry | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.monadscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
 
-The agent's identity is **ERC-8004 token `#2148`**, owned by `AgentExecutor`. The verifier requires
+The agent's identity is **ERC-8004 token `#2240`**, owned by `AgentExecutor`. The verifier requires
 `ownerOf(agentId) == intent.agentWallet`, so the claimed id is a real identity rather than a label
 the agent typed. This is enforced, not optional: `identityRegistry` is set at deployment and frozen
 by `lockConfiguration()`.
@@ -356,10 +354,15 @@ Nothing in `scripts/` or `examples/` needs a Node 22+-only feature.
 cd contracts
 forge test
 
-# 2. the deployed app
-cd ../app
-bun install            # or npm install
-bun run dev            # http://localhost:3000. The full product, against testnet
+# 2. the deployed site (repo root, Vite)
+cd ..
+bun install
+bun run dev            # http://localhost:3000, the five views
+
+# 2b. the Next build, which owns the API routes
+cd witness-app
+bun install
+bun run dev            # http://localhost:3001
 
 # 3. optional: the production bundle (static assets + a Worker for /api/*)
 bun run build-static.mjs    # -> app/out
@@ -536,7 +539,7 @@ there is one copy of the truth and no drift. It is **not on the public registry 
 needs the maintainer's own npm account, so `npm i @witness/sdk` is the name it will install under
 rather than a command that works today.
 
-`app/lib/sdk/index.ts` wraps the whole loop so an integrating app never reimplements the digest, the
+`witness-app/lib/sdk/index.ts` wraps the whole loop so an integrating app never reimplements the digest, the
 WebAuthn ceremony, or the revert decoding:
 
 | Call | What it does |
@@ -555,7 +558,7 @@ The digest is always read from the contract (`DemoSafe.actionHash` / `nativeActi
 recomputed off-chain in parallel, so the bytes the passkey signs and the bytes the contract
 recomputes cannot drift.
 
-Worked example: **https://witness.sithunyein.com/integrate** (and `app/app/integrate/page.tsx`),
+Worked example: **https://witness-agent.vercel.app/docs** (and `witness-app/app/docs/page.tsx`),
 including a live preflight that calls the deployed verifier from the browser.
 
 ---
@@ -629,7 +632,12 @@ witness/
 │   ├── foundry.toml                    solc 0.8.21, evm_version = "london", via_ir
 │   └── lib/forge-std/                  vendored dependency, untouched
 │
-├── app/                                the product, Next.js + a Cloudflare Worker
+├── src/                                the deployed site, Vite + React, five views
+│   ├── App.tsx                         reads the view from the URL
+│   ├── components/                     landing, console, security, docs, deck
+│   └── data/witnessData.ts             the addresses the site renders
+│
+├── witness-app/                        the secondary build, Next.js + a Cloudflare Worker
 │   ├── app/
 │   │   ├── page.tsx                    Approvals / Activity / Agents / Settings
 │   │   ├── integrate/page.tsx          the developer surface, with a live preflight
@@ -652,11 +660,11 @@ witness/
 │   │   └── server/                     manifest loading, server keys, identity check
 │   ├── worker/index.ts                 the same routes for the edge deployment
 │   ├── static/                         the static entry the deployed bundle mounts
-│   ├── build-static.mjs                → app/out
-│   ├── build-worker.mjs                → app/worker-dist, and bakes the manifest in
+│   ├── build-static.mjs                → witness-app/out
+│   ├── build-worker.mjs                → witness-app/worker-dist, and bakes the manifest in
 │   └── test-worker.mjs                 drives the Worker handlers against testnet
 │
-├── packages/sdk/                       @witness/sdk, built FROM app/lib, not a fork of it
+├── packages/sdk/                       @witness/sdk, built FROM witness-app/lib, not a fork of it
 │   ├── scripts/sync.mjs                generates src/ from the app, with a --check gate
 │   ├── scripts/build.mjs               ESM + CJS bundles, then declarations via tsc
 │   └── README.md                       install, quickstart, guarantees, limits
@@ -693,9 +701,9 @@ node examples/agent-request.mjs      # a real agent asks a real deployment for m
 Or ask production what it is running, this is the same response a judge can read:
 
 ```bash
-curl -s https://witness.sithunyein.com/api/config
-# { chainId: 10143, rpId: "witness.sithunyein.com", payee: "0x…",
-#   agentId: "2148", identityEnforced: true, configurationLocked: true, … }
+cd witness-app && bun run dev   # the API routes exist here, not on the static site
+curl -s http://localhost:3001/api/config
+# { chainId: 31611, rpId: "witness-agent.vercel.app", configurationLocked: true, … }
 ```
 
 ---
@@ -830,7 +838,7 @@ deployer.
 
 **Verified on-chain, testnet only.** The ERC-8004 testnet registry address was verified against live
 chain state (a proxy at `0x8004…BD9e` whose implementation exposes `register(string)` /
-`ownerOf(uint256)`, and identity `#2148` is minted there). The mainnet address in `Deploy.s.sol`
+`ownerOf(uint256)`, and identity `#2240` is minted there). The mainnet address in `Deploy.s.sol`
 comes from the ERC-8004 registry list and has **not** been verified on-chain from this repo, check it
 before a mainnet deployment.
 

@@ -52,8 +52,8 @@ const FAQ_ITEMS: FAQItem[] = [
     category: 'Architecture',
     question: 'How does Witness verify passkey signatures on-chain without high gas fees?',
     answer:
-      'Witness leverages the EIP-7212 precompile standard alongside an optimized P256Verifier smart contract. On chains supporting EIP-7212 (including Mezo and Monad), hardware passkey verification costs just ~6,900 gas—matching standard ECDSA operations. This brings institutional-grade hardware authentication to everyday decentralized agent transactions.',
-    highlight: 'Only ~6,900 gas overhead via EIP-7212 precompiles.',
+      'Witness calls one verifier at one address shape. On Monad that is the native 0x0100 precompile, about 6,900 gas. Mezo has no such precompile, so the same 160-byte ABI is served by a deployed P256Verifier contract, which costs more but needs no chain support. The integration does not change either way.',
+    highlight: 'One verifier ABI, native on Monad and deployed on Mezo.',
   },
   {
     category: 'Security',
@@ -129,7 +129,7 @@ const assertion = await navigator.credentials.get({
     step: '04',
     title: 'Safe Treasury Disbursal',
     subtitle: 'Sub-7k gas on-chain execution',
-    desc: 'P256Verifier checks the assertion using the EIP-7212 precompile with only ~6,900 gas overhead. Safe multi-sig contracts execute execTransactionFromModule() to transfer MUSD to the destination.',
+    desc: 'The verifier checks the assertion, natively on Monad and through a deployed contract on Mezo. Safe multi-sig contracts execute execTransactionFromModule() to transfer MUSD to the destination.',
     badge: 'Safe Multi-Sig Module',
     codeSnippet: `// WitnessModule.sol -> Safe
 bytes memory data = abi.encodeWithSelector(
@@ -428,7 +428,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                     {activeHowStep === 0 && 'Structured EIP-712 typing ensures human-readable consent.'}
                     {activeHowStep === 1 && 'Configurable per-tx and cumulative daily MUSD ceilings.'}
                     {activeHowStep === 2 && 'Biometric assertion completed via WebAuthn API on physical device.'}
-                    {activeHowStep === 3 && 'Only ~6,900 gas overhead with EIP-7212 precompiles.'}
+                    {activeHowStep === 3 && 'Native precompile on Monad, a deployed verifier on Mezo.'}
                   </span>
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
               <span className="w-2 h-2 rounded-full bg-[#c2f325]" />
               <span className="font-semibold text-zinc-800">Biometric Intent Authorization Simulator</span>
             </div>
-            <span>EIP-7212 Precompile · Mezo Testnet</span>
+            <span>secp256r1 Verifier · Mezo Testnet</span>
           </div>
 
           <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -672,29 +672,29 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
           </div>
         </div>
 
-        {/* Bento 3 (4 cols): EIP-7212 Gas */}
+        {/* Bento 3 (4 cols): verifier cost per chain */}
         <div className="md:col-span-4 p-8 rounded-3xl bg-white border border-[#e5e5e5] shadow-xs space-y-4">
           <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-900">
             <Cpu className="w-5 h-5" />
           </div>
           <h3 className="text-lg font-bold tracking-tight text-[#111110]">
-            EIP-7212 Precompile
+            Verifier Cost by Chain
           </h3>
           <p className="text-xs text-zinc-600 leading-relaxed">
-            Native secp256r1 precompile executes for ~6,900 gas instead of 80,000+ in software verifiers.
+            Monad calls the native secp256r1 precompile. Mezo has none, so the same call runs through a deployed P256Verifier contract.
           </p>
 
           <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2 text-xs font-mono">
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Precompile:</span>
+              <span className="text-zinc-500">Monad 0x0100:</span>
               <span className="font-bold text-emerald-700">6,900 gas</span>
             </div>
             <div className="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden">
               <div className="bg-emerald-500 h-full w-[10%]" />
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-zinc-500">Solidity Math:</span>
-              <span className="text-zinc-600">82,000 gas</span>
+              <span className="text-zinc-500">Mezo deployed:</span>
+              <span className="text-zinc-600">more gas</span>
             </div>
             <div className="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden">
               <div className="bg-zinc-400 h-full w-[90%]" />
@@ -716,7 +716,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
 
           <div className="space-y-2 text-xs font-mono">
             <a
-              href="https://explorer.test.mezo.org/address/0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+              href="https://explorer.test.mezo.org/address/0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6"
               target="_blank"
               rel="noreferrer"
               className="p-2.5 rounded-xl border border-zinc-200 hover:border-zinc-300 bg-zinc-50 flex items-center justify-between text-zinc-700 transition"

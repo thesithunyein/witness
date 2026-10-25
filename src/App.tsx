@@ -15,6 +15,12 @@ export default function App() {
       const hash = window.location.hash;
       if (path === '/deck' || hash === '#deck') {
         setActiveTab('deck');
+      } else if (path === '/app' || path === '/console') {
+        setActiveTab('console');
+      } else if (path === '/docs' || path === '/integrate' || hash === '#docs') {
+        setActiveTab('docs');
+      } else if (path === '/security') {
+        setActiveTab('security');
       }
     };
     checkRoute();

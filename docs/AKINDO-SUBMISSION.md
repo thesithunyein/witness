@@ -34,8 +34,9 @@ recipient, amount), and the contract holding the funds verifies it before moving
 | Field | Value |
 |---|---|
 | Live app | https://witness-agent.vercel.app (landing page) |
-| The approvals screen | https://witness-agent.vercel.app/app |
-| Integration docs page | https://witness-agent.vercel.app/integrate |
+| The console | https://witness-agent.vercel.app/app |
+| Integration docs | https://witness-agent.vercel.app/docs |
+| Pitch deck | https://witness-agent.vercel.app/deck |
 | Repository | https://github.com/thesithunyein/witness |
 | Demo video | *(paste your recording URL; see "What to show" below)* |
 | X post | *(paste your post URL)* |

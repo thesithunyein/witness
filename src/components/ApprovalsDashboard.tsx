@@ -109,7 +109,7 @@ export default function ApprovalsDashboard() {
       setIsSigning(false);
       setSigningStep('');
       setShowEnrollModal(false);
-      notify('Passkey enrolled and registered on-chain.');
+      notify('Passkey created in this browser. Enrollment is local to this tab.');
     }, 800);
   };
 
