@@ -92,6 +92,11 @@ export default function ApprovalsDashboard() {
     };
   }, []);
 
+  // Never render a balance we have not read. Until the chain answers (and if it
+  // never does) the card shows an em dash with its provenance, not a fixture
+  // that a paused frame could pass off as a real treasury.
+  const balanceKnown = balanceSource === 'chain' || balanceSource === 'preview';
+
   const notify = (msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice(null), 3500);
@@ -254,7 +259,8 @@ export default function ApprovalsDashboard() {
         <div className="p-6 rounded-2xl bg-white border border-[#e5e5e5] shadow-xs space-y-1.5">
           <div className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">Safe Treasury Balance</div>
           <div className="text-3xl font-extrabold text-[#111110] tracking-[-0.035em]">
-            {safeBalance.toFixed(2)} <span className="text-sm font-semibold text-zinc-500">{policy.assetSymbol}</span>
+            {balanceKnown ? safeBalance.toFixed(2) : '\u2014'}{' '}
+            <span className="text-sm font-semibold text-zinc-500">{policy.assetSymbol}</span>
           </div>
           <div className="text-xs text-zinc-500 pt-2 border-t border-zinc-100 flex items-center justify-between">
             <span className="font-mono text-[11px]">DemoSafe.sol</span>
@@ -273,7 +279,7 @@ export default function ApprovalsDashboard() {
                 </>
               ) : (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Funded
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 animate-pulse" /> Reading chain&hellip;
                 </>
               )}
             </span>
