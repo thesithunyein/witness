@@ -1,0 +1,58 @@
+name: CI
+
+# The contracts check, restored after the test2 tree replaced the older layout:
+# this repository now ships the site (src/), the contracts and the scripts, so the
+# only job that describes it is forge fmt + forge test. Nothing here needs a secret:
+# the suite generates its own P-256 signatures through scripts/sign-action.mjs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: contracts (forge test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      # The suite shells out to `node` for real P-256 signatures, so this job needs
+      # a Node runtime as well as forge.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # AND that runtime needs the module the signer imports. @noble/curves is not
+      # declared directly: it arrives at the repository root as viem's dependency,
+      # which is where scripts/sign-action.mjs resolves it from. Installing from the
+      # root is what puts it there; without this step every ffi call dies on a
+      # missing module instead of testing the contracts.
+      #
+      # bun, not npm: the root package.json declares esbuild ^0.25 alongside vite ^8,
+      # and npm resolves that as ERESOLVE, so plain `npm install` fails before forge
+      # ever runs. bun accepts the same tree and this repo already locks it in bun.lock.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Plain `bun install`: deliberately not --frozen-lockfile, because the
+      # lockfile here is newer than some bun releases and a frozen install then
+      # refuses to run at all. This job only needs a node_modules tree with
+      # @noble/curves in it, which every install of this package.json provides.
+      - run: bun install
+        working-directory: .
+
+      - run: forge fmt --check
+      - run: forge test -vv

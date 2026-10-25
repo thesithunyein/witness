@@ -94,8 +94,14 @@ const messageHash = sha256(
 );
 
 // prehash:false -> sign the digest directly, exactly like a real authenticator.
-const compact = p256.sign(messageHash, priv, { prehash: false });
-if (compact.length !== 64) throw new Error(`bad signature length ${compact.length}`);
+// @noble/curves returns a Signature object on current releases and raw bytes on
+// older ones, so accept both: the contract only ever sees the 64 compact bytes.
+const signed = p256.sign(messageHash, priv, { prehash: false });
+const compact =
+  typeof signed?.toCompactRawBytes === "function" ? signed.toCompactRawBytes() : signed;
+if (compact?.length !== 64) {
+  throw new Error(`bad signature length ${compact?.length ?? typeof compact}`);
+}
 
 console.log(hex(authenticatorData));
 console.log(hex(clientDataJSON));
