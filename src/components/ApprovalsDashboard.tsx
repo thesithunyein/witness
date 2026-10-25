@@ -36,8 +36,8 @@ export default function ApprovalsDashboard() {
   const [policy, setPolicy] = useState<IntentPolicy>({
     ceiling: 50.0,
     currentSpent: 0.0,
-    windowMinutes: 10,
-    expiresAt: Date.now() + 1000 * 60 * 10,
+    windowMinutes: 60,
+    expiresAt: Date.now() + 1000 * 60 * 60,
     singleUse: false,
     assetSymbol: 'MUSD',
   });
@@ -46,7 +46,7 @@ export default function ApprovalsDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<AgentRequest | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [signingStep, setSigningStep] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState<string>('09:42');
+  const [timeLeft, setTimeLeft] = useState<string>('60:00');
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [tempCeiling, setTempCeiling] = useState(policy.ceiling.toString());
@@ -55,9 +55,15 @@ export default function ApprovalsDashboard() {
   // Expiry countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
-      const remainingSecs = Math.max(0, Math.floor((policy.expiresAt - Date.now()) / 1000));
+      const remainingSecs = Math.floor((policy.expiresAt - Date.now()) / 1000);
       if (remainingSecs <= 0) {
-        setTimeLeft('Expired');
+        // Rolling policy window: when one lapses the next starts, so the card
+        // always shows time remaining instead of a dead "Expired" sitting next
+        // to the spend ceiling while someone is demoing or recording.
+        setPolicy((prev) => ({
+          ...prev,
+          expiresAt: Date.now() + 1000 * 60 * prev.windowMinutes,
+        }));
       } else {
         const m = Math.floor(remainingSecs / 60);
         const s = remainingSecs % 60;
