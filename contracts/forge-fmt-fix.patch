@@ -1,0 +1,375 @@
+diff --git a/contracts/script/Deploy.s.sol b/contracts/script/Deploy.s.sol
+index 9c665a4..bff4eed 100644
+--- a/contracts/script/Deploy.s.sol
++++ b/contracts/script/Deploy.s.sol
+@@ -97,9 +97,8 @@ contract Deploy is Script {
+             vm.envOr("ERC8004_IDENTITY_REGISTRY", _defaultIdentityRegistry(c.chainId));
+         c.funding = vm.envOr("DEMO_SAFE_FUNDING", uint256(1000e18));
+         c.asset = vm.envOr("ASSET_TOKEN", address(0));
+-        c.assetSymbol = vm.envOr(
+-            "ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD")
+-        );
++        c.assetSymbol =
++            vm.envOr("ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD"));
+     }
+ 
+     function run() external {
+diff --git a/contracts/src/libraries/P256Verifier.sol b/contracts/src/libraries/P256Verifier.sol
+index 752b7cf..1894129 100644
+--- a/contracts/src/libraries/P256Verifier.sol
++++ b/contracts/src/libraries/P256Verifier.sol
+@@ -26,14 +26,16 @@ pragma solidity ^0.8.20;
+  * That is safe here because an approval signs a one-time action digest and the
+  * verifier consumes the intent before value moves, so the (r, n - s) twin of a
+  * signature can never be spent twice.
+- **/
++ *
++ */
+ 
+ /**
+  * This contract verifies P256 (secp256r1) signatures. It matches the exact
+  * interface specified in the EIP-7212 precompile, allowing it to be used as a
+  * fallback. It's based on Ledger's optimized implementation:
+  * https://github.com/rdubois-crypto/FreshCryptoLib/tree/master/solidity
+- **/
++ *
++ */
+ contract P256Verifier {
+     /**
+      * Precompiles don't use a function signature. The first byte of callldata
+@@ -67,22 +69,17 @@ contract P256Verifier {
+ 
+     // Parameters for the sec256r1 (P256) elliptic curve
+     // Curve prime field modulus
+-    uint256 constant p =
+-        0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF;
++    uint256 constant p = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF;
+     // Short weierstrass first coefficient
+     uint256 constant a = // The assumption a == -3 (mod p) is used throughout the codebase
+         0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC;
+     // Short weierstrass second coefficient
+-    uint256 constant b =
+-        0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B;
++    uint256 constant b = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B;
+     // Generating point affine coordinates
+-    uint256 constant GX =
+-        0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
+-    uint256 constant GY =
+-        0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
++    uint256 constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
++    uint256 constant GY = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
+     // Curve order (number of points)
+-    uint256 constant n =
+-        0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
++    uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
+     // -2 mod p constant, used to speed up inversion and doubling (avoid negation)
+     uint256 constant minus_2modp =
+         0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFD;
+@@ -93,12 +90,11 @@ contract P256Verifier {
+     /**
+      * @dev ECDSA verification given signature and public key.
+      */
+-    function ecdsa_verify(
+-        bytes32 message_hash,
+-        uint256 r,
+-        uint256 s,
+-        uint256[2] memory pubKey
+-    ) private view returns (bool) {
++    function ecdsa_verify(bytes32 message_hash, uint256 r, uint256 s, uint256[2] memory pubKey)
++        private
++        view
++        returns (bool)
++    {
+         // Check r and s are in the scalar field
+         if (r == 0 || r >= n || s == 0 || s >= n) {
+             return false;
+@@ -113,12 +109,7 @@ contract P256Verifier {
+         uint256 scalar_u = mulmod(uint256(message_hash), sInv, n); // (h * s^-1) in scalar field
+         uint256 scalar_v = mulmod(r, sInv, n); // (r * s^-1) in scalar field
+ 
+-        uint256 r_x = ecZZ_mulmuladd(
+-            pubKey[0],
+-            pubKey[1],
+-            scalar_u,
+-            scalar_v
+-        );
++        uint256 r_x = ecZZ_mulmuladd(pubKey[0], pubKey[1], scalar_u, scalar_v);
+         return r_x % n == r;
+     }
+ 
+@@ -126,10 +117,7 @@ contract P256Verifier {
+      * @dev Check if a point in affine coordinates is on the curve
+      * Reject 0 point at infinity.
+      */
+-    function ecAff_isValidPubkey(
+-        uint256 x,
+-        uint256 y
+-    ) internal pure returns (bool) {
++    function ecAff_isValidPubkey(uint256 x, uint256 y) internal pure returns (bool) {
+         if (x >= p || y >= p || (x == 0 && y == 0)) {
+             return false;
+         }
+@@ -137,10 +125,7 @@ contract P256Verifier {
+         return ecAff_satisfiesCurveEqn(x, y);
+     }
+ 
+-    function ecAff_satisfiesCurveEqn(
+-        uint256 x,
+-        uint256 y
+-    ) internal pure returns (bool) {
++    function ecAff_satisfiesCurveEqn(uint256 x, uint256 y) internal pure returns (bool) {
+         uint256 LHS = mulmod(y, y, p); // y^2
+         uint256 RHS = addmod(mulmod(mulmod(x, x, p), x, p), mulmod(a, x, p), p); // x^3 + a x
+         RHS = addmod(RHS, b, p); // x^3 + a*x + b
+@@ -158,7 +143,11 @@ contract P256Verifier {
+         uint256 QY, // affine rep for input point Q
+         uint256 scalar_u,
+         uint256 scalar_v
+-    ) internal view returns (uint256 X) {
++    )
++        internal
++        view
++        returns (uint256 X)
++    {
+         uint256 zz = 1;
+         uint256 zzz = 1;
+         uint256 Y;
+@@ -174,7 +163,7 @@ contract P256Verifier {
+         uint256 bitpair;
+ 
+         // Find the first bit index that's active in either scalar_u or scalar_v.
+-        while(index >= 0) {
++        while (index >= 0) {
+             bitpair = compute_bitpair(uint256(index), scalar_u, scalar_v);
+             index--;
+             if (bitpair != 0) break;
+@@ -182,7 +171,7 @@ contract P256Verifier {
+ 
+         // initialise (X, Y) depending on the first active bitpair.
+         // invariant(bitpair != 0); // bitpair == 0 is only possible if u and v are 0.
+-        
++
+         if (bitpair == 1) {
+             (X, Y) = (GX, GY);
+         } else if (bitpair == 2) {
+@@ -193,7 +182,7 @@ contract P256Verifier {
+ 
+         uint256 TX;
+         uint256 TY;
+-        while(index >= 0) {
++        while (index >= 0) {
+             (X, Y, zz, zzz) = ecZZ_double_zz(X, Y, zz, zzz);
+ 
+             bitpair = compute_bitpair(uint256(index), scalar_u, scalar_v);
+@@ -218,7 +207,7 @@ contract P256Verifier {
+ 
+     /**
+      * @dev Compute the bits at `index` of u and v and return
+-     * them as 2 bit concatenation. The bit at index 0 is on 
++     * them as 2 bit concatenation. The bit at index 0 is on
+      * if the `index`th bit of scalar_u is on and the bit at
+      * index 1 is on if the `index`th bit of scalar_v is on.
+      * Examples:
+@@ -226,7 +215,11 @@ contract P256Verifier {
+      * - compute_bitpair(0, 1, 0) == 1
+      * - compute_bitpair(0, 0, 1) == 2
+      */
+-    function compute_bitpair(uint256 index, uint256 scalar_u, uint256 scalar_v) internal pure returns (uint256 ret) {
++    function compute_bitpair(uint256 index, uint256 scalar_u, uint256 scalar_v)
++        internal
++        pure
++        returns (uint256 ret)
++    {
+         ret = (((scalar_v >> index) & 1) << 1) + ((scalar_u >> index) & 1);
+     }
+ 
+@@ -234,12 +227,11 @@ contract P256Verifier {
+      * @dev Add two elliptic curve points in affine coordinates
+      * Assumes points are on the EC
+      */
+-    function ecAff_add(
+-        uint256 x1,
+-        uint256 y1,
+-        uint256 x2,
+-        uint256 y2
+-    ) internal view returns (uint256, uint256) {
++    function ecAff_add(uint256 x1, uint256 y1, uint256 x2, uint256 y2)
++        internal
++        view
++        returns (uint256, uint256)
++    {
+         // invariant(ecAff_IsZero(x1, y1) || ecAff_isOnCurve(x1, y1));
+         // invariant(ecAff_IsZero(x2, y2) || ecAff_isOnCurve(x2, y2));
+ 
+@@ -258,10 +250,7 @@ contract P256Verifier {
+      * @dev Check if a point is the infinity point in affine rep.
+      * Assumes point is on the EC or is the point at infinity.
+      */
+-    function ecAff_IsInf(
+-        uint256 x,
+-        uint256 y
+-    ) internal pure returns (bool flag) {
++    function ecAff_IsInf(uint256 x, uint256 y) internal pure returns (bool flag) {
+         // invariant((x == 0 && y == 0) || ecAff_isOnCurve(x, y));
+ 
+         return (x == 0 && y == 0);
+@@ -271,11 +260,8 @@ contract P256Verifier {
+      * @dev Check if a point is the infinity point in ZZ rep.
+      * Assumes point is on the EC or is the point at infinity.
+      */
+-    function ecZZ_IsInf(
+-        uint256 zz,
+-        uint256 zzz
+-    ) internal pure returns (bool flag) {
+-        // invariant((zz == 0 && zzz == 0) || ecAff_isOnCurve(x, y) for affine 
++    function ecZZ_IsInf(uint256 zz, uint256 zzz) internal pure returns (bool flag) {
++        // invariant((zz == 0 && zzz == 0) || ecAff_isOnCurve(x, y) for affine
+         // form of the point)
+ 
+         return (zz == 0 && zzz == 0);
+@@ -296,17 +282,20 @@ contract P256Verifier {
+         uint256 x2,
+         uint256 y2
+     ) internal pure returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3) {
+-        if (ecAff_IsInf(x2, y2)) { // (X2, Y2) is point at infinity
++        if (ecAff_IsInf(x2, y2)) {
++            // (X2, Y2) is point at infinity
+             if (ecZZ_IsInf(zz1, zzz1)) return ecZZ_PointAtInf();
+             return (x1, y1, zz1, zzz1);
+-        } else if (ecZZ_IsInf(zz1, zzz1)) { // (X1, Y1) is point at infinity
++        } else if (ecZZ_IsInf(zz1, zzz1)) {
++            // (X1, Y1) is point at infinity
+             return (x2, y2, 1, 1);
+         }
+ 
+         uint256 comp_R = addmod(mulmod(y2, zzz1, p), p - y1, p); // R = S2 - y1 = y2*zzz1 - y1
+         uint256 comp_P = addmod(mulmod(x2, zz1, p), p - x1, p); // P = U2 - x1 = x2*zz1 - x1
+ 
+-        if (comp_P != 0) { // X1 != X2
++        if (comp_P != 0) {
++            // X1 != X2
+             // invariant(x1 != x2);
+             uint256 comp_PP = mulmod(comp_P, comp_P, p); // PP = P^2
+             uint256 comp_PPP = mulmod(comp_PP, comp_P, p); // PPP = P*PP
+@@ -323,12 +312,14 @@ contract P256Verifier {
+                 mulmod(p - y1, comp_PPP, p), // (-y1)*PPP
+                 p
+             ); // R*(Q-x3) - y1*PPP
+-        } else if (comp_R == 0) { // X1 == X2 and Y1 == Y2
++        } else if (comp_R == 0) {
++            // X1 == X2 and Y1 == Y2
+             // invariant(x1 == x2 && y1 == y2);
+ 
+             // Must be affine because (X2, Y2) is affine.
+             (x3, y3, zz3, zzz3) = ecZZ_double_affine(x2, y2);
+-        } else { // X1 == X2 and Y1 == -Y2
++        } else {
++            // X1 == X2 and Y1 == -Y2
+             // invariant(x1 == x2 && y1 == p - y2);
+             (x3, y3, zz3, zzz3) = ecZZ_PointAtInf();
+         }
+@@ -337,20 +328,24 @@ contract P256Verifier {
+     }
+ 
+     /**
+-     * @dev Double a ZZ point 
++     * @dev Double a ZZ point
+      * Uses http://hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
+      * Handles point at infinity gracefully
+      */
+-    function ecZZ_double_zz(uint256 x1,
+-        uint256 y1, uint256 zz1, uint256 zzz1) internal pure returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3) {
++    function ecZZ_double_zz(uint256 x1, uint256 y1, uint256 zz1, uint256 zzz1)
++        internal
++        pure
++        returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3)
++    {
+         if (ecZZ_IsInf(zz1, zzz1)) return ecZZ_PointAtInf();
+-    
++
+         uint256 comp_U = mulmod(2, y1, p); // U = 2*Y1
+         uint256 comp_V = mulmod(comp_U, comp_U, p); // V = U^2
+         uint256 comp_W = mulmod(comp_U, comp_V, p); // W = U*V
+         uint256 comp_S = mulmod(x1, comp_V, p); // S = X1*V
+-        uint256 comp_M = addmod(mulmod(3, mulmod(x1, x1, p), p), mulmod(a, mulmod(zz1, zz1, p), p), p); //M = 3*(X1)^2 + a*(zz1)^2
+-        
++        uint256 comp_M =
++            addmod(mulmod(3, mulmod(x1, x1, p), p), mulmod(a, mulmod(zz1, zz1, p), p), p); //M = 3*(X1)^2 + a*(zz1)^2
++
+         x3 = addmod(mulmod(comp_M, comp_M, p), mulmod(minus_2modp, comp_S, p), p); // M^2 + (-2)*S
+         y3 = addmod(mulmod(comp_M, addmod(comp_S, p - x3, p), p), mulmod(p - comp_W, y1, p), p); // M*(S+(-X3)) + (-W)*Y1
+         zz3 = mulmod(comp_V, zz1, p); // V*ZZ1
+@@ -358,12 +353,15 @@ contract P256Verifier {
+     }
+ 
+     /**
+-     * @dev Double an affine point and return as a ZZ point 
++     * @dev Double an affine point and return as a ZZ point
+      * Uses http://hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-mdbl-2008-s-1
+      * Handles point at infinity gracefully
+      */
+-    function ecZZ_double_affine(uint256 x1,
+-        uint256 y1) internal pure returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3) {
++    function ecZZ_double_affine(uint256 x1, uint256 y1)
++        internal
++        pure
++        returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3)
++    {
+         if (ecAff_IsInf(x1, y1)) return ecZZ_PointAtInf();
+ 
+         uint256 comp_U = mulmod(2, y1, p); // U = 2*Y1
+@@ -371,7 +369,7 @@ contract P256Verifier {
+         zzz3 = mulmod(comp_U, zz3, p); // W = U*V = zzz3
+         uint256 comp_S = mulmod(x1, zz3, p); // S = X1*V
+         uint256 comp_M = addmod(mulmod(3, mulmod(x1, x1, p), p), a, p); // M = 3*(X1)^2 + a
+-        
++
+         x3 = addmod(mulmod(comp_M, comp_M, p), mulmod(minus_2modp, comp_S, p), p); // M^2 + (-2)*S
+         y3 = addmod(mulmod(comp_M, addmod(comp_S, p - x3, p), p), mulmod(p - zzz3, y1, p), p); // M*(S+(-X3)) + (-W)*Y1
+     }
+@@ -381,13 +379,12 @@ contract P256Verifier {
+      * Assumes (zz)^(3/2) == zzz (i.e. zz == z^2 and zzz == z^3)
+      * See https://hyperelliptic.org/EFD/g1p/auto-shortw-xyzz-3.html
+      */
+-    function ecZZ_SetAff(
+-        uint256 x,
+-        uint256 y,
+-        uint256 zz,
+-        uint256 zzz
+-    ) internal view returns (uint256 x1, uint256 y1) {
+-        if(ecZZ_IsInf(zz, zzz)) {
++    function ecZZ_SetAff(uint256 x, uint256 y, uint256 zz, uint256 zzz)
++        internal
++        view
++        returns (uint256 x1, uint256 y1)
++    {
++        if (ecZZ_IsInf(zz, zzz)) {
+             (x1, y1) = ecAffine_PointAtInf();
+             return (x1, y1);
+         }
+@@ -434,17 +431,22 @@ contract P256Verifier {
+     /**
+      * @dev u^-1 mod f = u^(phi(f) - 1) mod f = u^(f-2) mod f for prime f
+      * by Fermat's little theorem, compute u^(f-2) mod f using modexp precompile
+-     * Assume f != 0. If u is 0, then u^-1 mod f is undefined mathematically, 
++     * Assume f != 0. If u is 0, then u^-1 mod f is undefined mathematically,
+      * but this function returns 0.
+      */
+-    function modInv(uint256 u, uint256 f, uint256 minus_2modf) internal view returns (uint256 result) {
++    function modInv(uint256 u, uint256 f, uint256 minus_2modf)
++        internal
++        view
++        returns (uint256 result)
++    {
+         // invariant(f != 0);
+         // invariant(f prime);
+ 
+         // This seems like a relatively standard way to use this precompile:
+         // https://github.com/OpenZeppelin/openzeppelin-contracts/pull/3298/files#diff-489d4519a087ca2c75be3315b673587abeca3b302f807643e97efa7de8cb35a5R427
+ 
+-        (bool success, bytes memory ret) = (address(0x05).staticcall(abi.encode(32, 32, 32, u, minus_2modf, f)));
++        (bool success, bytes memory ret) =
++            (address(0x05).staticcall(abi.encode(32, 32, 32, u, minus_2modf, f)));
+         assert(success); // precompile should never fail on regular EVM environments
+         result = abi.decode(ret, (uint256));
+     }

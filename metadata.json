@@ -1,0 +1,8 @@
+{
+  "name": "test2",
+  "description": "Hardware passkey authorization for autonomous on-chain workflows. Your agents ask. You decide.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

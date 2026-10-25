@@ -97,9 +97,8 @@ contract Deploy is Script {
             vm.envOr("ERC8004_IDENTITY_REGISTRY", _defaultIdentityRegistry(c.chainId));
         c.funding = vm.envOr("DEMO_SAFE_FUNDING", uint256(1000e18));
         c.asset = vm.envOr("ASSET_TOKEN", address(0));
-        c.assetSymbol = vm.envOr(
-            "ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD")
-        );
+        c.assetSymbol =
+            vm.envOr("ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD"));
     }
 
     function run() external {
