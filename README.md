@@ -846,23 +846,11 @@ before a mainnet deployment.
 
 ---
 
-## Why Witness Wins: Mezo Buildathon Evaluation Matrix
-
-| Judging Criterion | Weight | How Witness Delivers & Max Points Strategy |
-| :--- | :---: | :--- |
-| **Mezo Integration** | **30%** | Native Mezo Testnet deployment (Chain 31611). Direct management of **MUSD** Safe multi-sig treasury vaults. Live verified on-chain transaction [`0x2f4d2a75…`](https://explorer.test.mezo.org/tx/0x2f4d2a75aa9db940170a1306f58962e3755255b71ee2f6532a2a7bbdb047d9d5) transferring real testnet MUSD through biometric passkey authorization. |
-| **Product & Business Viability** | **30%** | Solves the critical barrier for autonomous AI agent adoption on Bitcoin's economic layer: key security. Replaces dangerous `.env` hot private keys with human biometric governance. Unlocks multi-million dollar agent treasuries for Mezo. |
-| **Technical Implementation** | **20%** | 40/40 passing unit and invariant tests. Strict 100% `forge fmt` code quality standard. EIP-7212 precompile compatibility (~6,900 gas overhead) with fallback portable P-256 verifier. Battle-tested Safe multi-sig integration. |
-| **User Experience (UX)** | **10%** | Zero-friction WebAuthn ceremonies: no browser extensions, no seed phrases, no gas needed for the user (relayed). Interactive simulator, live authorization queue, and spend ceiling sliders. |
-| **Submission Quality** | **10%** | Complete documentation suite: [SUBMISSION.md](SUBMISSION.md), [THREAT-MODEL.md](THREAT-MODEL.md), [INTEGRATOR-KIT.md](INTEGRATOR-KIT.md), live production dApp, interactive contracts explorer, and clean TypeScript SDK. |
-
----
-
 ## Roadmap: Wave 2 & Future Milestones
 
 Mezo rewards long-term commitment and iterative progress across Waves. Here is our roadmap into Wave 2 ($5,000 pool):
 
-- [x] **Wave 1 Milestone (Delivered)**: Mezo Testnet deployment (31611), Safe multi-sig MUSD treasury integration, P-256 passkey verification, interactive console, and 40 passing Foundry test suites.
+- [x] **Wave 1 Milestone (Delivered)**: Mezo Testnet deployment (31611), Safe multi-sig MUSD treasury integration, P-256 passkey verification, interactive console, and 41 passing Foundry test suites.
 - [ ] **Wave 2 Milestone 1: Agent Framework Plugins**: Release pre-built adapters for **LangChain**, **AutoGPT**, and **Eliza** agent frameworks to request MUSD disbursements through Witness with zero manual plumbing.
 - [ ] **Wave 2 Milestone 2: Native MEZO Token Staking Intent**: Expand policy modules to support delegated MEZO staking and auto-rebalancing MUSD/MEZO yield strategies.
 - [ ] **Wave 2 Milestone 3: Mainnet Readiness & Multi-Signer Policies**: Multi-device quorum (e.g. 2-of-3 passkeys required for treasuries > 10,000 MUSD) and preparing for formal third-party audits.
