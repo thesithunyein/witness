@@ -105,7 +105,7 @@ actually read. Offer the PR in the first message, as in §2:
 > resource. I'll write that patch against your repo if you link it, 15 minutes for me,
 > and you can throw it away if it doesn't fit.
 >
-> Live demo costs you nothing to look at (no wallet, no funds): https://witness.sithunyein.com
+> Live demo costs you nothing to look at (no wallet, no funds): https://witness-agent.vercel.app
 
 ### B. To a Monad DeFi / vault team
 
@@ -143,10 +143,10 @@ only if they agreed to be named.
 
 ## 5. What to send in the first message (nothing more)
 
-1. https://witness.sithunyein.com, the product, 30 seconds to understand
-2. https://witness.sithunyein.com/integrate, the developer surface, with a live preflight
+1. https://witness-agent.vercel.app, the product, 30 seconds to understand
+2. https://witness-agent.vercel.app/docs, the developer surface, with a live preflight
 3. `packages/sdk`, so they can see it is a package, not a paste (`npm pack` there builds the
-   tarball; `@witness/sdk` is the published name, it is not on the registry yet)
+   tarball; it publishes as `@witness-agent/sdk`)
 4. [THREAT-MODEL.md](THREAT-MODEL.md), **send this one to engineers only.** The
    honest limits section is why they will read the rest
 

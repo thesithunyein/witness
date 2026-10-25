@@ -6,28 +6,61 @@ Repo: **https://github.com/thesithunyein/witness** (public, `main`), author *Sit
 
 | Environment | URL |
 |---|---|
-| **production (use this as the live link)** | **https://witness.sithunyein.com/** |
+| **live site (use this as the live link)** | **https://witness-agent.vercel.app** |
+| **app** | **https://witness-agent.vercel.app/app** |
+| integration page | https://witness-agent.vercel.app/docs |
+| origin the contracts are frozen to | https://witness-agent.vercel.app (the same URL as above) |
+| earlier stack, bound to a domain whose DNS lapsed | https://witness.sithunyein.com (NXDOMAIN) |
 | older freebuff.page deployment | https://site-59ccda57b59c482da96dca239a3a1b63.freebuff.page |
 
 Deployed on Monad testnet (10143). Contracts and rpId/origin are recorded in
 `contracts/deployments/10143.json`; the app reads them from there, never by hand.
 
+### Read this before recording or judging
+
+**The submitted link is the origin the contracts accept.** `WitnessVerifier` is frozen to `rpId` =
+`witness-agent.vercel.app` and `origin` = `https://witness-agent.vercel.app`, and
+`lockConfiguration()` makes both permanent, so the passkey prompt can be drawn from the URL above
+and the approve step is demonstrable live. Nothing about the deployment depends on
+`sithunyein.com` resolving.
+
+This is a deliberate second stack. The first was frozen to `witness.sithunyein.com`; that domain
+went NXDOMAIN at the TLD, and because a browser issues a passkey only for its own page's domain,
+the approve step became impossible on every host that was still reachable while every read path kept
+working. A deployment whose origin cannot be reached is a deployment that cannot demonstrate its
+only interaction, so the fix was to redeploy against the origin that actually serves the product:
+
+```bash
+RP_ID=witness-agent.vercel.app ORIGIN=https://witness-agent.vercel.app \
+  forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast
+```
+
+The first stack is untouched on-chain and still bound to `witness.sithunyein.com`. If that DNS ever
+returns, it changes nothing here: the addresses below are the submission's stack, and the app bakes
+its manifest at build time so the site and the chain cannot silently disagree.
+
 ---
 
-## 0. Current state (updated after the second deployment)
+## 0. Current state (updated after the third deployment)
 
-The stack was **redeployed** and the trust-critical configuration frozen. Everything below §1 that
-mentions the *first* addresses describes a deployment that is now superseded, the behaviour it
-records is still valid, the addresses are not.
+The stack has been **redeployed twice** and the trust-critical configuration frozen each time.
+Everything below that mentions the *earlier* addresses describes a deployment that is now
+superseded: the behaviour it records is still valid, the addresses are not.
 
-| | Now |
+| | Live now (third stack, frozen to the Vercel origin) |
 |---|---|
-| `WitnessIntentRegistry` | `0x3518B7A64D7Cc01e33a0F0A3Fa4111ad2Af3e521` |
-| `WitnessVerifier` | `0xced20751479A13E76A67cC33C911e8eF61a81165` |
-| `DemoSafe` (holds value) | `0xcb7187F16c2AE7E8494B82dBc73DDaE18b6e1309` |
-| `AgentExecutor` | `0x5b451F0700df77293a5A737189BdbA3C37362d23` |
-| `DemoUSD` | `0x5Bb70C698F3428802ac3C186EC0Da98a088A6d2c` |
-| ERC-8004 identity | **`#2148`**, owned by `AgentExecutor`, in the official registry `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| `WitnessIntentRegistry` | `0x84502BA6Bf4A565b84E8eC1747568d54610E71E2` |
+| `WitnessVerifier` | `0x7836f1bDDdBF491c23a285B5015441a5A147D096` |
+| `DemoSafe` (holds value) | `0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8` |
+| `AgentExecutor` | `0x7010c0474AA1c8E8039712d314d105D1aDe0a87d` |
+| `DemoUSD` | `0xd5588C6f78d720D4a89929b4b68C546Dc788D65A` |
+| ERC-8004 identity | **`#2240`**, owned by `AgentExecutor`, in the official registry `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Accepted origin | `witness-agent.vercel.app` / `https://witness-agent.vercel.app`, frozen |
+| Source verification | all five `exact_match` on MonadVision, matchIds `2053971` to `2053975` |
+
+Superseded stacks, kept for the record and still on-chain: the second (`WitnessVerifier`
+`0xced20751…`, identity `#2148`) was frozen to `witness.sithunyein.com`, and the first was the
+pre-ERC-8004 deployment. Both accept assertions only from an origin that no longer resolves.
 
 ### Third pass, the agent actually asks
 
@@ -45,7 +78,7 @@ Everything here is new since §0 was written. The theme: the two things the prev
 - **The demo pays a real merchant.** `payee` is recorded in the deployment manifest by the deploy
   script (default: the deployer), so the money lands at an address with an on-chain history instead
   of `0x1111…1111`.
-- **`@witness/sdk` is a package**, not four files to copy: `packages/sdk` builds ESM + CJS + type
+- **`@witness-agent/sdk` is a package**, not four files to copy: `packages/sdk` builds ESM + CJS + type
   declarations from the app's own modules, so the product and the integration surface cannot drift.
   Verified by installing the packed tarball into a separate consumer and importing it three ways.
 - **Verified on an explorer, keylessly.** All five contracts are `exact_match` on Sourcify
@@ -61,8 +94,8 @@ Everything here is new since §0 was written. The theme: the two things the prev
   three message templates. Outreach itself still needs your hands; that is the one thing here I
   cannot do.
 
-**Verified on production** (`witness.sithunyein.com`, after a Vercel deploy of the current build), so
-none of the above is a claim about a local checkout:
+**Verified on production** (against the live host above, so none of this is a claim about a local
+checkout):
 
 - `GET /api/config` returns the five addresses below with `identityEnforced: true` and
   `configurationLocked: true` (before this pass it returned the *previous* addresses with
@@ -73,7 +106,7 @@ none of the above is a claim about a local checkout:
   (`GET /api/requests?intentId=…` every 3 s) returns 200 with no console errors.
 - The agent polls, observes the human's decision, and reports it: *REFUSED, the contract would not
   allow it*, with the typed reason and code.
-- The identity check is live: an id the executor does not own is refused with HTTP 403, and id `#2148`
+- The identity check is live: an id the executor does not own is refused with HTTP 403, and id `#2240`
   is confirmed as owned by `AgentExecutor` on the real registry.
 - `/api/agent` on production still refuses a 10× attempt with a decoded `OverLimit`, and an in-limit
   unsigned attempt with `RpIdMismatch`, real reverted transactions, not client checks.
@@ -91,13 +124,14 @@ Changed in the second pass:
 - **40 contract tests** (was 24), including the ERC-721 receiver hook the identity mint needs.
 - **`examples/live-e2e.mjs`**, 4/4 live checks against the deployed contracts: approved action moves
   exactly the approved amount, replay refused (`AlreadyConsumed`), 10× unapproved refused
-  (`OverLimit`), unowned identity refused (`AgentNotRegistered`). Re-run 2026-10-11: 4/4 passed, the
-  approved path landing as tx `0x59616dd8…` (status success, 326,925 gas), and the two refused
-  permissions revoked at the end so a run leaves no unusable state behind.
+  (`OverLimit`), unowned identity refused (`AgentNotRegistered`). Re-run 2026-10-13 against the
+  redeployed stack: 4/4 passed, the approved path landing as tx `0x13d7cd50…` (block 70,639,621,
+  status success, 336,107 gas), and the two refused permissions revoked at the end so a run leaves
+  no unusable state behind.
 - **Consumer UI**: `Approvals / Activity / Agents / Settings`, plain-language approval, everything
-  technical behind *Security details*, `/integrate` for third parties.
+  technical behind *Security details*, `/docs` for third parties.
 
-Still outstanding: the passkey **approve** tap through the device prompt, the videos, an external
+Still outstanding: the passkey **approve** tap recorded end to end, the videos, an external
 integrator, named adopters. The hosted site **has been rebuilt and redeployed**, and that is
 verified against production rather than assumed: `GET /api/config` there returns the addresses in
 `contracts/deployments/10143.json` with `identityEnforced: true` and `configurationLocked: true`, so
@@ -114,7 +148,7 @@ the manifest it serves is the current stack, not the previous one.
 | Monad's P256 precompile is live and validating | `node scripts/probe-p256.mjs` → valid sig `ACCEPT`, tampered `reject`, on **both** mainnet (143) and testnet (10143), with a `sha256` control call so a silently-broken endpoint can't masquerade as a rejecting one. |
 | High-S signatures accepted | `node scripts/probe-highs.mjs` → both S forms `ACCEPT`. Platform authenticators are not guaranteed to produce low-S; without this a live passkey demo could fail at random. |
 | 40 contract tests pass | `cd contracts && forge test` (exit 0), real P-256 signatures over real action digests through the real precompile. No mocking of the cryptography. (24 in the original suite, 16 added with the native path, the locks, and the identity mint.) |
-| Gas, measured | An approved passkey authorized transfer costs **326,925 gas** end to end on testnet (tx `0x59616dd8…`, block 70,155,898). `forge test --gas-report`: `executeTransfer` 75k to 273k, `executeTransferNative` 78k to 268k, `createIntent` avg 253k. |
+| Gas, measured | An approved passkey authorized transfer costs **336,107 gas** end to end on testnet (tx `0x13d7cd50…`, block 70,639,621). `forge test --gas-report`: `executeTransfer` 75k to 273k, `executeTransferNative` 78k to 268k, `createIntent` avg 253k. |
 
 ### Contracts deployed (Monad testnet), FIRST deployment, superseded
 
@@ -182,22 +216,12 @@ Exercised **on production, in a real browser**:
 5. ~~Optional: ERC-8004 binding.~~ **DONE**, the registry is configured and verified on-chain, and
    identity `#2148` is owned by `AgentExecutor`. Enforcement is active in the deployed contracts, and
    the hosted app and the chain agree, see item 7.
-6. **Publish the SDK**, which is the one step left that makes the documented install path real. It
-   needs your npm account and nothing else:
-
-   ```bash
-   cd packages/sdk
-   npm publish --access public    # `prepublishOnly` runs the drift check and the build for you
-   ```
-
-   Inspect first with `npm pack --dry-run`: 9 files, 14.9 kB, `witness-sdk-0.1.0.tgz`, and nothing
-   outside `dist`, `README.md`, `LICENSE` and `package.json`. **One caveat to resolve before you
-   run it:** the package is named `@witness/sdk`, and a scoped publish needs the `witness` scope to
-   be yours. That could not be checked from here (the registry's scope endpoint needs an
-   authenticated account). If the publish returns 403, the scope is not yours and the two names
-   that are known to be unclaimed are `@thesithunyein/sdk` (your own user scope, always available to
-   you) and the unscoped `witness-sdk`. Either way, three files name the package: `packages/sdk/package.json`,
-   the SDK's README and the root README, so a rename is three lines and a doc pass.
+6. ~~Publish the SDK.~~ **DONE**: `@witness-agent/sdk@0.1.0` is on npm (pushed 2026-10-13).
+   The org name `witness` was taken, so the package ships under the `witness-agent` scope created
+   for it; the registry serves it (shasum `9e53a41499c100dcac2e1ff7cf82d60a5e3cf5b3`), and
+   `npm i @witness-agent/sdk viem` was verified from a clean consumer, ESM and CJS both importing.
+   Future versions ship with `cd packages/sdk && npm publish --access public`; `prepublishOnly`
+   runs the drift check and the build.
 
 7. ~~Rebuild and redeploy the hosted app.~~ **DONE**, and verified against production rather than
    assumed, see "Verified on production" in §0. Passkeys are bound to the hostname, and the verifier's accepted origin is
@@ -243,14 +267,16 @@ WebAuthn parsing, the replay/revocation state, and a receipt format, which is ex
 
 ## 4. Demo video beats
 
-Film on production (`witness.sithunyein.com`). Nothing needs an account, a wallet or testnet funds:
+Film on **https://witness-agent.vercel.app**, the origin the contracts were frozen to: the approve
+tap needs a passkey, and a browser only issues one for its own page's domain, which is why the
+contracts were redeployed against this host. Nothing needs an account, a wallet or testnet funds:
 registration and gas are relayed, and the approval is a passkey on the recording device, one tap to
 enroll. Re-register a fresh permission immediately before the take, each one is single-use and
 expires in 10 minutes.
 
 1. 20s, problem: agent identity ≠ human authorization; a prompt-injected agent still has a valid identity.
 2. 60s, live: register a permission with a passkey, approve one transfer, show it execute on MonadScan.
-   Open tx `0x59616dd8…` (block 70,155,898, 326,925 gas, status success) on
+   Open tx `0x13d7cd50…` (block 70,639,621, 336,107 gas, status success) on
    `testnet.monadscan.com` beforehand, so you know what the confirmation screen should look like; it
    is a real approved transfer from 2026-10-11 and the receipt a judge can check.
 3. 45s, the injected attempt: 10× the amount, no approval, **rejected on-chain** with the reason
@@ -266,11 +292,15 @@ Thirty minutes before the take, not during it.
 
 - **Fresh permission, created immediately before you record.** Each one is single-use and expires in
   ten minutes, so a take that starts late has no approve button. Create it, then start within two.
-- **The real receipt open in a second tab.** `0x59616dd8…` on `testnet.monadscan.com`, block
-  70,155,898, status success. Know what the confirmation screen looks like before you need it live.
+- **The real receipt open in a second tab.** `0x13d7cd50…` on `testnet.monadscan.com`, block
+  70,639,621, status success. Know what the confirmation screen looks like before you need it live.
+- **Native MON in the safe.** `live-e2e.mjs` spends the safe's 0.5 MON on the approved path, so after
+  a run the safe is empty and the native approve beat has nothing to move. Top it up before filming
+  (`cast send <safe> --value 0.5ether …`), or film the DemoUSD path, which stays pre-funded with
+  1000 valueless tokens and needs no faucet.
 - **Terminal already warm.** `npm install` finished at the repo root, so `node examples/agent-request.mjs`
   prints its first line instantly instead of resolving dependencies on camera.
-- **Instance alive:** `curl -s https://witness.sithunyein.com/api/config` returns 200. The queue is
+- **Instance alive:** `curl -s https://witness-agent.vercel.app/api/config` returns 200. The queue is
   process memory, so an instance recycle is the one event that can lose a request mid-take. If the
   agent's `POST` returns a `shareUrl`, open that link rather than waiting for the poll: it carries the
   validated request in the URL.

@@ -3,7 +3,16 @@
  *
  * The deployed site is NOT a Next.js server: it is a static bundle plus a small
  * Cloudflare Worker that owns /api/*. This file mounts the exact same page
- * component the Next dev server renders, so there is one UI, not two.
+ * components the Next dev server renders, so there is one UI, not two:
+ *
+ *   /           → the landing page (the front door)
+ *   /app        → the approvals app
+ *   /docs       → the developer documentation
+ *
+ * The three are not three files: the bundle is one index.html whose entry
+ * component reads the path, and the Worker serves that same shell for each. The
+ * landing's navigation and footer both link to /docs, and a route this file did
+ * not mount landed a reader on the front page instead of on the docs.
  *
  * globals.css is loaded by static/index.html (as /styles.css) rather than
  * imported here, so the bundler emits only JavaScript and the pipeline stays
@@ -11,13 +20,23 @@
  */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import Page from "../app/page";
+import Landing from "../app/page";
+import Approvals from "../app/app/page";
+import Docs from "../app/docs/page";
+
+const path = window.location.pathname;
+const atApprovals = path === "/app" || path.startsWith("/app/");
+const atDocs = path === "/docs" || path.startsWith("/docs/");
+
+if (atApprovals) {
+  document.title = "Witness Approvals: your agent asks, you decide";
+} else if (atDocs) {
+  document.title = "Docs · Witness";
+}
 
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root");
 
 createRoot(root).render(
-  <StrictMode>
-    <Page />
-  </StrictMode>
+  <StrictMode>{atApprovals ? <Approvals /> : atDocs ? <Docs /> : <Landing />}</StrictMode>
 );

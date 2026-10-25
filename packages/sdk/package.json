@@ -1,6 +1,6 @@
 {
-  "name": "@witness/sdk",
-  "version": "0.1.0",
+  "name": "@witness-agent/sdk",
+  "version": "0.1.1",
   "description": "Human authorization for AI agent actions: a passkey signs one exact action, and the counterparty verifies it on-chain. Monad.",
   "license": "MIT",
   "type": "module",
@@ -43,6 +43,8 @@
     "sync": "bun run scripts/sync.mjs",
     "check": "bun run scripts/sync.mjs --check",
     "build": "bun run scripts/build.mjs",
+    "check:pack": "bun run scripts/check-pack.mjs",
+    "test:pack": "bun run scripts/check-pack.test.mjs",
     "prepack": "bun run scripts/build.mjs",
     "prepublishOnly": "bun run scripts/sync.mjs --check && bun run scripts/build.mjs"
   },
@@ -52,5 +54,8 @@
   "devDependencies": {
     "typescript": "^5.7.0",
     "viem": "^2.57.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

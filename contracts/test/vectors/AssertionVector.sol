@@ -6,27 +6,27 @@ pragma solidity ^0.8.20;
 // signature over sha256(authenticatorData || sha256(clientDataJSON)), produced
 // by a platform-authenticator-equivalent path (raw-digest ECDSA, RFC 6979).
 library AssertionVector {
-    string internal constant RP_ID = "witness.sithunyein.com";
-    string internal constant ORIGIN = "https://witness.sithunyein.com";
+    string internal constant RP_ID = "witness-agent.vercel.app";
+    string internal constant ORIGIN = "https://witness-agent.vercel.app";
 
     bytes32 internal constant CHALLENGE =
         0x8b14b08a178295832a17ada1c0a3a18216bce123c802fdd33249535cda172cc2;
     string internal constant CHALLENGE_B64 = "ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI";
 
     bytes32 internal constant MESSAGE_HASH =
-        0xc7922c53403b8fab06f9cb0cfcd6e6d2617069883d442029212930d0e0bdd421;
+        0x6546d2f18ce0b83f2d0db3df42bf6e3b6e5f34ac617eb43a213baee3a96dd420;
 
     string internal constant CLIENT_DATA_JSON =
-        '{"type":"webauthn.get","challenge":"ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI","origin":"https://witness.sithunyein.com"}';
+        '{"type":"webauthn.get","challenge":"ixSwiheClYMqF62hwKOhgha84SPIAv3TMklTXNoXLMI","origin":"https://witness-agent.vercel.app"}';
 
     // rpIdHash || flags(UP|UV) || signCount
     bytes internal constant AUTHENTICATOR_DATA =
-        hex"afa2660ce69c3166a388b4888d09a1f0d1592b8dd776d5bcf54441c4c335045e0500000001";
+        hex"bf18e24083ca277c49fb905a29ff65349bad21322d05bba8a9c01f0b595c183c0500000001";
 
     uint256 internal constant R =
-        75194810704554168932658379578304730614334169991784484729140764237331035442699;
+        40795082445102091873759670904422844653567099609653382729083013665337277104937;
     uint256 internal constant S =
-        10024360167764722336045871005070255674525920762661876586215279663339625351056;
+        17123577427631581574068455229660036014807934349818323090797926258343486521233;
     uint256 internal constant QX =
         44702274224498794473545520410227660840283676033840465889383061057408546046121;
     uint256 internal constant QY =
@@ -34,5 +34,5 @@ library AssertionVector {
 
     // messageHash || r || s || qx || qy -> input for the 0x0100 precompile
     bytes internal constant PRECOMPILE_INPUT =
-        hex"c7922c53403b8fab06f9cb0cfcd6e6d2617069883d442029212930d0e0bdd421a63ec12fa6ad9f70a6e58736c60e99075af318010033e33ac2804996d4c5ce0b16299637e8e7ee777828f2142accd86b1603115c1515ba565d70468d024d879062d497310842a7d77234b29b5db7fd66a02a040dcf67a24eefff2612348700a9303429c73296f529af1089be2288f2337ae78470438ed95c731a86db65b9bf72";
+        hex"6546d2f18ce0b83f2d0db3df42bf6e3b6e5f34ac617eb43a213baee3a96dd4205a3132cb3b52bdd97852331325d27a1723d28a09a9cca4a1b79b1745c72f432925db99f329d6c8137edab1407fa07406ce101d6db466c8b08bae27a367557f9162d497310842a7d77234b29b5db7fd66a02a040dcf67a24eefff2612348700a9303429c73296f529af1089be2288f2337ae78470438ed95c731a86db65b9bf72";
 }

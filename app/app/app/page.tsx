@@ -25,8 +25,8 @@ import {
   LockIcon,
   PulseIcon,
   ShieldCheckIcon,
-  SlidersIcon,
-  TargetIcon,
+  BotIcon,
+  SettingsIcon,
   XIcon,
 } from "@/components/icons";
 import {
@@ -88,8 +88,8 @@ const VIEWS: { id: View; label: string; caption: string }[] = [
 const VIEW_ICONS: Record<View, ComponentType<{ size?: number }>> = {
   approvals: CheckCircleIcon,
   activity: PulseIcon,
-  agents: TargetIcon,
-  settings: SlidersIcon,
+  agents: BotIcon,
+  settings: SettingsIcon,
 };
 
 type Config = {

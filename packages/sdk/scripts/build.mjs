@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Build @witness/sdk into dist/.
+ * Build @witness-agent/sdk into dist/.
  *
  * Three artefacts, because integrators arrive three ways:
  *
@@ -118,4 +118,4 @@ for (const file of ["index.js", "index.cjs", "types/index.d.ts"]) {
   }
   console.log(`  ${file}`);
 }
-console.log(`@witness/sdk built -> ${dist}`);
+console.log(`@witness-agent/sdk built -> ${dist}`);

@@ -2,15 +2,15 @@
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Research Agent",
   "description": "The reference agent for Witness. It asks a human to approve each action before it spends anything; it holds no authority of its own. Its on-chain identity is owned by the AgentExecutor contract, so the identity it claims and the authority a human grants are the same address.",
-  "image": "https://witness.sithunyein.com/agent-avatar.svg",
+  "image": "https://witness-agent.vercel.app/agent-avatar.svg",
   "services": [
     {
       "name": "web",
-      "endpoint": "https://witness.sithunyein.com"
+      "endpoint": "https://witness-agent.vercel.app"
     },
     {
       "name": "MCP",
-      "endpoint": "https://witness.sithunyein.com/api/mcp",
+      "endpoint": "https://witness-agent.vercel.app/api/mcp",
       "description": "Not implemented in this deployment. Declared here so integrators see the intended surface rather than an implied one."
     }
   ],
@@ -19,6 +19,6 @@
   "notes": [
     "This agent can only move value that a human approved with a passkey, for this exact recipient and amount.",
     "Every refusal is enforced on-chain by the counterparty holding the funds, not by this agent.",
-    "Verification state is visible at https://witness.sithunyein.com under Security details."
+    "Verification state is visible at https://witness-agent.vercel.app under Security details."
   ]
 }

@@ -59,6 +59,12 @@ copyFileSync(resolve(appRoot, "static/index.html"), resolve(outDir, "index.html"
 copyFileSync(resolve(appRoot, "app/globals.css"), resolve(outDir, "styles.css"));
 // The favicon is the same file Next serves from public/, not a second copy.
 copyFileSync(resolve(appRoot, "public/logo.png"), resolve(outDir, "logo.png"));
+// The landing's band: two hands reaching, printed in halftone as ink on
+// transparency, so the page colour is the paper and there is no visible box.
+copyFileSync(
+  resolve(appRoot, "public/halftone-hands.png"),
+  resolve(outDir, "halftone-hands.png")
+);
 
 for (const o of result.outputs) {
   const name = o.path.split(/[\\/]/).pop();

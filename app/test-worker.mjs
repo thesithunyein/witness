@@ -69,6 +69,28 @@ check("config exposes all five contracts", Object.keys(config.contracts ?? {}).l
 const asset = await call("/");
 check("non-api routes fall through to assets", asset.status === 200);
 
+// 3b. the app path serves the same shell (the bundle routes on pathname)
+const appShell = await call("/app");
+check("/app serves the static shell", appShell.status === 200);
+
+// 3c. the agent share link points at the app path
+const shareReq = await (
+  await post("/api/requests", {
+    intentId: "1",
+    kind: "transfer",
+    to: "0x000000000000000000000000000000000000dEaD",
+    amount: "1",
+    service: "worker share-url shape check",
+    agentId: "0",
+    agentName: "test-agent",
+  })
+).json();
+check(
+  "agent share URL points at /app",
+  typeof shareReq.shareUrl === "string" && shareReq.shareUrl.includes("/app?req="),
+  shareReq.error ?? shareReq.shareUrl
+);
+
 // 4. create intent (real tx)
 const createRes = await (
   await post("/api/intent", {

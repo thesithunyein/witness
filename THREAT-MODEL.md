@@ -134,6 +134,14 @@ than in the agent's process.
 7. **Timing.** Permission expiry is `uint64` unix seconds compared against
    `block.timestamp`; on a chain with fast blocks this is fine, but a validator
    can only move it forward, never revive an expired permission.
+8. **The relying party was written down in four places.** `rpId`/`origin` are frozen in the
+   verifier, and an assertion signed for a different origin is refused with `RpIdMismatch`, which is
+   correct but silent in the worst way: the *refusal* tests never need a valid signature, so a fixture
+   pinned to the wrong origin passes most of the suite and fails only the approved path. That is
+   exactly what a redeploy produced. `scripts/sign-action.mjs` and `scripts/gen-assertion.mjs` now
+   read `contracts/deployments/<chain>.json` instead of carrying defaults. Residual: the two Foundry
+   test files still declare their own `RP_ID`/`ORIGIN` constants, hand-maintained, with a comment
+   pointing at the generator. Deriving them from the fixture at compile time would close it.
 
 ---
 

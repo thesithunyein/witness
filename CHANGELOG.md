@@ -1,5 +1,109 @@
 # Changelog
 
+## 2026-10-13 - a release is a tag, and the gates travel with it
+
+Publishing was a command the maintainer had to remember, run from the right directory, with the
+right account, and the drift check that keeps the package equal to the app only ran because
+somebody knew to run it. A release now carries its checks in a workflow instead of in a head.
+
+- **`.github/workflows/release.yml` publishes a `v*` tag.** It refuses to publish unless the tag
+  equals the version in `packages/sdk/package.json`, that version is not already on the registry,
+  the app the package is generated from typechecks, the generated sources agree with `app/lib`,
+  the prose guard passes, and the tarball carries nothing unexpected.
+- **`packages/sdk/scripts/check-pack.mjs`** is that last gate, and it runs locally too
+  (`bun run check:pack`). It reads the file list npm reports for the real tarball via
+  `npm pack --dry-run --json`, so nothing reaches the registry because nobody looked, and a
+  missing entry point fails as loudly as a stray file. npm 11 answers that command with an array
+  and npm 12 with an object keyed by package name, which the first CI run of this gate is what
+  discovered, so `bun run test:pack` holds both shapes and the release runs it before the gate.
+- **Trusted publishing first, token second.** npm mints a short-lived OIDC token for the workflow,
+  so the repository holds no long-lived publish credential, and provenance is automatic for a
+  public repository. The `NPM_TOKEN` secret is used only if it exists, with `--provenance` asked
+  for explicitly on that path.
+- **A manual run rehearses.** `workflow_dispatch` executes every gate and ends in
+  `npm publish --dry-run`, which is how the pipeline can be proven before a tag exists. Only a tag
+  push, or a manual run with the dry-run input switched off, uploads anything.
+- **CONTRIBUTING.md** documents both credential paths, the fact that a trusted publisher
+  configuration created after Sep 3, 2026 allows staged publishing until `npm publish` is allowed
+  explicitly, and its two-day expiry when the first publish does not succeed.
+- **The package moves to 0.1.1.** The manifest is part of the published tarball, so the pack gate
+  and its script are a package change, and the release refuses a version the registry already
+  serves, which is why the next release cannot be 0.1.0.
+
+## 2026-10-13 - the SDK ships from the registry
+
+- **The package publishes as `@witness-agent/sdk`.** The npm org name `witness` was already taken
+  at the registry, so the package ships under the `witness-agent` scope, created for this project
+  and matching the app's own hostname. Every file that named `@witness/sdk` was renamed: the
+  manifest and lockfile, both READMEs, the SDK sources and its build script, the docs page,
+  `SUBMISSION.md` and `INTEGRATOR-KIT.md`. The tarball is `witness-agent-sdk-0.1.0.tgz` (9 files,
+  15.6 kB), and `0.1.0` was pushed on 2026-10-13 (`+ @witness-agent/sdk@0.1.0`). A brand-new scope
+  can take a few minutes before the registry serves reads; the local build and the published
+  tarball share shasum `9e53a41499c100dcac2e1ff7cf82d60a5e3cf5b3`.
+- **The docs point at the published name.** `npm i @witness-agent/sdk viem` replaces the
+  "not on the registry yet" notes in the root README, the SDK's README and the integrator kit.
+
+## 2026-10-13 - the front door names the pages it links to
+
+The site had three names for the same developer surface, a footer whose links did not all resolve, and
+a README that argued its case at length before it said where to go.
+
+- **`/integrate` is now `/docs`.** The page is named for what it is. The old address forwards rather
+  than 404s: a permanent redirect in `next.config.mjs` for the server render, and a 308 in the Worker
+  for the static bundle, where `app/static/main.tsx` mounts the same component at the new path. Every
+  reference moved with it: the README, `SUBMISSION.md`, `INTEGRATOR-KIT.md`, and the SDK's own header
+  comment.
+- **The app bar lost its Integrate link.** The guide is one link away on the front door, and a second
+  way to it printed inside the screen an operator is using answered a question nobody there had. The
+  bar also no longer repeats the chain under the brand; the chain id has its own row in Settings.
+- **The landing footer is three columns, and every link resolves:** Product (`/app`, the two anchors on
+  the page itself), Developers (`/docs`, its four calls, its live preflight), and On-chain (the three
+  deployed addresses and the explorer). A footer is the easiest place in a product to invent a Privacy
+  page nobody wrote, so nothing here is invented. The one outbound identity link is the project's own X
+  account, an icon with no username beside it, and no page on the site links to GitHub.
+- **One call to action, in the bar.** "Open the app" is the only button in the navigation and it stays
+  visible while the page is read; the hero points at the argument and at the docs instead of repeating
+  it. Copy that promised "three steps" now says what the page actually shows: four calls, one check
+  on-chain.
+- **The README is a front door, not an argument.** It went from 806 lines to about 270: the app link is
+  a button at the top, before the first paragraph, and the rest is the flow, the addresses, the honest
+  limits, and the commands that reproduce all of it. What repeated the same guarantee three ways did
+  not survive the edit.
+- **The landing band is ink on transparency.** `halftone-hands.png` no longer carries a baked page
+  colour, so the page's own background is the paper and the band has no visible box.
+
+## 2026-10-13 - redeployed against the origin that serves the product
+
+The submission link and the origin the contracts accept were different hosts. `WitnessVerifier`
+freezes `rpId`/`origin` at deploy and `lockConfiguration()` makes them permanent, so the deployed
+stack accepted assertions signed only from `https://witness.sithunyein.com`, and that domain had gone
+NXDOMAIN at the TLD. Every read path kept working and the one interaction the product exists for
+could not be drawn on any host a judge could reach.
+
+The fix is a second deployment frozen to `witness-agent.vercel.app`, the URL the submission actually
+uses. The first stack is untouched on-chain; it is simply bound to an origin nobody can visit.
+
+- **New stack, same source.** `WitnessIntentRegistry` `0x84502BA6…`, `WitnessVerifier` `0x7836f1bD…`,
+  `DemoSafe` `0x17fc3f96…`, `AgentExecutor` `0x7010c047…`, `DemoUSD` `0xd5588C6f…`, ERC-8004 identity
+  `#2240` owned by the new executor. All five verified `exact_match` on MonadVision (matchIds
+  2053971 to 2053975). `configurationLocked: true`, identity enforced, operator and relayer keys
+  unchanged, so the hosted app needed no environment change: only the baked manifest.
+- **The relying party is now read from the manifest, not hard-coded.** `scripts/sign-action.mjs`,
+  `scripts/gen-assertion.mjs`, the Foundry fixture and the two test files all carried their own copy
+  of `witness.sithunyein.com`. That is why the first live run after the redeploy reported
+  `RpIdMismatch` on the approved path while the refusals passed: the refusals never need a valid
+  signature, so they cannot catch a fixture pinned to the wrong origin. Both scripts now default to
+  `contracts/deployments/<chain>.json`, and the tests were updated to match it.
+- **Live evidence re-run against the new stack**, not carried over: `examples/live-e2e.mjs` 4/4, the
+  approved path landing as tx `0x13d7cd50…` in block 70,639,621 (336,107 gas, status success).
+- **`agent.json` points at the host that answers.** The ERC-8004 `tokenURI` is
+  `https://witness-agent.vercel.app/agent.json`, and the document's own `image` and service endpoints
+  now name the same origin instead of the dead one.
+- **The README says what replaces a wallet, precisely enough to be wrong if it were loose:** the
+  signed digest binds chain, contract, intent, action type, asset, recipient and amount, and does
+  *not* contain the expiry, which lives on the permission record; and the relayer owns the permission
+  it registers, because `createIntent` takes the author from `msg.sender`.
+
 ## 2026-10-12 (app) - the landing page left, and an app screen arrived
 
 The first screen was a pitch. A 46px headline, a four-line lede, three explainer cards

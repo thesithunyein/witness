@@ -26,7 +26,7 @@
  *
  *   node examples/agent-request.mjs --intent 12 --amount 0.25 --service "Market Data API"
  *   node examples/agent-request.mjs --over        # 10x the amount: the attack, for real
- *   node examples/agent-request.mjs --url https://witness.sithunyein.com --wait 180
+ *   node examples/agent-request.mjs --url https://witness-agent.vercel.app --wait 180
  *
  * The default recipient comes from the deployment manifest's `payee`, which the
  * deploy script records, so the demo pays a real, on-chain-visible merchant

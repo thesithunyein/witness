@@ -21,6 +21,7 @@ cd contracts && forge build    # the contracts
 ## The checks that must pass
 
 ```bash
+cd contracts && forge fmt --check          # the formatter CI runs first
 cd contracts && forge test                 # 40 tests, real P-256 signatures
 cd app && bunx tsc --noEmit                # types
 cd app && bun run build-worker.mjs         # the Worker bundle must build
@@ -85,12 +86,67 @@ It is the place to prove something "on-chain" rather than "on an anvil fork".
   it closes, not the diff.
 - Small pull requests. One claim per change.
 
+## Releasing the SDK
+
+A release is a tag, and the tag is the version:
+
+```bash
+# bump packages/sdk/package.json, add the CHANGELOG entry, commit
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+`.github/workflows/release.yml` does the rest: it checks the tag against the manifest, refuses a
+version the registry already serves, typechecks the app the package is generated from, rebuilds
+the sources from `app/lib`, verifies the tarball's contents, and publishes. A manual run of that
+workflow executes every gate and stops at `npm publish --dry-run`, which is how a release is
+rehearsed without a tag.
+
+The pack gate reads `npm pack --json`, and npm 11 answers with an array while npm 12 answers with
+an object keyed by package name, so `bun run test:pack` checks that gate against both shapes.
+
+Publishing needs one of two credentials, and the first is preferred:
+
+| Credential | One-time setup | What the workflow sends |
+|---|---|---|
+| Trusted publishing | npmjs.com, the package’s Settings, Trusted publishing: GitHub Actions, repository `thesithunyein/witness`, workflow `release.yml`, with `npm publish` among the allowed actions | an OIDC token, no secret in the repository |
+| `NPM_TOKEN` | an npm granular token with publish rights, added under the repository’s Settings, Secrets and variables, Actions | that token, with `--provenance` |
+
+Trusted publishing needs npm CLI 11.5.1 or newer and Node 22.14 or newer, so the workflow upgrades
+npm rather than trusting the runner's. A configuration created after Sep 3, 2026 starts with
+staged publishing only, so `npm publish` has to be allowed explicitly, and it expires if its first
+publish does not succeed within two days, so create it just before the release you intend to make.
+
 ## Deployment changes
 
 Anything that publishes, a contract deploy, an app redeploy, a published site,
 should be recorded in the README's live table and in `CHANGELOG.md`, with the
 evidence (a transaction hash, an `/api/config` response, a verification job id).
 "This is deployed" without an artifact is not a status.
+
+## Deploying the app
+
+The Vercel project behind `witness-agent.vercel.app` builds with its **Root Directory**
+set to `app`, and it has to stay that way. The repository root has a `package.json`
+too, and it carries no `next`, so a build that starts at the root stops with
+`No Next.js version detected` before it reads a line of the app, which is what turns
+the Vercel check on a commit red while every Actions job is green.
+
+The setting lives in the project rather than in a file. No `vercel.json` key can move
+it, and the `vercel.json` inside `app/` is invisible to a build that started at the
+root, so the repository cannot describe its own build root. Read it back with:
+
+```bash
+vercel api "/v9/projects/<projectId>?teamId=<teamId>"   # prints rootDirectory
+vercel api "/v9/projects/<projectId>?teamId=<teamId>" --method PATCH --field rootDirectory=app
+```
+
+Publishing by hand is still the fastest path, and it is how every live deployment in
+the README's table was produced:
+
+```bash
+cd app && vercel --prod
+```
 
 ## Conduct
 
