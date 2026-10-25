@@ -4,6 +4,7 @@
   "rewrites": [
     { "source": "/deck", "destination": "/index.html" },
     { "source": "/app", "destination": "/index.html" },
+    { "source": "/console", "destination": "/index.html" },
     { "source": "/docs", "destination": "/index.html" },
     { "source": "/integrate", "destination": "/index.html" },
     { "source": "/security", "destination": "/index.html" }
