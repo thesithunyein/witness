@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# local Vercel link (project ids, not secrets)
+.vercel
+
+.vercel

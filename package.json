@@ -7,6 +7,8 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
+    "relayer": "node server/dev.mjs",
+    "verify:relayer": "node server/verify-relayer.mjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },

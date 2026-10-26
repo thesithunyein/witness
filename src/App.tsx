@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import LandingHero from './components/LandingHero';
-import ApprovalsDashboard from './components/ApprovalsDashboard';
+import ConsoleRoute from './components/ConsoleRoute';
 import SecurityAndContracts from './components/SecurityAndContracts';
 import IntegratorDocs from './components/IntegratorDocs';
 import PitchDeck from './components/PitchDeck';
@@ -135,7 +135,7 @@ export default function App() {
         )}
         {activeTab === 'console' && (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <ApprovalsDashboard />
+            <ConsoleRoute />
           </div>
         )}
         {activeTab === 'security' && (
