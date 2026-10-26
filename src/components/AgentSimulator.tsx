@@ -47,7 +47,7 @@ export default function AgentSimulator() {
       'Calling @witness/sdk: client.requestTransfer({ safe, recipient, amount })...',
       'Cryptographic Action Digest computed: keccak256(chainId: 31611, safe, to, amount).',
       isViolation
-        ? 'WITNESS ENFORCER: ACTION BLOCKED. Contract reverted with CEILING_EXCEEDED (Reason 4). Treasury protected.'
+        ? 'WITNESS ENFORCER: ACTION BLOCKED. Contract reverted with OverLimit (Reason 8). Treasury protected.'
         : 'WITNESS AUTHORIZATION REQUIRED: Awaiting hardware passkey signature on-chain. Safe is locked.',
     ];
 

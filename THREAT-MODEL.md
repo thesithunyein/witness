@@ -163,7 +163,7 @@ default.
 
 **Behavioural evidence.**
 
-- `forge test`, 40 tests, including real P-256 signatures over real digests
+- `forge test`, 41 tests, including real P-256 signatures over real digests
   verified through the real precompile. No crypto is mocked.
 - `node examples/live-e2e.mjs`, four assertions against the *deployed*
   contracts: the approved action moves exactly the approved amount, a replay is

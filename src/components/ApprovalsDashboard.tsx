@@ -161,19 +161,17 @@ export default function ApprovalsDashboard() {
         setTimeout(() => {
           setIsSigning(false);
           setSigningStep('');
-          const mockTx = '0x2f4d2a75aa9db940170a1306f58962e3755255b71ee2f6532a2a7bbdb047d9d5';
+          // No transaction is sent from this page, so no hash is attached and
+          // nothing here can be mistaken for a settlement. The chain console
+          // (src/components/ChainConsole.tsx) is the path that really submits.
           setRequests((prev) =>
-            prev.map((r) =>
-              r.id === req.id
-                ? { ...r, status: 'approved', txHash: mockTx }
-                : r
-            )
+            prev.map((r) => (r.id === req.id ? { ...r, status: 'approved' } : r))
           );
           setSafeBalance((prev) => Math.max(0, prev - req.amount));
           setBalanceSource('preview');
           setPolicy((prev) => ({ ...prev, currentSpent: prev.currentSpent + req.amount }));
           setSelectedRequest(null);
-          notify(`Approved ${req.amount} ${req.assetSymbol}. Settled on Mezo Testnet.`);
+          notify(`Approved ${req.amount} ${req.assetSymbol} in this tab. No transaction was sent.`);
         }, 800);
       }, 700);
     }, 400);
@@ -471,7 +469,7 @@ export default function ApprovalsDashboard() {
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
                   <ShieldAlert className="w-4 h-4 text-red-600" />
-                  Policy Ceiling Exceeded (Reason 4)
+                  Policy Ceiling Exceeded (Reason 8, OverLimit)
                 </div>
                 <p className="text-red-700">
                   Requested amount ({selectedRequest.amount} {selectedRequest.assetSymbol}) exceeds your policy ceiling of {policy.ceiling} {policy.assetSymbol}. Smart contract will revert execution.

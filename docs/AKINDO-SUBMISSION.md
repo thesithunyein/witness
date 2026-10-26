@@ -108,7 +108,7 @@ permission, received an agent request, approved it with the passkey, and the saf
 
 ### Not mocked
 
-- **40/40 contract tests** sign real digests with a real P-256 key through the real verifier, no
+- **41/41 contract tests** sign real digests with a real P-256 key through the real verifier, no
   cryptography is stubbed (`cd contracts && forge test`).
 - The SDK has three write paths (`relayer`, `wallet`, `server`) and the app uses the relayer one, so a
   visitor needs no wallet and no gas.
@@ -157,7 +157,7 @@ an embedded browser, because platform passkeys need a real browser window.
 |---|---|---|
 | Mezo integration | 30% | Real MUSD in the safe, real P-256 verification deployed because Mezo has no precompile, live on 31611 with frozen config |
 | Viability | 30% | A missing primitive for every agent that can spend; works with any asset or account abstraction; SDK + integrator kit |
-| Technical | 20% | Passkey digest binds chain/contract/permission/action/asset/recipient/amount; one-time consumption; typed refusal reasons; 40/40 tests; relayer cannot approve |
+| Technical | 20% | Passkey digest binds chain/contract/permission/action/asset/recipient/amount; one-time consumption; typed refusal reasons; 41/41 tests; relayer cannot approve |
 | UX | 10% | One screen, plain language, no wallet, no seed phrase, no gas, technical detail behind *Security details* |
 | Materials | 10% | This document, `README.md`, `THREAT-MODEL.md`, `docs/live-passkey-approval.png`, explorer links |
 

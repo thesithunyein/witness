@@ -170,7 +170,7 @@ export default function Landing() {
           <span className="land-strip__label">contracts deployed</span>
         </div>
         <div>
-          <span className="land-strip__num">40/40</span>
+          <span className="land-strip__num">41/41</span>
           <span className="land-strip__label">tests pass, real signatures</span>
         </div>
         <div>

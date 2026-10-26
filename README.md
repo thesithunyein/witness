@@ -20,7 +20,7 @@
   <img src="https://img.shields.io/badge/crypto-NIST%20P--256%20(WebAuthn)-blue?style=flat-square" alt="NIST P-256" />
   <img src="https://img.shields.io/badge/precompile-EIP--7212%20(~6%2C900%20gas)-orange?style=flat-square" alt="EIP-7212" />
   <img src="https://img.shields.io/badge/vault-Safe%20Multi--Sig%20Module-black?style=flat-square" alt="Safe Module" />
-  <img src="https://img.shields.io/badge/tests-40%20passing%20%C2%B7%20100%25%20forge%20fmt-success?style=flat-square" alt="Foundry Tests" />
+  <img src="https://img.shields.io/badge/tests-41%20passing%20%C2%B7%20100%25%20forge%20fmt-success?style=flat-square" alt="Foundry Tests" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" />
 </p>
 
@@ -30,7 +30,7 @@
 
 | Track | Alignment & Impact |
 | :--- | :--- |
-| **Track 2: Access & Distribution** *(Primary)* | Bridges billions of consumer hardware devices (Apple Secure Enclave, Android Titan, YubiKey) to Mezo's Bitcoin economic layer. Autonomous AI agents can submit daily MUSD requests frictionlessly, while high-value disbursements require human biometric approval. |
+| **Track 2: Access & Distribution** *(Primary)* | Bridges billions of consumer hardware devices (Apple Secure Enclave, Android Titan, YubiKey) to Mezo's Bitcoin economic layer. Autonomous AI agents can request MUSD continuously, while a disbursement only happens when a human taps: the ceiling bounds what that one approval can authorize. |
 | **Track 1: DeFi Treasury Security** *(Synergy)* | Protects MUSD yield vaults, automated arbitrageurs, and liquidity rebalancing bots from prompt injection attacks, API key leaks, and rogue drainers via programmatic on-chain spending ceilings. |
 
 ---
@@ -59,7 +59,7 @@ CURRENT STATUS QUO (CATASTROPHIC RISK):
 | Dimension | Status Quo (Raw Private Keys) | Witness Protocol (Hardware Enclaves) |
 | :--- | :--- | :--- |
 | **Key Storage** | Plaintext `.env` / Server RAM | Isolated Apple Secure Enclave / Titan M2 silicon |
-| **Agent Compromise Impact** | Total treasury loss in a single transaction | Capped to daily micro-spend limit; large sums blocked |
+| **Agent Compromise Impact** | Total treasury loss in a single transaction | Capped to the exact amount the human approved, one action at a time |
 | **Human Governance** | Reactive (post-hack incident response) | Proactive biometric tap (Touch ID / Face ID) |
 | **Phishing Resistance** | Vulnerable to fake signing popups | WebAuthn origin-bound (`rpId` enforced on-chain) |
 | **On-Chain Enforcement** | Basic EOA / Unconstrained signer | Safe Multi-Sig Module + EIP-7212 verification |
@@ -82,10 +82,10 @@ Witness decouples autonomous intent generation from financial execution authorit
           ▼ (2) Evaluates spend limits against policy registry
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ WITNESS ON-CHAIN POLICY REGISTRY (Mezo Testnet Chain 31611)                            │
-│  [ WitnessIntentRegistry.sol ]                                                         │
-│         ├─ If amount <= Policy Ceiling (e.g. 50 MUSD) ────▶ Autonomously Approved      │
-│         └─ If amount > Policy Ceiling (e.g. 450 MUSD) ───▶ CEILING_VIOLATION DETECTED │
-│                                                             (Halts execution)          │
+│  [ WitnessIntentRegistry.sol ]  the permission: ceiling, expiry, one-time use          │
+│         ├─ amount <= the ceiling ──▶ the approval can authorize this transfer          │
+│         └─ amount >  the ceiling ──▶ OverLimit, refused on chain                       │
+│            the ceiling bounds one approval; nothing executes without one               │
 └─────────┬──────────────────────────────────────────────────────────────────────────────┘
           │
           ▼ (3) Dispatches cryptographic WebAuthn ceremony
@@ -115,28 +115,32 @@ Witness decouples autonomous intent generation from financial execution authorit
 ```mermaid
 sequenceDiagram
   autonumber
-  actor Human as Human Keeper (Touch ID)
-  participant Agent as AI Agent (Untrusted)
+  actor Human as Human Keeper (passkey)
+  participant Agent as AI Agent (untrusted)
   participant Registry as WitnessIntentRegistry.sol
-  participant Verifier as P256Verifier (EIP-7212)
-  participant Module as WitnessModule.sol
-  participant Safe as Safe Multi-Sig Vault (MUSD)
+  participant Executor as AgentExecutor.sol
+  participant Safe as DemoSafe (holds MUSD)
+  participant Verifier as WitnessVerifier.sol
 
-  Agent->>Registry: createIntent(recipient, 450 MUSD, nonce)
-  Registry->>Registry: checkCeiling(450 MUSD vs 50 MUSD limit)
-  alt Within Ceiling
-    Registry->>Module: autoExecute()
-    Module->>Safe: execTransactionFromModule(MUSD transfer)
-    Safe-->>Agent: Disbursed within policy
-  else Exceeds Ceiling (Violation)
-    Registry-->>Agent: REVERT: REQUIRES_BIOMETRIC_CONSENT
-    Registry-->>Human: WebAuthn Challenge (NIST P-256)
-    Human->>Human: Biometric Hardware Tap (Touch ID)
-    Human->>Verifier: submitAssertion(intentHash, signature, authenticatorData)
-    Verifier->>Verifier: verifyP256(EIP-7212 precompile: ~6,900 gas)
-    Verifier-->>Module: Validated Assertion
-    Module->>Safe: execTransactionFromModule(MUSD transfer)
-    Safe-->>Human: Confirmed On-Chain (Receipt: 0x2f4d2a75...)
+  Human->>Registry: createIntent(agentWallet, 50 MUSD ceiling, expiry, qx, qy)
+  Agent->>Executor: executeTransfer(intentId, to, 0.05 MUSD, no assertion)
+  Executor->>Safe: execute(...)
+  Safe->>Verifier: authorizeAndConsume(...)
+  Verifier-->>Safe: revert Unauthorized(BadSignature)
+  Safe-->>Agent: refused, nothing moved
+  Note over Human,Agent: The ceiling grants no autonomy.<br/>It bounds what a tap can authorize.
+
+  Human->>Human: passkey tap, signing DemoSafe.actionHash(intentId, to, amount)
+  Human->>Executor: executeTransfer(..., assertion)
+  Executor->>Safe: execute(...)
+  Safe->>Verifier: authorizeAndConsume(...)
+  Verifier->>Verifier: exists, revoked, expiry, consumed,<br/>actor, action type, ceiling, rpIdHash,<br/>UP+UV, webauthn.get, challenge, origin, P-256
+  alt amount within the ceiling and the signature verifies
+    Verifier-->>Safe: Allowed, permission consumed
+    Safe-->>Human: 0.05 MUSD disbursed (receipt 0x2f4d2a75...)
+  else amount above the ceiling
+    Verifier-->>Safe: revert Unauthorized(OverLimit, 8)
+    Safe-->>Human: refused, nothing moved
   end
 ```
 
@@ -149,8 +153,8 @@ sequenceDiagram
 ### 4-Stage Security Pipeline (How It Works)
 
 1. **Step 01, Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD without direct private key custody, signing a structured EIP-712 intent payload using a temporary session key.
-2. **Step 02, Policy Engine Evaluates**: `WitnessIntentRegistry.sol` verifies transaction parameters against owner-set spending policies (per-tx ceiling and cumulative daily MUSD limits). If within limits, it executes automatically.
-3. **Step 03, Hardware Biometric Consent**: If an intent exceeds the ceiling, the keeper receives a cryptographic WebAuthn prompt. A Touch ID, Face ID, or YubiKey tap triggers the physical Secure Enclave to generate an authentic NIST P-256 signature that never leaves the chip.
+2. **Step 02, Policy Engine Bounds the Permission**: `WitnessIntentRegistry.sol` holds the ceiling and expiry the human set when granting the permission. It is a bound, not an autopilot: there is no daily accumulator, and no path moves value without an assertion, so an agent that skips the passkey is refused no matter how small the amount. The ceiling exists so a valid signature cannot be stretched into a larger transfer (`OverLimit`).
+3. **Step 03, Hardware Biometric Consent**: every action that moves value carries a fresh WebAuthn assertion, and the tap triggers the physical Secure Enclave to produce an NIST P-256 signature that never leaves the chip. An attempt above the ceiling is refused by the contract before the prompt is worth showing, which is how the console refuses an over-limit request without asking anyone to tap.
 4. **Step 04, Safe Treasury Disbursal**: the verifier checks the assertion, natively on Monad through `0x0100` and through the deployed `P256Verifier.sol` on Mezo. `WitnessModule.sol` executes `execTransactionFromModule()` on the Safe vault to disburse MUSD on Mezo Testnet.
 
 ---
@@ -172,10 +176,13 @@ rewrites those paths to `index.html`, so a link survives a reload.
 Use that hostname, not a custom domain: the verifier is frozen to `witness-agent.vercel.app`, so a
 credential enrolled anywhere else cannot produce an assertion it accepts.
 
-**What the live site is.** Static React, bundled by Vite, served from the repo root. It reads the
-chain with viem and renders the addresses of the deployed stack. The console walks an intent through
-selection, policy, and a passkey prompt; it does not submit a transaction. The on-chain path is what
-the contracts and the scripts in `examples/` exercise, and the payment below is the proof of it.
+**What the live site is.** Static React, bundled by Vite, served from the repo root, plus one
+serverless function (`/api/relayer`) that holds the signing key. It reads the chain with viem and
+renders the addresses of the deployed stack. With that key configured, every console row is an intent
+that exists in `WitnessIntentRegistry`, and create, approve, reject, adjust-policy and reset are real
+transactions. Without the key the function reports itself unconfigured and the console falls back to
+an illustrative queue, so the page you see is always determined by whether a key is present, never by
+the build.
 
 **What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
 `keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
@@ -221,8 +228,9 @@ by `lockConfiguration()`.
 `contracts/deployments/10143.json` is the single source of truth: the deploy script writes it, the
 app reads it, and the SDK is constructed from it. No address is ever hand-copied.
 
-**The source is verified, so you do not have to take any of this on trust.** All five contracts match
-their Solidity with `exact_match` on Sourcify, which needs no API key:
+**The source is published so you do not have to take any of this on trust.** Four of the five contracts
+return `exact_match` on Sourcify today; `WitnessVerifier` (`0x7836f1…`) returns `null`, so treat that
+one as unverified until `./verify.sh` publishes it. Sourcify needs no API key:
 
 ```bash
 cd contracts && ./verify.sh          # MonadVision (Sourcify), keyless
@@ -350,7 +358,7 @@ Nothing in `scripts/` or `examples/` needs a Node 22+-only feature.
 ## Quickstart
 
 ```bash
-# 1. contracts: 40 tests, real P-256 signatures through a real verifier
+# 1. contracts: 41 tests, real P-256 signatures through a real verifier
 cd contracts
 forge test
 
@@ -622,7 +630,7 @@ witness/
 │   │       ├── IERC20.sol
 │   │       └── IERC721Receiver.sol     required to receive the ERC-8004 token
 │   ├── test/
-│   │   ├── Witness.t.sol               24 end-to-end tests
+│   │   ├── Witness.t.sol               25 end-to-end tests
 │   │   ├── WitnessHardening.t.sol      16 tests: native path, locks, replay, receiver hook
 │   │   ├── mocks/MockERC8004Identity.sol
 │   │   └── vectors/                    real P-256 assertions, generated by Node
@@ -691,7 +699,7 @@ Every claim in this README has a command behind it, and none of them need a secr
 
 ```bash
 cd contracts && ./verify.sh          # source published to an explorer, keyless (Sourcify)
-cd contracts && forge test           # 40 tests, real P-256 signatures, real verifier
+cd contracts && forge test           # 41 tests, real P-256 signatures, real verifier
 cd app && bunx tsc --noEmit          # types
 cd packages/sdk && bun run check     # the published SDK has not drifted from the app
 node scripts/check-style.mjs         # no em dashes in prose or copy
@@ -711,10 +719,10 @@ curl -s http://localhost:3001/api/config
 ## Tests
 
 ```bash
-cd contracts && forge test      # 40 passed; 0 failed
+cd contracts && forge test      # 41 passed; 0 failed
 ```
 
-- `test/Witness.t.sol`, 24 tests: the happy path, every rejection path, the ERC-8004 binding, the
+- `test/Witness.t.sol`, 25 tests: the happy path, every rejection path, the ERC-8004 binding, the
   P256 precompile itself.
 - `test/WitnessHardening.t.sol`, 16 tests: the native MON path, ERC-20/native cross-replay,
   the one-way configuration locks, the absence of an operator-callable arbitrary-call surface, and
@@ -774,7 +782,7 @@ sub-cent call is a product.
 **Why they would not roll their own, with the numbers.** This is the honest answer to "why not just
 write it", so here is what writing it means, measured from this repo: **1,194 lines of Solidity** in
 `contracts/src`, **1,223 lines of client TypeScript** (the four modules `packages/sdk` generates its
-sources from), **40 tests** that sign real digests with a real P-256 key through the real precompile,
+sources from), **41 tests** that sign real digests with a real P-256 key through the real precompile,
 and 1,146 lines of docs across this README, [INTEGRATOR-KIT.md](INTEGRATOR-KIT.md),
 [THREAT-MODEL.md](THREAT-MODEL.md) and the SDK's own README. The parts that actually cost the time
 are not the signature check you would start with:

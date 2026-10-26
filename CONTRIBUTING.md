@@ -22,7 +22,7 @@ cd contracts && forge build    # the contracts
 
 ```bash
 cd contracts && forge fmt --check          # the formatter CI runs first
-cd contracts && forge test                 # 40 tests, real P-256 signatures
+cd contracts && forge test                 # 41 tests, real P-256 signatures
 cd app && bunx tsc --noEmit                # types
 cd app && bun run build-worker.mjs         # the Worker bundle must build
 cd packages/sdk && bun run check           # the SDK must not lag the app

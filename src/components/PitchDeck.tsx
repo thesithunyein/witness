@@ -488,7 +488,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-mono text-zinc-600 pt-1">
-                  <span>Foundry Quality Standard: 40/40 Passing Tests</span>
+                  <span>Foundry Quality Standard: 41/41 Passing Tests</span>
                   <span>100% Strict `forge fmt` Compliance</span>
                 </div>
               </div>
@@ -544,7 +544,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     <div>
                       <div className="font-luckiest text-sm text-emerald-950">Wave 1 Delivered (October 2026)</div>
                       <p className="text-emerald-900/80 leading-relaxed mt-0.5">
-                        Mezo Testnet verified deployment (31611), Safe multi-sig MUSD module, NIST P-256 verifier, interactive console, and 40 passing Foundry test suites.
+                        Mezo Testnet verified deployment (31611), Safe multi-sig MUSD module, NIST P-256 verifier, interactive console, and 41 passing Foundry test suites.
                       </p>
                     </div>
                   </div>

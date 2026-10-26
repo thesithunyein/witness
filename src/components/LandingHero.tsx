@@ -74,7 +74,7 @@ const FAQ_ITEMS: FAQItem[] = [
     question: 'Are the contracts audited and compliant with Foundry standards?',
     answer:
       'Yes. All contracts—including P256Verifier.sol and Deploy.s.sol—are 100% compliant with canonical Foundry formatting (forge fmt) and tested across comprehensive unit and invariant test suites. Configuration parameters (origin and rpId) are immutably locked on-chain to prevent cross-site replay attacks.',
-    highlight: '40/40 test suites passing with zero formatting discrepancies.',
+    highlight: '41/41 test suites passing with zero formatting discrepancies.',
   },
 ];
 
@@ -98,7 +98,7 @@ const intent = await witness.createIntent({
     step: '02',
     title: 'Policy Engine Evaluates',
     subtitle: 'Automated ceiling enforcement',
-    desc: 'WitnessIntentRegistry verifies transaction parameters against owner-set spending policies. If the intent is within the daily ceiling and approved recipient allowlist, it executes automatically.',
+    desc: 'WitnessIntentRegistry holds the ceiling and expiry the human set when granting the permission. The ceiling is a bound, not an autopilot: it caps what a single approval can authorize, and an attempt above it is refused on chain even if a signature is present.',
     badge: 'On-Chain Policy Guard',
     codeSnippet: `// WitnessIntentRegistry.sol
 if (intent.amount <= policy.ceilingPerTx &&
@@ -113,7 +113,7 @@ if (intent.amount <= policy.ceilingPerTx &&
     step: '03',
     title: 'Hardware Biometric Consent',
     subtitle: 'Silicon-level signature generation',
-    desc: 'When an intent exceeds threshold ceilings, the keeper receives a cryptographic WebAuthn prompt. A Touch ID, Face ID, or YubiKey tap triggers the physical Secure Enclave to generate an authentic NIST P-256 signature.',
+    desc: 'Every action that moves value carries a fresh WebAuthn assertion. A Touch ID, Face ID, or YubiKey tap triggers the physical Secure Enclave to generate an authentic NIST P-256 signature, and an over-ceiling attempt is refused before anyone is asked to tap.',
     badge: 'NIST P-256 Enclave',
     codeSnippet: `// Browser WebAuthn API to Secure Enclave
 const assertion = await navigator.credentials.get({
@@ -417,7 +417,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
                     {activeHowStep === 0 && 'Non-custodial intent submission: Agent holds no long-term funds.'}
-                    {activeHowStep === 1 && 'Instant zero-gas policy check: Prevents rogue agent transactions.'}
+                    {activeHowStep === 1 && 'Instant policy check before any funds move: refuses a rogue agent transaction.'}
                     {activeHowStep === 2 && 'Cryptographic passkey signing: Hardware enclave isolation via NIST P-256.'}
                     {activeHowStep === 3 && 'On-chain Safe module execution: Verified on Mezo Testnet (Chain 31611).'}
                   </span>
@@ -426,7 +426,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
                     {activeHowStep === 0 && 'Structured EIP-712 typing ensures human-readable consent.'}
-                    {activeHowStep === 1 && 'Configurable per-tx and cumulative daily MUSD ceilings.'}
+                    {activeHowStep === 1 && 'One ceiling per permission, bound to the exact action a human signed.'}
                     {activeHowStep === 2 && 'Biometric assertion completed via WebAuthn API on physical device.'}
                     {activeHowStep === 3 && 'Native precompile on Monad, a deployed verifier on Mezo.'}
                   </span>
