@@ -297,7 +297,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     </span>
                     <h4 className="font-luckiest text-base text-zinc-900">Zero Hot Private Keys</h4>
                     <p className="text-xs text-zinc-600 leading-relaxed">
-                      Agents only hold disposable session keys to sign off-chain EIP-712 envelopes. Never long-term treasury custody.
+                      Agents hold no key that can move funds. The human passkey signs the canonical action digest, never a long-term treasury key.
                     </p>
                   </div>
 
@@ -342,7 +342,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     </div>
                     <div className="font-luckiest text-sm text-zinc-900">Agent Proposal</div>
                     <p className="text-zinc-600 leading-relaxed">
-                      Agent creates an EIP-712 typed intent with recipient, MUSD amount, and nonce.
+                      Agent submits an unsigned request with recipient and MUSD amount.
                     </p>
                   </div>
 
@@ -375,14 +375,14 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     </div>
                     <div className="font-luckiest text-sm text-zinc-900">Safe Execution</div>
                     <p className="text-zinc-600 leading-relaxed">
-                      `P256Verifier` (~6,900 gas) validates signature and Safe module disburses MUSD.
+                      `WitnessVerifier` validates the assertion and `DemoSafe` releases MUSD.
                     </p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#0d0d0d] text-zinc-200 font-mono text-xs">
                   <div className="text-[11px] text-zinc-400 mb-1">On-Chain Verified Execution Path:</div>
-                  <code>human (Touch ID) ──▶ P256Verifier.sol (EIP-7212) ──▶ WitnessModule.sol ──▶ SafeProxy.execTransactionFromModule()</code>
+                  <code>human (passkey) ──▶ WitnessVerifier.sol ──▶ DemoSafe.execute() ──▶ MUSD transfer</code>
                 </div>
               </div>
             )}
@@ -402,16 +402,16 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     <h4 className="font-luckiest text-sm text-zinc-900">Verified Contracts (Chain 31611)</h4>
                     <ul className="space-y-2 font-mono text-[11px] text-zinc-700">
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
-                        <span className="font-semibold">Safe Treasury Vault:</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x6fC45e31...3F14</span>
+                        <span className="font-semibold">DemoSafe (holds MUSD):</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x1FeB...E1E6</span>
                       </li>
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
-                        <span className="font-semibold">WitnessModule:</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x489f07aC...86fe</span>
+                        <span className="font-semibold">AgentExecutor:</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x6ac4...B45e</span>
                       </li>
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
                         <span className="font-semibold">P256Verifier:</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x918073b6...a8E0</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x8173...4430</span>
                       </li>
                       <li className="flex justify-between">
                         <span className="font-semibold">Real Testnet MUSD:</span>
@@ -544,7 +544,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     <div>
                       <div className="font-luckiest text-sm text-emerald-950">Wave 1 Delivered (October 2026)</div>
                       <p className="text-emerald-900/80 leading-relaxed mt-0.5">
-                        Mezo Testnet verified deployment (31611), Safe multi-sig MUSD module, NIST P-256 verifier, interactive console, and 41 passing Foundry test suites.
+                        Mezo Testnet verified deployment (31611), DemoSafe MUSD treasury, NIST P-256 verifier, interactive console, and 41 passing Foundry test suites.
                       </p>
                     </div>
                   </div>

@@ -57,16 +57,16 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     category: 'Security',
-    question: 'How does the Safe multi-sig contract integration work?',
+    question: 'How does the vault integration work?',
     answer:
-      'Witness functions as an authorized module (WitnessModule.sol) attached to canonical Safe multi-sig contracts. The Safe vault holds the MUSD capital. When an intent is submitted, WitnessModule evaluates the spending policy and verifies the keeper passkey signature against the enrolled public key before executing through Safe’s execTransactionFromModule().',
+      'Witness authorizes a purpose-built vault contract, DemoSafe, which holds the MUSD and has exactly two gated outbound paths. On a request, DemoSafe calls WitnessVerifier, which checks the enrolled passkey signature against the exact action digest, then releases the funds and consumes the permission. There is no module and no Safe proxy: the check lives inside the contract that holds the value.',
     highlight: 'Non-custodial, modular design compatible with battle-tested Safe vaults.',
   },
   {
     category: 'Developers',
     question: 'How do developers integrate Witness into their AI agent frameworks?',
     answer:
-      'Developers can integrate with 3 lines of TypeScript using @witness/sdk or standard EIP-712 envelopes. Agents sign intents with temporary session keys and relay them to the Witness contract. If within policy, execution is instant; if consent is required, our WebAuthn relay handles the user biometric prompt and completes the on-chain call.',
+      'Developers can integrate with 3 lines of TypeScript using @witness/sdk. The agent submits a request and holds no key that can move funds; the human passkey signs the canonical action digest read from DemoSafe, and the relayer submits it. Every action needs that tap, and the permission ceiling bounds what the tap can authorize.',
     highlight: 'Works with LangChain, AutoGPT, Eliza, and custom TypeScript agents.',
   },
   {
@@ -83,8 +83,8 @@ const HOW_IT_WORKS_STEPS = [
     step: '01',
     title: 'Agent Formulates Intent',
     subtitle: 'Off-chain non-custodial proposal',
-    desc: 'Autonomous AI agents or bots draft transaction parameters in MUSD without direct private key custody. The agent signs a structured EIP-712 intent payload using a temporary session key.',
-    badge: 'EIP-712 Envelope',
+    desc: 'Autonomous AI agents or bots draft transaction parameters in MUSD while holding no key that can move funds. Nothing is signed at this stage: the agent can only ask, and the approval that authorizes the transfer is the human passkey over the canonical action digest.',
+    badge: 'Unsigned Request',
     codeSnippet: `// Agent submits intent without private keys
 const intent = await witness.createIntent({
   token: 'MUSD',
@@ -127,15 +127,13 @@ const assertion = await navigator.credentials.get({
   },
   {
     step: '04',
-    title: 'Safe Treasury Disbursal',
-    subtitle: 'Sub-7k gas on-chain execution',
-    desc: 'The verifier checks the assertion, natively on Monad and through a deployed contract on Mezo. Safe multi-sig contracts execute execTransactionFromModule() to transfer MUSD to the destination.',
-    badge: 'Safe Multi-Sig Module',
-    codeSnippet: `// WitnessModule.sol -> Safe
-bytes memory data = abi.encodeWithSelector(
-  IERC20.transfer.selector, intent.recipient, intent.amount
-);
-safe.execTransactionFromModule(MUSD, 0, data, Operation.Call);`,
+    title: 'Treasury Disbursal',
+    subtitle: '~327k gas measured end to end',
+    desc: 'The verifier checks the assertion, natively on Monad and through a deployed contract on Mezo. AgentExecutor submits the call to DemoSafe, which releases MUSD to the destination and consumes the permission.',
+    badge: 'DemoSafe Treasury',
+    codeSnippet: `// AgentExecutor.sol -> DemoSafe.sol
+executor.executeTransfer(intentId, recipient, amount, assertion);
+// DemoSafe -> WitnessVerifier: Allowed, and the permission is consumed`,
     icon: ShieldCheck,
   },
 ];
@@ -281,7 +279,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
               How Witness Works
             </h2>
             <p className="text-sm text-zinc-600 max-w-2xl font-inter">
-              From autonomous agent proposal to biometric hardware verification and Safe multi-sig treasury disbursal on Mezo.
+              From autonomous agent proposal to biometric hardware verification and treasury disbursal on Mezo.
             </p>
           </div>
 
@@ -425,7 +423,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                 <div className="flex items-center gap-2 text-zinc-700">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    {activeHowStep === 0 && 'Structured EIP-712 typing ensures human-readable consent.'}
+                    {activeHowStep === 0 && 'The canonical action digest binds chain, contract, recipient and amount.'}
                     {activeHowStep === 1 && 'One ceiling per permission, bound to the exact action a human signed.'}
                     {activeHowStep === 2 && 'Biometric assertion completed via WebAuthn API on physical device.'}
                     {activeHowStep === 3 && 'Native precompile on Monad, a deployed verifier on Mezo.'}
@@ -537,7 +535,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                     : 'Authorize with Device Passkey'}
                 </div>
                 <p className="text-xs text-zinc-600 leading-relaxed">
-                  Signs an EIP-712 typed intent digest inside your Secure Enclave. Private key never leaves hardware.
+                  Signs the canonical action digest inside your Secure Enclave. Private key never leaves hardware.
                 </p>
               </div>
 
@@ -744,7 +742,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
             TypeScript SDK & CLI
           </h3>
           <p className="text-xs text-zinc-600 leading-relaxed">
-            Submit intents with 3 lines of TypeScript. Hand off to passkeys with typed EIP-712 envelopes.
+            Submit intents with 3 lines of TypeScript. Hand off to a passkey over the canonical action digest.
           </p>
 
           <button

@@ -235,15 +235,34 @@ export const DEMO_CEILINGS = ['0.05', '1.25', '5'].map((v) =>
 
 export const publicClient = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
 
+/**
+ * The key that pays gas, under one name.
+ *
+ * The earlier spellings are still read so an existing deployment does not have
+ * to be renamed to start working, but the value is shape-checked: a placeholder
+ * that is not 32 bytes of hex is ignored rather than accepted and then thrown
+ * out of `privateKeyToAccount` on the first request.
+ */
+const KEY_NAMES = ['RELAYER_PRIVATE_KEY', 'WITNESS_OPERATOR_PRIVATE_KEY', 'WITNESS_RELAYER_PRIVATE_KEY'];
+const KEY_HEX = /^(0x)?[0-9a-fA-F]{64}$/;
+
+const RELAYER_KEY = (() => {
+  for (const name of KEY_NAMES) {
+    const value = process.env[name]?.trim();
+    if (value && KEY_HEX.test(value)) return value;
+  }
+  return null;
+})();
+
 let cachedWallet = null;
 let cachedAccount = null;
 
 export function isConfigured() {
-  return Boolean(process.env.RELAYER_PRIVATE_KEY && ADDRESSES.registry && ADDRESSES.executor);
+  return Boolean(RELAYER_KEY && ADDRESSES.registry && ADDRESSES.executor);
 }
 
 function account() {
-  if (!cachedAccount) cachedAccount = privateKeyToAccount(process.env.RELAYER_PRIVATE_KEY);
+  if (!cachedAccount) cachedAccount = privateKeyToAccount(RELAYER_KEY);
   return cachedAccount;
 }
 
@@ -276,7 +295,9 @@ export async function status() {
     safeBalance: null,
     operator: null,
     executorOperator: null,
-    reason: configured ? null : 'RELAYER_PRIVATE_KEY is not set',
+    reason: configured
+      ? null
+      : 'no signing key: set RELAYER_PRIVATE_KEY to the executor\'s operator key',
   };
   if (!ADDRESSES.registry || !ADDRESSES.safe) return out;
 

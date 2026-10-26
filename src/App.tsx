@@ -176,11 +176,11 @@ export default function App() {
                 </span>
               </div>
               <p className="font-inter text-sm text-zinc-200 max-w-sm leading-relaxed">
-                Hardware passkey authorization for autonomous treasury workflows. Built on NIST P-256 curves and Safe multi-sig architecture.
+                Hardware passkey authorization for autonomous treasury workflows. Built on NIST P-256 curves and a purpose-built vault contract.
               </p>
               <div className="inline-flex items-center gap-2 text-xs font-mono text-zinc-100 bg-[#161616] px-3.5 py-1.5 rounded-full border border-zinc-700 shadow-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#c2f325] ring-2 ring-[#c2f325]/40" />
-                <span className="font-medium">Contracts verified on Mezo & Monad Testnets</span>
+                <span className="font-medium">Deployed on Mezo testnet (31611) and Monad testnet (10143)</span>
               </div>
             </div>
 

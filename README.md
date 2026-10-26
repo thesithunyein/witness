@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/asset-MUSD%20%26%20MEZO-brightgreen?style=flat-square" alt="MUSD Integration" />
   <img src="https://img.shields.io/badge/crypto-NIST%20P--256%20(WebAuthn)-blue?style=flat-square" alt="NIST P-256" />
   <img src="https://img.shields.io/badge/precompile-EIP--7212%20(~6%2C900%20gas)-orange?style=flat-square" alt="EIP-7212" />
-  <img src="https://img.shields.io/badge/vault-Safe%20Multi--Sig%20Module-black?style=flat-square" alt="Safe Module" />
+  <img src="https://img.shields.io/badge/vault-DemoSafe%20treasury-black?style=flat-square" alt="DemoSafe treasury" />
   <img src="https://img.shields.io/badge/tests-41%20passing%20%C2%B7%20100%25%20forge%20fmt-success?style=flat-square" alt="Foundry Tests" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" />
 </p>
@@ -62,7 +62,7 @@ CURRENT STATUS QUO (CATASTROPHIC RISK):
 | **Agent Compromise Impact** | Total treasury loss in a single transaction | Capped to the exact amount the human approved, one action at a time |
 | **Human Governance** | Reactive (post-hack incident response) | Proactive biometric tap (Touch ID / Face ID) |
 | **Phishing Resistance** | Vulnerable to fake signing popups | WebAuthn origin-bound (`rpId` enforced on-chain) |
-| **On-Chain Enforcement** | Basic EOA / Unconstrained signer | Safe Multi-Sig Module + EIP-7212 verification |
+| **On-Chain Enforcement** | Basic EOA / Unconstrained signer | Purpose-built vault contract + on-chain P-256 verification |
 
 ---
 
@@ -76,7 +76,7 @@ Witness decouples autonomous intent generation from financial execution authorit
 │  [ Autonomous AI Agent ] (LangChain / Eliza / AutoGPT)                                 │
 │         │                                                                              │
 │         ▼ (1) Crafts Non-Custodial Intent (Target: MUSD, Amount: 450, Recipient: 0x…)  │
-│  [ EIP-712 Typed Envelope ] (Signed with disposable session key, NO treasury custody)  │
+│[ Unsigned request ] (the agent holds no key; the human passkey signs later)            │
 └─────────┼──────────────────────────────────────────────────────────────────────────────┘
           │
           ▼ (2) Evaluates spend limits against policy registry
@@ -103,7 +103,7 @@ Witness decouples autonomous intent generation from financial execution authorit
 │  [ P256Verifier.sol ] (EIP-7212 Precompile Standard: ~6,900 gas overhead)             │
 │         │                                                                              │
 │         ▼ Verified valid cryptographic assertion                                       │
-│  [ WitnessModule.sol ] ──▶ SafeProxy.execTransactionFromModule()                       │
+│[ AgentExecutor.sol ] ──▶ DemoSafe.execute() ──▶ MUSD transfer                          │
 │         │                                                                              │
 │         ▼ Executes token transfer                                                      │
 │  [ Real MUSD Token Contract ] ──▶ Transfers MUSD to intended destination                │
@@ -152,10 +152,10 @@ sequenceDiagram
 
 ### 4-Stage Security Pipeline (How It Works)
 
-1. **Step 01, Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD without direct private key custody, signing a structured EIP-712 intent payload using a temporary session key.
+1. **Step 01, Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD while holding no key that can move funds. It signs nothing here: it can only ask, and what authorizes the transfer later is a passkey signature over the canonical action digest read from `DemoSafe`.
 2. **Step 02, Policy Engine Bounds the Permission**: `WitnessIntentRegistry.sol` holds the ceiling and expiry the human set when granting the permission. It is a bound, not an autopilot: there is no daily accumulator, and no path moves value without an assertion, so an agent that skips the passkey is refused no matter how small the amount. The ceiling exists so a valid signature cannot be stretched into a larger transfer (`OverLimit`).
 3. **Step 03, Hardware Biometric Consent**: every action that moves value carries a fresh WebAuthn assertion, and the tap triggers the physical Secure Enclave to produce an NIST P-256 signature that never leaves the chip. An attempt above the ceiling is refused by the contract before the prompt is worth showing, which is how the console refuses an over-limit request without asking anyone to tap.
-4. **Step 04, Safe Treasury Disbursal**: the verifier checks the assertion, natively on Monad through `0x0100` and through the deployed `P256Verifier.sol` on Mezo. `WitnessModule.sol` executes `execTransactionFromModule()` on the Safe vault to disburse MUSD on Mezo Testnet.
+4. **Step 04, Treasury Disbursal**: the verifier checks the assertion, natively on Monad through `0x0100` and through the deployed `P256Verifier.sol` on Mezo. `AgentExecutor` then calls `DemoSafe.execute()`, which releases MUSD on Mezo testnet and consumes the permission. There is no module and no Safe proxy: the check lives inside the contract that holds the value.
 
 ---
 
@@ -381,9 +381,8 @@ bun run test-worker.mjs     # drives the Worker handlers against testnet
 Server environment (never exposed to the browser):
 
 ```bash
-WITNESS_CHAIN_ID=10143
-WITNESS_OPERATOR_PRIVATE_KEY=0x…   # drives the agent's attempts
-WITNESS_RELAYER_PRIVATE_KEY=0x…    # registers/revokes permissions (may be the same key)
+WITNESS_CHAIN_ID=31611
+RELAYER_PRIVATE_KEY=0x…   # the executor's operator key: pays gas, cannot approve
 ```
 
 Neither key can approve an action. Approving needs the passkey.
@@ -858,7 +857,7 @@ before a mainnet deployment.
 
 Mezo rewards long-term commitment and iterative progress across Waves. Here is our roadmap into Wave 2 ($5,000 pool):
 
-- [x] **Wave 1 Milestone (Delivered)**: Mezo Testnet deployment (31611), Safe multi-sig MUSD treasury integration, P-256 passkey verification, interactive console, and 41 passing Foundry test suites.
+- [x] **Wave 1 Milestone (Delivered)**: Mezo Testnet deployment (31611), DemoSafe MUSD treasury integration, P-256 passkey verification, interactive console, and 41 passing Foundry test suites.
 - [ ] **Wave 2 Milestone 1: Agent Framework Plugins**: Release pre-built adapters for **LangChain**, **AutoGPT**, and **Eliza** agent frameworks to request MUSD disbursements through Witness with zero manual plumbing.
 - [ ] **Wave 2 Milestone 2: Native MEZO Token Staking Intent**: Expand policy modules to support delegated MEZO staking and auto-rebalancing MUSD/MEZO yield strategies.
 - [ ] **Wave 2 Milestone 3: Mainnet Readiness & Multi-Signer Policies**: Multi-device quorum (e.g. 2-of-3 passkeys required for treasuries > 10,000 MUSD) and preparing for formal third-party audits.

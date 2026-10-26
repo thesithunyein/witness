@@ -231,7 +231,7 @@ export default function ApprovalsDashboard() {
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.035em] text-[#111110]">Treasury Console</h2>
           <p className="text-xs text-zinc-500 font-mono mt-0.5">
-            Mezo Testnet (Chain 31611) · Safe Contract 0x1FeB...1E1E6
+            Mezo Testnet (Chain 31611) · Safe Contract 0x1FeB...E1E6
           </p>
         </div>
 
@@ -454,7 +454,7 @@ export default function ApprovalsDashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Enforcing Safe:</span>
-                <span className="text-zinc-800">DemoSafe (0x1FeB...1E1E6)</span>
+                <span className="text-zinc-800">DemoSafe (0x1FeB...E1E6)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Action Digest:</span>
