@@ -11,8 +11,7 @@
 
 <p align="center">
   <a href="https://app.akindo.io/wave-hacks/OVOO0gdrVU8379D10"><img src="https://img.shields.io/badge/Mezo%20Buildathon-AKINDO%20WaveHack-c2f325?style=for-the-badge&logoColor=black&labelColor=111110" alt="Mezo Buildathon" /></a>
-  <a href="https://explorer.test.mezo.org"><img src="https://img.shields.io/badge/Mezo%20Testnet-Chain%2031611%20Verified-blueviolet?style=for-the-badge&logoColor=white" alt="Mezo Testnet" /></a>
-  <a href="https://testnet.monadscan.com"><img src="https://img.shields.io/badge/Monad%20Testnet-Chain%2010143%20Verified-indigo?style=for-the-badge&logoColor=white" alt="Monad Testnet" /></a>
+  <a href="https://explorer.test.mezo.org"><img src="https://img.shields.io/badge/Mezo%20Testnet-Chain%2031611-blueviolet?style=for-the-badge&logoColor=white" alt="Mezo Testnet" /></a>
 </p>
 
 <p align="center">
@@ -155,14 +154,14 @@ sequenceDiagram
 1. **Step 01, Agent Formulates Intent**: The autonomous AI agent drafts transaction parameters in MUSD while holding no key that can move funds. It signs nothing here: it can only ask, and what authorizes the transfer later is a passkey signature over the canonical action digest read from `DemoSafe`.
 2. **Step 02, Policy Engine Bounds the Permission**: `WitnessIntentRegistry.sol` holds the ceiling and expiry the human set when granting the permission. It is a bound, not an autopilot: there is no daily accumulator, and no path moves value without an assertion, so an agent that skips the passkey is refused no matter how small the amount. The ceiling exists so a valid signature cannot be stretched into a larger transfer (`OverLimit`).
 3. **Step 03, Hardware Biometric Consent**: every action that moves value carries a fresh WebAuthn assertion, and the tap triggers the physical Secure Enclave to produce an NIST P-256 signature that never leaves the chip. An attempt above the ceiling is refused by the contract before the prompt is worth showing, which is how the console refuses an over-limit request without asking anyone to tap.
-4. **Step 04, Treasury Disbursal**: the verifier checks the assertion, natively on Monad through `0x0100` and through the deployed `P256Verifier.sol` on Mezo. `AgentExecutor` then calls `DemoSafe.execute()`, which releases MUSD on Mezo testnet and consumes the permission. There is no module and no Safe proxy: the check lives inside the contract that holds the value.
+4. **Step 04, Treasury Disbursal**: the verifier checks the assertion through the deployed `P256Verifier.sol`, because Mezo ships no native secp256r1 precompile, and natively through `0x0100` on a chain that does. `AgentExecutor` then calls `DemoSafe.execute()`, which releases MUSD on Mezo testnet and consumes the permission. There is no module and no Safe proxy: the check lives inside the contract that holds the value.
 
 ---
 
 ## Live
 
 | What | Where |
-|---|---|---|
+|---|---|
 | Site | **https://witness-agent.vercel.app** |
 | Deck | https://witness-agent.vercel.app/deck |
 | Console | https://witness-agent.vercel.app/app |
@@ -186,8 +185,8 @@ the build.
 
 **What the chain stores, precisely:** the enrolled passkey's P-256 public key (`qx`, `qy`) and
 `keccak256(credentialId)`, bound to the permission. No biometric, no private key, no secret. The
-assertion is checked against that public key by a verifier: the native `0x0100` precompile on Monad,
-a deployed `P256Verifier` on Mezo, which has none.
+assertion is checked against that public key by a verifier: a deployed `P256Verifier` on Mezo,
+which has no precompile, or the native `0x0100` precompile on a chain that ships one (Monad).
 
 > **Where the addresses come from.** `contracts/deployments/31611.json` is the deployment record the
 > signing scripts read. The site carries the same addresses in `src/data/witnessData.ts`, so a
@@ -209,7 +208,7 @@ tx [`0x2f4d2a75…`](https://explorer.test.mezo.org/tx/0x2f4d2a75aa9db940170a130
 (status 1, `AuthorizedTransfer` + MUSD `Transfer`, approval consumed). Identity is **not** enforced on
 this deployment, and the app says so on the page rather than implying otherwise.
 
-#### First target: Monad testnet 10143
+#### Also deployed: Monad testnet 10143
 
 | Contract | Address |
 |---|---|
@@ -391,9 +390,9 @@ Neither key can approve an action. Approving needs the passkey.
 
 ```bash
 cd contracts
-cp ../.env.example ../.env          # then set DEPLOYER_PRIVATE_KEY (fund it from faucet.monad.xyz)
+cp ../.env.example ../.env          # then set DEPLOYER_PRIVATE_KEY (fund it from https://faucet.test.mezo.org)
 set -a && source ../.env && set +a
-forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast
+forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
 ```
 
 The script deploys the stack, registers the agent's ERC-8004 identity (owned by `AgentExecutor`),
@@ -402,11 +401,11 @@ mints demo assets, funds `DemoSafe`, and then **freezes every trust-critical set
 or every passkey prompt fails with *"the relying party ID is not a registrable domain suffix of the
 current domain"*, the most common way this integration breaks.
 
-`DemoSafe` starts with 1000 DemoUSD. The native MON path needs MON in the safe:
+`DemoSafe` starts with 1000 MUSD on Mezo. The native-token path needs the chain's gas token in the safe:
 
 ```bash
-cast send $DEMO_SAFE --value 1.5ether --private-key $DEPLOYER_PRIVATE_KEY \
-  --rpc-url https://testnet-rpc.monad.xyz
+cast send $DEMO_SAFE --value 0.01ether --private-key $DEPLOYER_PRIVATE_KEY \
+  --rpc-url https://rpc.test.mezo.org
 ```
 
 ---
@@ -464,7 +463,7 @@ node examples/agent-request.mjs --over   # an injected agent asks for 10× the l
 
 The loop is four real steps: the agent `POST`s to `/api/requests`; the human decides in the browser
 with a passkey; the agent polls `/api/requests/:id` for the decision; and then the agent **checks the
-transaction on Monad itself** rather than believing the response. A queue that says "approved" is
+transaction on the chain itself** rather than believing the response. A queue that says "approved" is
 worth nothing; a receipt you can verify is worth everything, and that difference is the whole reason
 the queue is allowed to be untrusted.
 
