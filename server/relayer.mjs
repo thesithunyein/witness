@@ -571,6 +571,9 @@ function reasonOf(err) {
   let e = err;
   let depth = 0;
   while (e && typeof e === 'object' && depth < 12) {
+    if (e.errorName === 'Error' && typeof e.args?.[0] === 'string') {
+      return { code: null, reason: e.args[0] };
+    }
     if (e.errorName === 'Unauthorized' && Array.isArray(e.args)) {
       const code = Number(e.args[0]);
       return { code, reason: REASONS[code] ?? `Unknown(${code})` };
@@ -578,12 +581,26 @@ function reasonOf(err) {
     if (typeof e.errorName === 'string' && e.errorName.length > 0) {
       return { code: null, reason: e.errorName };
     }
+    if (typeof e.data === 'string' && e.data.startsWith('0x08c379a0')) {
+      try {
+        const decoded = decodeErrorResult({
+          abi: [{ type: 'error', name: 'Error', inputs: [{ name: 'message', type: 'string' }] }],
+          data: e.data,
+        });
+        if (typeof decoded.args?.[0] === 'string') return { code: null, reason: decoded.args[0] };
+      } catch {
+        // not a string revert
+      }
+    }
     if (typeof e.data === 'string' && e.data.startsWith('0x') && e.data.length >= 10) {
       try {
         const decoded = decodeErrorResult({ abi: EXECUTOR_ABI, data: e.data });
         if (decoded.errorName === 'Unauthorized') {
           const code = Number(decoded.args?.[0]);
           return { code, reason: REASONS[code] ?? `Unknown(${code})` };
+        }
+        if (decoded.errorName === 'Error' && typeof decoded.args?.[0] === 'string') {
+          return { code: null, reason: decoded.args[0] };
         }
         if (decoded.errorName) return { code: null, reason: decoded.errorName };
       } catch {

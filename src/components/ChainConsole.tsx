@@ -16,6 +16,29 @@ import { MEZO_DEPLOYMENT } from '../data/witnessData';
 
 const STORAGE_KEY = 'witness.passkey.v1';
 
+/** What a person, or a judge, should read. The chain code stays on the transaction. */
+function explain(reason?: string | null, code?: number | null): string {
+  const text = (reason ?? '').toLowerCase();
+  if (code === 8 || text.includes('overlimit')) return 'This amount is above the ceiling. Nothing moved.';
+  if (code === 4 || text.includes('alreadyconsumed')) return 'This signature was already used. A second try is refused.';
+  if (text.includes('icr') || text.includes('cannot withdraw')) {
+    return 'The Mezo pool is locked while risky loans are open. Your deposit stays there until those loans are liquidated.';
+  }
+  if (text.includes('missing or invalid parameters')) return 'The passkey prompt did not open. Refresh the page and try once.';
+  if (code === 2 || text === 'revoked') return 'This permission was rejected.';
+  if (code === 3 || text.includes('expired')) return 'This permission has expired. Set a new ceiling.';
+  if (text.includes('notbound')) return 'Bind the passkey first. Until then, nothing can leave.';
+  if (text.includes('keymismatch') || text.includes('alreadyenrolled')) return 'This passkey is not the one bound to the vault.';
+  if (code === 7 || text.includes('actiontypemismatch')) return 'This permission is for a different action.';
+  if (text.includes('aboverelayercap')) return 'That amount is above what this site will submit.';
+  if (code === 15 || text.includes('badsignature') || text.includes('challengemismatch')) {
+    return 'The signature does not match this amount and this address.';
+  }
+  if (text === 'error' || !reason) return 'The vault refused this action. Nothing moved.';
+  if (reason.includes(' ')) return reason;
+  return 'The vault refused this action. Nothing moved.';
+}
+
 type Modal = {
   intent: ChainIntent;
   to: string;
@@ -161,12 +184,12 @@ export default function ChainConsole() {
         ok: r.ok,
         text: r.ok
           ? `${label} of ${poolAmount} MUSD gross submitted. Fee is taken from that amount. Intent ${created.intentId}.`
-          : `${label} refused: ${r.reason ?? 'reverted'}${status?.keyEnrolled === false ? '. The safe is not bound yet (NotBound).' : ''}`,
+          : `${label} did not go through. ${explain(r.reason, r.code)}`,
         txs: [created.txHash, r.txHash].filter((h): h is string => Boolean(h)),
       });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'the stability pool action failed');
+      setError(err instanceof Error ? explain(err.message) : 'the stability pool action failed');
     } finally {
       setBusy(null);
     }
@@ -319,7 +342,7 @@ export default function ChainConsole() {
         ok: r.ok,
         result: r.ok
           ? 'Signed and executed on Mezo.'
-          : `${r.reason ?? 'refused'}${r.code !== null && r.code !== undefined ? ` (reason ${r.code})` : ''}`,
+          : explain(r.reason, r.code),
       });
       await load();
     } catch (err) {
@@ -327,7 +350,7 @@ export default function ChainConsole() {
         ...modal,
         busy: false,
         ok: false,
-        result: err instanceof Error ? err.message : 'the passkey prompt failed',
+        result: err instanceof Error ? explain(err.message) : 'the passkey prompt failed',
       });
     }
   };
@@ -352,7 +375,7 @@ export default function ChainConsole() {
         ok: false,
         text: r.ok
           ? 'the chain accepted an amount above the ceiling, which should be impossible'
-          : `The contract refused it: ${r.reason}${r.code !== null && r.code !== undefined ? ` (reason ${r.code})` : ''}`,
+          : explain(r.reason, r.code),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'the attempt failed');
