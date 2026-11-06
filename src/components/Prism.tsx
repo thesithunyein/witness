@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { startPrism } from '../prism.js';
 
 export default function Prism() {
   const gl = useRef<HTMLCanvasElement>(null);
@@ -9,15 +10,12 @@ export default function Prism() {
     const fxCanvas = fx.current;
     if (!glCanvas || !fxCanvas) return;
     let stop = () => {};
-    let dead = false;
-    import(/* @vite-ignore */ '/prism.js')
-      .then((mod: { startPrism: (a: HTMLCanvasElement, b: HTMLCanvasElement) => () => void }) => {
-        if (dead) return;
-        stop = mod.startPrism(glCanvas, fxCanvas);
-      })
-      .catch(() => {});
+    try {
+      stop = startPrism(glCanvas, fxCanvas);
+    } catch {
+      stop = () => {};
+    }
     return () => {
-      dead = true;
       stop();
     };
   }, []);
