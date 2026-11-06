@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/license-MIT-6e695f" alt="MIT" />
 </p>
 
-The mark is a seal: a ring, a plumb line, and one point. It is the same geometry as the tab icon.
+The mark is a geometric W, the same one as the tab icon.
 
 ## Live
 

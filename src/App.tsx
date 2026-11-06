@@ -33,7 +33,7 @@ export default function App() {
         <div className="flex h-16 items-center justify-between px-[clamp(16px,2.6vw,28px)]">
           <div className="flex items-center gap-3.5">
             <button onClick={() => go('home')} className="flex items-center gap-3.5">
-              <Mark className="h-[22px] w-[22px] text-ink" />
+              <Mark className="h-7 w-7 text-ink" />
               <span className="text-[22px] font-light text-dim">/</span>
               <span className="font-display text-2xl leading-none tracking-tight">Witness</span>
             </button>
