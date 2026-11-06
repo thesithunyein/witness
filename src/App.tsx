@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import ProductHome from './components/ProductHome';
 import ConsoleRoute from './components/ConsoleRoute';
 import Record from './components/Record';
+import Mark from './components/Mark';
 
 type View = 'home' | 'vault' | 'record';
 
@@ -31,7 +32,7 @@ export default function App() {
       <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
           <button onClick={() => go('home')} className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg object-cover" />
+            <Mark className="h-7 w-7 text-ink" />
             <span className="font-display text-[1.35rem] leading-none tracking-tight">Witness</span>
           </button>
           <nav className="flex items-center gap-1 text-sm text-muted">
@@ -63,7 +64,7 @@ export default function App() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="" className="h-7 w-7 rounded-md object-cover" />
+            <Mark className="h-6 w-6 text-ink" />
             <p className="text-sm text-muted">Passkey approvals for a treasury.</p>
           </div>
           <a

@@ -1,3 +1,5 @@
+import Mark from './Mark';
+
 type Props = { onOpen: () => void; onRecord: () => void };
 
 const RULES = [
@@ -137,7 +139,7 @@ function Specimen() {
 
       <div className="specimen absolute left-1/2 top-1/2 w-[min(100%,320px)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-card)] border border-line bg-card p-5">
         <div className="flex items-center justify-between">
-          <img src="/logo.png" alt="" className="h-10 w-10 rounded-xl object-cover" />
+          <Mark className="h-9 w-9 text-ink" />
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">What you sign</span>
         </div>
         <p className="mt-8 font-display text-5xl leading-none tracking-tight text-ink">1.20</p>
