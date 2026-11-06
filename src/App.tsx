@@ -27,6 +27,11 @@ export default function App() {
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   };
 
+  const scrollTo = (id: string) => {
+    go('home');
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 40);
+  };
+
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="sticky top-0 z-40 bg-paper/80 backdrop-blur-md">
@@ -38,6 +43,8 @@ export default function App() {
               <span className="font-display text-2xl leading-none tracking-tight">Witness</span>
             </button>
             <nav className="ml-3 hidden items-center gap-5 text-sm text-muted md:flex">
+              <NavButton active={false} onClick={() => scrollTo('how')}>How</NavButton>
+              <NavButton active={false} onClick={() => scrollTo('faq')}>FAQ</NavButton>
               <NavButton active={view === 'vault'} onClick={() => go('vault')}>Vault</NavButton>
               <NavButton active={view === 'record'} onClick={() => go('record')}>Record</NavButton>
             </nav>

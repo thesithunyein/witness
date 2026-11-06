@@ -60,6 +60,8 @@
 
 .cmd-swap { opacity: 0; transform: translateY(3px); }
 
+summary::-webkit-details-marker { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .rise { opacity: 1; transform: none; animation: none; }
 }

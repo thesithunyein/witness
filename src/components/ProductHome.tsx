@@ -98,6 +98,60 @@ export default function ProductHome({ onOpen, onRecord }: Props) {
           ))}
         </div>
       </section>
+      <section id="how" className="border-t border-line">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-12 md:py-24">
+          <div className="md:col-span-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-dim">How it works</p>
+            <h2 className="mt-4 max-w-[10ch] text-4xl text-ink md:text-5xl">Four steps. Then it is spent.</h2>
+          </div>
+          <ol className="md:col-span-8">
+            {[
+              ['Bind', 'Create a passkey on this site. It is enrolled once.'],
+              ['Ask', 'Software requests a transfer, a deposit, or a withdraw.'],
+              ['Sign', 'You approve that amount, that address, and that action.'],
+              ['Done', 'The vault pays the net. The same signature cannot run again.'],
+            ].map(([title, body], i) => (
+              <li key={title} className="grid grid-cols-[auto_1fr] gap-6 border-t border-line py-6">
+                <span className="font-mono text-[11px] text-dim">0{i + 1}</span>
+                <div>
+                  <h3 className="text-2xl text-ink">{title}</h3>
+                  <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section id="faq" className="border-t border-line">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-12 md:py-24">
+          <div className="md:col-span-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-dim">FAQ</p>
+            <h2 className="mt-4 text-4xl text-ink md:text-5xl">Plain answers.</h2>
+          </div>
+          <div className="md:col-span-8">
+            {FAQ.map(([q, a]) => (
+              <details key={q} className="group border-t border-line py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-lg text-ink">
+                  {q}
+                  <span className="text-dim group-open:hidden">+</span>
+                  <span className="hidden text-dim group-open:inline">–</span>
+                </summary>
+                <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
+
+const FAQ = [
+  ['What can leave the vault?', 'A transfer, a Stability Pool deposit, or a withdraw. Each one is its own signature.'],
+  ['Can software spend on its own?', 'No. It can ask. The passkey is the only approval, including amounts under the ceiling.'],
+  ['What does the fee cover?', '0.10% of the signed amount, taken before the rest moves. It cannot be set above 1%.'],
+  ['What if I lose the passkey?', 'There is no recovery. The key is enrolled once. What is already in the vault stays there.'],
+  ['Is this audited?', 'No. The source matches the Mezo testnet explorer. That is not an audit.'],
+  ['Where does it run?', 'Mezo testnet. Open the vault on this site. A passkey from another address will not verify.'],
+] as const;
