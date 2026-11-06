@@ -26,6 +26,10 @@
   <img src="https://img.shields.io/badge/license-MIT-6e695f" alt="MIT" />
 </p>
 
+<p align="center">
+  <img src="assets/home.png" alt="Witness home. Nothing leaves without your passkey." width="920" />
+</p>
+
 The mark is a geometric W, the same one as the tab icon.
 
 ## Live
