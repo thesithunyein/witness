@@ -365,12 +365,8 @@ export default function ChainConsole() {
     <div className="mx-auto max-w-6xl px-6 pb-24 pt-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold tracking-[0.18em] text-zinc-500">
-            ON-CHAIN CONTROL PLANE
-          </p>
-          <h1 className="mt-1 text-4xl font-black tracking-tight text-[#0d0d0d]">
-            Treasury Console
-          </h1>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted">Vault</p>
+          <h1 className="mt-2 text-5xl text-ink">Live</h1>
           <p className="mt-2 text-sm text-zinc-600">
             {status
               ? `${status.chainName} (Chain ${status.chainId}) · Registry ${short(status.addresses.registry)}`
@@ -484,7 +480,7 @@ export default function ChainConsole() {
             className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
             title="Revoke live permissions and mint three fresh ones at the demo amounts"
           >
-            {busy === 'reset' ? 'Writing...' : 'Reset Demo'}
+            {busy === 'reset' ? 'Writing…' : 'Refresh permissions'}
           </button>
           <button
             onClick={overLimitAttempt}
@@ -492,7 +488,7 @@ export default function ChainConsole() {
             className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
             title="The agent tries nine times the ceiling with no approval"
           >
-            Agent attempts 9x the ceiling
+            Try an amount over the ceiling
           </button>
         </div>
         <p className="mt-2 text-xs text-zinc-500">
@@ -503,7 +499,7 @@ export default function ChainConsole() {
 
       <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Wave 2 safe · one human key · Stability Pool
+          Stability Pool
         </p>
         <p className="mt-1 text-xs text-zinc-600">
           Bind is one shot and must be the passkey in this browser. Until that transaction lands,
