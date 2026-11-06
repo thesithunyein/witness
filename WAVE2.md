@@ -1,6 +1,6 @@
 # Wave 2 delta
 
-This is the change log against the Wave 1 Mezo submission. The Wave 1 contracts on explorer are **not** this build. They still have the drain. Do not point judges at the old DemoSafe until you redeploy.
+This is the change log against the Wave 1 Mezo submission. The Wave 1 DemoSafe (`0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6`) still has the drain. Do not point judges at it.
 
 ## The bug
 
@@ -45,47 +45,55 @@ Wave 2 cases:
 
 The signer imports `@noble/curves/nist.js` (v2). That path is not in the 1.9.1 copy viem depends on, so the root `package.json` depends on `@noble/curves` 2.0.1 directly.
 
-## Redeploy (you have to do this)
+## Deployed (Mezo testnet 31611)
 
-This environment does not have the deployer key, so nothing new is on Mezo and nothing is explorer-verified.
+The Wave 2 stack is on chain. Admin is locked. The safe holds 100 testnet MUSD. Fee is 10 bps to the deployer. The Stability Pool is set. `keyEnrolled` is still false, so every spend reverts `NotBound` until the human binds the passkey that will sign the demo. `enrollKey` is one shot. Do not enroll a test key or a virtual authenticator.
 
-```bash
-# chain 31611, https://rpc.test.mezo.org
-# fund the deployer from https://faucet.test.mezo.org first
-export DEPLOYER_PRIVATE_KEY=0x...
-export RP_ID=witness-agent.vercel.app
-export ORIGIN=https://witness-agent.vercel.app
-export ASSET_TOKEN=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503
-export ASSET_SYMBOL=MUSD
-# optional; these are the defaults on 31611
-# export STABILITY_POOL=0x1CCA7E410eE41739792eA0A24e00349Dd247680e
-# export FEE_BPS=10
-# export HUMAN=<address that will call enrollKey; default deployer>
-# export FEE_RECIPIENT=<default deployer>
+| Contract | Address |
+|---|---|
+| WitnessIntentRegistry | `0x84502BA6Bf4A565b84E8eC1747568d54610E71E2` |
+| P256Verifier | `0x7836f1bDDdBF491c23a285B5015441a5A147D096` |
+| WitnessVerifier | `0x6d9e9Bd86Bcd6D5e0E060DFB3186f52091d858f2` |
+| DemoSafe | `0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8` |
+| AgentExecutor (the only relayer) | `0x7010c0474AA1c8E8039712d314d105D1aDe0a87d` |
+| MUSD (canonical testnet, unchanged) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
+| Stability Pool | `0x1CCA7E410eE41739792eA0A24e00349Dd247680e` |
+| Human / fee recipient | `0xFc31378e13B4Cb7B545bAC58b28916476406439d` |
 
-cd contracts
-forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
-# then the repo's verify.sh against the new manifest
-```
+Source is verified on the Mezo testnet explorer (Blockscout, `Pass - Verified`, solc 0.8.21, via IR). That is a source match, not an audit.
 
-After broadcast, `HUMAN` (the deployer, if you did not override it) must call `DemoSafe.enrollKey` with the passkey public key the app actually uses. Until that transaction lands, the safe reverts `NotBound` on purpose.
+| Contract | Explorer |
+|---|---|
+| WitnessIntentRegistry | https://explorer.test.mezo.org/address/0x84502BA6Bf4A565b84E8eC1747568d54610E71E2 |
+| P256Verifier | https://explorer.test.mezo.org/address/0x7836f1bDDdBF491c23a285B5015441a5A147D096 |
+| WitnessVerifier | https://explorer.test.mezo.org/address/0x6d9e9Bd86Bcd6D5e0E060DFB3186f52091d858f2 |
+| DemoSafe | https://explorer.test.mezo.org/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8 |
+| AgentExecutor | https://explorer.test.mezo.org/address/0x7010c0474AA1c8E8039712d314d105D1aDe0a87d |
 
-The old addresses are the vulnerable build. Do not reuse them.
+Repeat calls of `deploy-wave2-contracts` and `deploy-wave2-wire` do not send transactions. `enroll-key` remains, and it must be the phone passkey.
 
-| Contract | Wave 1 (unsafe until replaced) |
+## Wave 1 (unsafe, do not use)
+
+| Contract | Address |
 |---|---|
 | WitnessIntentRegistry | `0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B` |
 | WitnessVerifier | `0xBE66C46f26fE006B4De2B6441011939F930C8C4D` |
 | DemoSafe | `0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6` |
-| MUSD (canonical testnet, unchanged) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
 | AgentExecutor | `0x6ac484ac42E7eC9942365710b1F8C6106026B45e` |
 | P256Verifier | `0x817328dec94122b8eCB7f28a5839003352394430` |
 
 ## What this build does not claim
 
-Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe module. MEZO treasuries or veMEZO locks. BorrowerOperations / trove intents. LangChain, AutoGPT, or Eliza plugins. An audit. Explorer-verified bytecode (that is the verify step after redeploy, not a property of the source).
+Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe module. MEZO treasuries or veMEZO locks. BorrowerOperations / trove intents. LangChain, AutoGPT, or Eliza plugins. An audit.
 
-The landing page, the deck, and the security panel were rewritten to match this list. `SUBMISSION.md` is the Wave 1 writeup; do not paste it as the Wave 2 description.
+The landing page, the deck, and the security panel match this list. `SUBMISSION.md` is the Wave 1 writeup; do not paste it as the Wave 2 description.
+
+## Still human
+
+1. Open the console on https://witness-agent.vercel.app/app, enroll the phone passkey, and tap **Bind this passkey on chain**.
+2. Deposit to the Stability Pool, then show the pool balance, the fee, and a replay revert.
+3. Record that as the 2-minute pitch. Do not generate a stand-in video.
+4. Resubmit on Akindo before the Wave 2 deadline, describing this delta. Do not paste `SUBMISSION.md`.
 
 ## Pitch video (2 minutes)
 
@@ -93,4 +101,4 @@ The landing page, the deck, and the security panel were rewritten to match this 
 2. Agent proposes a Stability Pool deposit. The human passkey signs the digest from `stabilityDepositHash`.
 3. Show the pool's deposit for the safe (net of the fee) and the fee recipient's balance.
 4. Replay the same assertion. It reverts.
-5. One sentence on what is not in the build: no daily autopilot, no Safe module, not audited, old addresses are dead.
+5. One sentence on what is not in the build: no daily autopilot, no Safe module, not audited, Wave 1 addresses are dead.

@@ -73,8 +73,8 @@ const FAQ_ITEMS: FAQItem[] = [
     category: 'Developers',
     question: 'Are the contracts audited?',
     answer:
-      'No. They are a testnet reference: forge fmt clean, and covered by Foundry tests including the Wave 2 key-binding, relayer, fee, and Stability Pool cases. They are not audited. The Mezo addresses from Wave 1 are the pre-fix deployment until they are redeployed and verified on the explorer.',
-    highlight: 'Tested, not audited. Explorer verification happens after redeploy.',
+      'No. They are a testnet reference: forge fmt clean, and covered by Foundry tests including the Wave 2 key-binding, relayer, fee, and Stability Pool cases. They are not audited. The Wave 2 Mezo safe is live, funded, and the source matches on the Mezo explorer. The passkey is not enrolled yet. The Wave 1 safe must not be used.',
+    highlight: 'Tested, source-verified, not audited. Passkey bind is still open.',
   },
 ];
 
@@ -707,12 +707,12 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
             Mezo & Monad Testnets
           </h3>
           <p className="text-xs text-zinc-600 leading-relaxed">
-            Wave 1 shipped on Mezo testnet and Monad. Wave 2 binds the safe to one passkey and calls the Mezo Stability Pool. Gnosis Safe modules are not in this build. The old Mezo addresses are the pre-fix deployment until you redeploy.
+            Wave 2 is live on Mezo testnet: one enrolled passkey, an allowlisted relayer, and Stability Pool deposit and withdraw. The passkey is not bound yet, so spends revert NotBound. Gnosis Safe modules are not in this build. Do not use the Wave 1 safe.
           </p>
 
           <div className="space-y-2 text-xs font-mono">
             <a
-              href="https://explorer.test.mezo.org/address/0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6"
+              href="https://explorer.test.mezo.org/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8"
               target="_blank"
               rel="noreferrer"
               className="p-2.5 rounded-xl border border-zinc-200 hover:border-zinc-300 bg-zinc-50 flex items-center justify-between text-zinc-700 transition"
@@ -852,7 +852,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
           <div className="space-y-2 text-center md:text-left">
             <h3 className="text-2xl font-bold">Start testing on Mezo Testnet</h3>
             <p className="text-xs text-zinc-400">
-              Interactive console. Passkey over the exact action. Contracts are tested, not audited, and not explorer-verified until redeployed.
+              Interactive console. Passkey over the exact action. Wave 2 safe is live and source-verified. Bind the passkey before spending. Not audited.
             </p>
           </div>
 

@@ -52,7 +52,17 @@ export const RP_ID = process.env.RP_ID ?? deployment.rpId ?? 'witness-agent.verc
 export const ORIGIN = process.env.ORIGIN ?? deployment.origin ?? 'https://witness-agent.vercel.app';
 
 const TRANSFER = keccak256(toBytes('witness.action.transfer'));
+const SP_DEPOSIT = keccak256(toBytes('witness.action.sp.deposit'));
+const SP_WITHDRAW = keccak256(toBytes('witness.action.sp.withdraw'));
 const ZERO = '0x0000000000000000000000000000000000000000';
+
+/** Used when the console demonstrates a refusal and the human never signed. */
+const emptyAssertion = {
+  authenticatorData: '0x',
+  clientDataJSON: '0x',
+  r: 0n,
+  s: 0n,
+};
 
 export const REGISTRY_ABI = [
   {
@@ -149,6 +159,40 @@ export const SAFE_ABI = [
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
   },
+  {
+    type: 'function',
+    name: 'stabilityDepositHash',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'intentId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'stabilityWithdrawHash',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'intentId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'keyEnrolled',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'feeBps',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
 ];
 
 export const EXECUTOR_ABI = [
@@ -159,6 +203,46 @@ export const EXECUTOR_ABI = [
     inputs: [
       { name: 'intentId', type: 'uint256' },
       { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+      {
+        name: 'assertion',
+        type: 'tuple',
+        components: [
+          { name: 'authenticatorData', type: 'bytes' },
+          { name: 'clientDataJSON', type: 'bytes' },
+          { name: 'r', type: 'uint256' },
+          { name: 's', type: 'uint256' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'actionHash', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'depositToStabilityPool',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'intentId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      {
+        name: 'assertion',
+        type: 'tuple',
+        components: [
+          { name: 'authenticatorData', type: 'bytes' },
+          { name: 'clientDataJSON', type: 'bytes' },
+          { name: 'r', type: 'uint256' },
+          { name: 's', type: 'uint256' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'actionHash', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'withdrawFromStabilityPool',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'intentId', type: 'uint256' },
       { name: 'amount', type: 'uint256' },
       {
         name: 'assertion',
@@ -193,6 +277,13 @@ export const EXECUTOR_ABI = [
     inputs: [{ name: 'reason', type: 'uint8' }],
   },
   { type: 'error', name: 'NotAuthorized', inputs: [] },
+  { type: 'error', name: 'NotBound', inputs: [] },
+  { type: 'error', name: 'KeyMismatch', inputs: [] },
+  { type: 'error', name: 'NotRelayer', inputs: [] },
+  { type: 'error', name: 'HashMismatch', inputs: [] },
+  { type: 'error', name: 'AlreadyEnrolled', inputs: [] },
+  { type: 'error', name: 'NotHuman', inputs: [] },
+  { type: 'error', name: 'StabilityPoolUnset', inputs: [] },
 ];
 
 /**
@@ -295,6 +386,8 @@ export async function status() {
     safeBalance: null,
     operator: null,
     executorOperator: null,
+    keyEnrolled: null,
+    feeBps: null,
     reason: configured
       ? null
       : 'no signing key: set RELAYER_PRIVATE_KEY to the executor\'s operator key',
@@ -316,12 +409,32 @@ export async function status() {
   out.nextIntentId = Number(nextId);
   out.safeBalance = balance.toString();
   out.operator = operatorAddress();
+  out.keyEnrolled = null;
+  out.feeBps = null;
   if (ADDRESSES.executor) {
     out.executorOperator = await publicClient.readContract({
       address: ADDRESSES.executor,
       abi: EXECUTOR_ABI,
       functionName: 'operator',
     });
+  }
+  try {
+    const [enrolled, bps] = await Promise.all([
+      publicClient.readContract({
+        address: ADDRESSES.safe,
+        abi: SAFE_ABI,
+        functionName: 'keyEnrolled',
+      }),
+      publicClient.readContract({
+        address: ADDRESSES.safe,
+        abi: SAFE_ABI,
+        functionName: 'feeBps',
+      }),
+    ]);
+    out.keyEnrolled = Boolean(enrolled);
+    out.feeBps = Number(bps);
+  } catch {
+    // The Wave 1 safe has neither getter. Leave them null rather than failing status.
   }
   return out;
 }
@@ -390,6 +503,7 @@ export async function create({
   expirySeconds = 3600,
   agentId = deployment.agentId ?? 0,
   policyHash,
+  actionKind,
 }) {
   if (!qx || !qy) throw new Error('a real passkey public key (qx, qy) is required');
   if (BigInt(maxAmount) <= 0n) throw new Error('maxAmount must be positive');
@@ -404,7 +518,7 @@ export async function create({
     args: [
       ADDRESSES.executor,
       BigInt(agentId),
-      TRANSFER,
+      actionKind === 'sp-deposit' ? SP_DEPOSIT : TRANSFER,
       BigInt(maxAmount),
       expiry,
       policyHash ?? keccak256(toBytes(JSON.stringify({ v: 1, at: Date.now() }))),
@@ -430,10 +544,19 @@ export async function create({
 }
 
 /** The exact digest the passkey has to sign. Read from the contract, never derived here. */
-export async function digest({ intentId, to, amount }) {
-  if (!to || to === ZERO) throw new Error('a destination address is required');
+export async function digest({ intentId, to, amount, kind }) {
   const value = BigInt(amount);
   if (value <= 0n) throw new Error('amount must be positive');
+  if (kind === 'sp-deposit' || kind === 'sp-withdraw') {
+    const hash = await publicClient.readContract({
+      address: ADDRESSES.safe,
+      abi: SAFE_ABI,
+      functionName: kind === 'sp-withdraw' ? 'stabilityWithdrawHash' : 'stabilityDepositHash',
+      args: [BigInt(intentId), value],
+    });
+    return { digest: hash, intentId: Number(intentId), to: null, amount: value.toString(), kind };
+  }
+  if (!to || to === ZERO) throw new Error('a destination address is required');
   const hash = await publicClient.readContract({
     address: ADDRESSES.safe,
     abi: SAFE_ABI,
@@ -452,6 +575,9 @@ function reasonOf(err) {
       const code = Number(e.args[0]);
       return { code, reason: REASONS[code] ?? `Unknown(${code})` };
     }
+    if (typeof e.errorName === 'string' && e.errorName.length > 0) {
+      return { code: null, reason: e.errorName };
+    }
     if (typeof e.data === 'string' && e.data.startsWith('0x') && e.data.length >= 10) {
       try {
         const decoded = decodeErrorResult({ abi: EXECUTOR_ABI, data: e.data });
@@ -459,6 +585,7 @@ function reasonOf(err) {
           const code = Number(decoded.args?.[0]);
           return { code, reason: REASONS[code] ?? `Unknown(${code})` };
         }
+        if (decoded.errorName) return { code: null, reason: decoded.errorName };
       } catch {
         // not our error
       }
@@ -476,22 +603,21 @@ function reasonOf(err) {
  * which is exactly how the console demonstrates a ceiling: the transaction is
  * real, it goes to the chain, and the contract refuses it on its own.
  */
-export async function execute({ intentId, to, amount, assertion }) {
+export async function execute({ intentId, to, amount, assertion, kind }) {
   const value = BigInt(amount);
   if (value > MAX_AMOUNT) return { ok: false, reason: 'AboveRelayerCap', code: null };
 
   const client = wallet();
-  const args = [
-    BigInt(intentId),
-    to,
-    value,
-    assertion ?? {
-      authenticatorData: '0x',
-      clientDataJSON: '0x',
-      r: 0n,
-      s: 0n,
-    },
-  ];
+  const pool = kind === 'sp-deposit' || kind === 'sp-withdraw';
+  const args = pool
+    ? [BigInt(intentId), value, assertion ?? emptyAssertion]
+    : [BigInt(intentId), to, value, assertion ?? emptyAssertion];
+  const functionName =
+    kind === 'sp-deposit'
+      ? 'depositToStabilityPool'
+      : kind === 'sp-withdraw'
+        ? 'withdrawFromStabilityPool'
+        : 'executeTransfer';
 
   try {
     // Simulate first so a refusal is reported as the contract's reason instead of
@@ -499,7 +625,7 @@ export async function execute({ intentId, to, amount, assertion }) {
     await publicClient.simulateContract({
       address: ADDRESSES.executor,
       abi: EXECUTOR_ABI,
-      functionName: 'executeTransfer',
+      functionName,
       args,
       account: client.account,
     });
@@ -507,7 +633,7 @@ export async function execute({ intentId, to, amount, assertion }) {
     const hash = await client.writeContract({
       address: ADDRESSES.executor,
       abi: EXECUTOR_ABI,
-      functionName: 'executeTransfer',
+      functionName,
       args,
       account: client.account,
     });
@@ -613,6 +739,7 @@ export async function dispatch(action, payload = {}) {
         expirySeconds: payload.expirySeconds,
         agentId: payload.agentId,
         policyHash: payload.policyHash,
+        actionKind: payload.actionKind,
       });
       return { status: 200, body: { ok: true, ...created } };
     }
@@ -622,6 +749,7 @@ export async function dispatch(action, payload = {}) {
         intentId: payload.intentId,
         to: payload.to,
         amount: payload.amount,
+        kind: payload.kind,
       });
       return { status: 200, body: { ok: true, ...d } };
     }
@@ -632,6 +760,7 @@ export async function dispatch(action, payload = {}) {
         to: payload.to,
         amount: payload.amount,
         assertion: payload.assertion,
+        kind: payload.kind,
       });
       return { status: 200, body: { ok: result.ok, result } };
     }
@@ -663,17 +792,19 @@ export async function dispatch(action, payload = {}) {
       return { status: 200, body: { ok: true, result } };
     }
 
-    case 'deploy-wave2-contracts': {
-      const { deployContracts } = await import('./wave2Deploy.mjs');
-      const result = await deployContracts();
-      return { status: 200, body: { ok: true, result } };
-    }
-
-    case 'deploy-wave2-wire': {
-      const { wireContracts } = await import('./wave2Deploy.mjs');
-      const result = await wireContracts(payload.contracts);
-      return { status: 200, body: { ok: true, result } };
-    }
+    case 'deploy-wave2-contracts':
+    case 'deploy-wave2-wire':
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          alreadyDeployed: true,
+          result: {
+            note: 'Wave 2 is already deployed and wired. This action no longer sends transactions.',
+            contracts: ADDRESSES,
+          },
+        },
+      };
 
     case 'enroll-key': {
       const { enrollHumanKey } = await import('./wave2Deploy.mjs');

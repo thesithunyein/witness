@@ -167,7 +167,7 @@ sequenceDiagram
 | Console | https://witness-agent.vercel.app/app |
 | Docs | https://witness-agent.vercel.app/docs |
 | Chain | Mezo testnet, chain id 31611 |
-| Asset in the safe | real testnet MUSD (`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`), 4.75 held |
+| Asset in the safe | real testnet MUSD (`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`), 100 funded. Passkey not enrolled. |
 
 One page, five views: product, console, security, docs, deck. Each view has a URL, and Vercel
 rewrites those paths to `index.html`, so a link survives a reload.
@@ -196,16 +196,19 @@ which has no precompile, or the native `0x0100` precompile on a chain that ships
 
 | Contract | Address |
 |---|---|
-| `WitnessIntentRegistry` | [`0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B`](https://explorer.test.mezo.org/address/0x17dACE260313bEa721a8Ed2254Bbbf19D7a9cF5B) |
-| `WitnessVerifier` | [`0xBE66C46f26fE006B4De2B6441011939F930C8C4D`](https://explorer.test.mezo.org/address/0xBE66C46f26fE006B4De2B6441011939F930C8C4D) |
-| `DemoSafe` (holds MUSD) | [`0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6`](https://explorer.test.mezo.org/address/0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6) |
-| `AgentExecutor` | [`0x6ac484ac42E7eC9942365710b1F8C6106026B45e`](https://explorer.test.mezo.org/address/0x6ac484ac42E7eC9942365710b1F8C6106026B45e) |
-| `P256Verifier` (stands in for `0x0100`) | [`0x817328dec94122b8eCB7f28a5839003352394430`](https://explorer.test.mezo.org/address/0x817328dec94122b8eCB7f28a5839003352394430) |
+| `WitnessIntentRegistry` | [`0x84502BA6Bf4A565b84E8eC1747568d54610E71E2`](https://explorer.test.mezo.org/address/0x84502BA6Bf4A565b84E8eC1747568d54610E71E2) |
+| `WitnessVerifier` | [`0x6d9e9Bd86Bcd6D5e0E060DFB3186f52091d858f2`](https://explorer.test.mezo.org/address/0x6d9e9Bd86Bcd6D5e0E060DFB3186f52091d858f2) |
+| `DemoSafe` (holds 100 testnet MUSD) | [`0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8`](https://explorer.test.mezo.org/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8) |
+| `AgentExecutor` | [`0x7010c0474AA1c8E8039712d314d105D1aDe0a87d`](https://explorer.test.mezo.org/address/0x7010c0474AA1c8E8039712d314d105D1aDe0a87d) |
+| `P256Verifier` | [`0x7836f1bDDdBF491c23a285B5015441a5A147D096`](https://explorer.test.mezo.org/address/0x7836f1bDDdBF491c23a285B5015441a5A147D096) |
 | MUSD | [`0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`](https://explorer.test.mezo.org/address/0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503) |
+| Stability Pool | [`0x1CCA7E410eE41739792eA0A24e00349Dd247680e`](https://explorer.test.mezo.org/address/0x1CCA7E410eE41739792eA0A24e00349Dd247680e) |
 
-A passkey-approved 0.05 MUSD payment, run from the production URL, is
+Wave 2 replaced the Wave 1 stack. The safe is bound to one human (the deployer), the executor is the only relayer, the fee is 10 bps, and admin is locked. The passkey is not enrolled yet: open the console and bind the passkey that will sign. Until that transaction, the safe reverts `NotBound`. The Wave 1 safe `0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6` is the old code and should not be used.
+
+A passkey-approved 0.05 MUSD payment on the **retired Wave 1 safe** is
 tx [`0x2f4d2a75…`](https://explorer.test.mezo.org/tx/0x2f4d2a75aa9db940170a1306f58962e3755255b71ee2f6532a2a7bbdb047d9d5)
-(status 1, `AuthorizedTransfer` + MUSD `Transfer`, approval consumed). Identity is **not** enforced on
+(status 1, `AuthorizedTransfer` + MUSD `Transfer`). That receipt is not the Wave 2 deployment. Identity is **not** enforced on
 this deployment, and the app says so on the page rather than implying otherwise.
 
 #### Also deployed: Monad testnet 10143
@@ -856,13 +859,13 @@ before a mainnet deployment.
 
 The judge-facing changelog is [WAVE2.md](WAVE2.md). Short version: DemoSafe is bound to one enrolled human P-256 key, only an allowlisted relayer may submit, Stability Pool deposit and withdraw call Mezo `provideToSP` / `withdrawFromSP`, and a per-approval fee (default 10 bps, max 1%) is taken from the signed gross amount.
 
-Not in this build, and not claimed on the landing page or the deck: daily or monthly budgets, autonomous spend under the ceiling, a Gnosis Safe module, MEZO treasuries, LangChain / Eliza / AutoGPT plugins, an audit, or explorer-verified bytecode. The Wave 1 Mezo addresses are the pre-fix deployment until you redeploy.
+Not in this build, and not claimed on the landing page or the deck: daily or monthly budgets, autonomous spend under the ceiling, a Gnosis Safe module, MEZO treasuries, LangChain / Eliza / AutoGPT plugins, or an audit. The Wave 2 contracts are deployed and their source matches on the Mezo testnet explorer. The Wave 1 safe `0x1FeB7394AE56c3BD618D4089F0A17C9d4832E1E6` is retired.
 
 ## Roadmap
 
-- [x] **Wave 1**: Mezo testnet deployment (31611), DemoSafe holding testnet MUSD, P-256 verification, console, Foundry tests. That deployment does not include the key bind.
-- [x] **Wave 2 code**: enrolled human key, relayer allowlist, Stability Pool deposit and withdraw, per-approval fee, honest materials. See [WAVE2.md](WAVE2.md).
-- [ ] **Wave 2 ops**: redeploy, `enrollKey`, explorer verification, 2-minute pitch video, Akindo resubmit. Cannot be done from this repo without the deployer key.
+- [x] **Wave 1**: Mezo testnet deployment (31611), DemoSafe holding testnet MUSD, P-256 verification, console, Foundry tests. That deployment does not include the key bind. Do not use it.
+- [x] **Wave 2 code and deploy**: enrolled human key, relayer allowlist, Stability Pool deposit and withdraw, per-approval fee, honest materials, new Mezo addresses in [WAVE2.md](WAVE2.md). Admin is locked. Source is verified on the Mezo explorer. Passkey is not enrolled, so spends revert `NotBound`.
+- [ ] **Wave 2 remaining**: the human binds their own passkey from the console (one shot), 2-minute pitch video, Akindo resubmit. Do not enroll a test key.
 - [ ] **Not scheduled as shipped work**: LangChain / Eliza adapters, veMEZO or trove loops, multi-device quorum, mainnet.
 
 ## Contributing

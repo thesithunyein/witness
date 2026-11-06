@@ -19,6 +19,8 @@ export type RelayerStatus = {
   safeBalance: string | null;
   operator: string | null;
   executorOperator: string | null;
+  keyEnrolled: boolean | null;
+  feeBps: number | null;
   reason: string | null;
 };
 
@@ -76,18 +78,25 @@ export const relayer = {
     credentialHash: string;
     maxAmount: string;
     expirySeconds?: number;
+    actionKind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
   }) => call<{ intentId: number | null; txHash: string }>('create', input),
 
-  digest: (input: { intentId: number; to: string; amount: string }) =>
-    call<{ digest: `0x${string}`; intentId: number; to: string; amount: string }>(
+  digest: (input: {
+    intentId: number;
+    to?: string;
+    amount: string;
+    kind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
+  }) =>
+    call<{ digest: `0x${string}`; intentId: number; to: string | null; amount: string }>(
       'digest',
       input
     ),
 
   execute: (input: {
     intentId: number;
-    to: string;
+    to?: string;
     amount: string;
+    kind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
     assertion?: {
       authenticatorData: string;
       clientDataJSON: string;
@@ -115,6 +124,10 @@ export const relayer = {
     ceilings?: string[];
     expirySeconds?: number;
   }) => call<{ result: ReseatResult }>('reset', input),
+
+  /** One-shot. Binds the browser passkey on DemoSafe. A second call reverts AlreadyEnrolled. */
+  bind: (input: { qx: string; qy: string }) =>
+    call<{ result: { hash: string; safe: string } }>('enroll-key', input),
 };
 
 export const formatToken = (value: string | null, decimals = 18) => {

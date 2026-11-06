@@ -399,31 +399,32 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 font-inter text-xs">
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
-                    <h4 className="font-luckiest text-sm text-zinc-900">Verified Contracts (Chain 31611)</h4>
+                    <h4 className="font-luckiest text-sm text-zinc-900">Wave 2 contracts (chain 31611)</h4>
                     <ul className="space-y-2 font-mono text-[11px] text-zinc-700">
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
-                        <span className="font-semibold">DemoSafe (holds MUSD):</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x1FeB...E1E6</span>
+                        <span className="font-semibold">DemoSafe (100 MUSD):</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x17fc...9Ac8</span>
                       </li>
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
                         <span className="font-semibold">AgentExecutor:</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x6ac4...B45e</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x7010...a87d</span>
                       </li>
                       <li className="flex justify-between border-b border-zinc-200 pb-1">
                         <span className="font-semibold">P256Verifier:</span>
-                        <span className="text-zinc-500 truncate max-w-[150px]">0x8173...4430</span>
+                        <span className="text-zinc-500 truncate max-w-[150px]">0x7836...D096</span>
                       </li>
                       <li className="flex justify-between">
                         <span className="font-semibold">Real Testnet MUSD:</span>
                         <span className="text-zinc-500 truncate max-w-[150px]">0x118917a4...c503</span>
                       </li>
                     </ul>
+                    <p className="text-[11px] text-zinc-500">Source matches on the Mezo explorer. Not audited. Passkey not enrolled. Wave 1 safe is retired.</p>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
-                    <h4 className="font-luckiest text-sm text-zinc-900">Live Testnet Proof</h4>
+                    <h4 className="font-luckiest text-sm text-zinc-900">Wave 1 payment, old safe</h4>
                     <p className="text-xs text-zinc-600 leading-relaxed">
-                      A real passkey-approved 0.05 MUSD payment has been executed on Mezo Testnet:
+                      This 0.05 MUSD payment landed on the Wave 1 safe, before the key bind. It is not a receipt for the Wave 2 deployment.
                     </p>
                     <div className="p-3 rounded-xl bg-white border border-zinc-200 font-mono text-[11px] text-zinc-800 break-all">
                       Tx: 0x2f4d2a75aa9db940170a1306f58962e3755255b71ee2f6532a2a7bbdb047d9d5
@@ -544,7 +545,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     <div>
                       <div className="font-luckiest text-sm text-emerald-950">Wave 1 Delivered (October 2026)</div>
                       <p className="text-emerald-900/80 leading-relaxed mt-0.5">
-                        Mezo testnet deployment (31611) of the Wave 1 build: DemoSafe holding testnet MUSD, NIST P-256 verifier, console, Foundry tests. Those addresses do not include the Wave 2 key bind.
+                        Mezo testnet deployment (31611) of the Wave 1 build: DemoSafe holding testnet MUSD, NIST P-256 verifier, console, Foundry tests. That safe is retired. Do not use it.
                       </p>
                     </div>
                   </div>
@@ -562,9 +563,9 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                   <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-zinc-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-luckiest text-sm text-zinc-900">Still required before the live demo matches the code</div>
+                      <div className="font-luckiest text-sm text-zinc-900">Still open after the Wave 2 deploy</div>
                       <p className="text-zinc-600 leading-relaxed mt-0.5">
-                        Redeploy with the deployer key, enroll the passkey, and verify the new bytecode on the Mezo explorer. The Wave 1 addresses are the vulnerable build until that happens.
+                        The new safe is live, funded with 100 testnet MUSD, fee 10 bps, admin locked, and the source is verified on the Mezo explorer. Bind the human passkey from the console. Until that tap, spends revert NotBound. No pitch video yet.
                       </p>
                     </div>
                   </div>

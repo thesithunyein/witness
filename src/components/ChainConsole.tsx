@@ -33,6 +33,7 @@ export default function ChainConsole() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string; txs?: string[] } | null>(null);
   const [ceiling, setCeiling] = useState('50');
+  const [poolAmount, setPoolAmount] = useState('1');
   const [modal, setModal] = useState<Modal | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,9 +83,90 @@ export default function ChainConsole() {
         })
       );
       setPasskey(enrolled);
-      setNotice({ ok: true, text: 'Passkey enrolled in this browser. Its public key is used on the next intent.' });
+      setNotice({
+        ok: true,
+        text: 'Passkey saved in this browser. Bind it on chain before any spend. Binding is one shot and must be this key.',
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'enrollment failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const doBind = async () => {
+    if (!passkey) {
+      setError('enroll a passkey in this browser first. Bind uses that key, and it can only happen once.');
+      return;
+    }
+    if (status?.keyEnrolled) {
+      setError('a key is already enrolled on this safe. A second enroll reverts AlreadyEnrolled.');
+      return;
+    }
+    setBusy('bind');
+    setError(null);
+    try {
+      const res = await relayer.bind({
+        qx: passkey.qx.toString(),
+        qy: passkey.qy.toString(),
+      });
+      setNotice({
+        ok: true,
+        text: 'This browser passkey is now the only key DemoSafe will accept.',
+        txs: res.result?.hash ? [res.result.hash] : [],
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'binding the passkey failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runPool = async (kind: 'sp-deposit' | 'sp-withdraw') => {
+    if (!passkey) {
+      setError('enroll a passkey first. The pool action is refused until that key is also bound on chain.');
+      return;
+    }
+    setBusy(kind);
+    setError(null);
+    try {
+      const amount = parseUnits(poolAmount || '0', 18).toString();
+      if (amount === '0') throw new Error('amount must be positive');
+      const created = await relayer.create({
+        qx: passkey.qx.toString(),
+        qy: passkey.qy.toString(),
+        credentialHash: passkey.credentialHash,
+        maxAmount: amount,
+        expirySeconds: 3600,
+        actionKind: kind,
+      });
+      if (!created.intentId) throw new Error('the registry did not return an intent id');
+      const digested = await relayer.digest({ intentId: created.intentId, amount, kind });
+      const assertion = await assertDigest(digested.digest, passkey.credentialId);
+      const res = await relayer.execute({
+        intentId: created.intentId,
+        amount,
+        kind,
+        assertion: {
+          authenticatorData: assertion.authenticatorData,
+          clientDataJSON: assertion.clientDataJSON,
+          r: assertion.r.toString(),
+          s: assertion.s.toString(),
+        },
+      });
+      const r = res.result;
+      const label = kind === 'sp-deposit' ? 'Deposit' : 'Withdraw';
+      setNotice({
+        ok: r.ok,
+        text: r.ok
+          ? `${label} of ${poolAmount} MUSD gross submitted. Fee is taken from that amount. Intent ${created.intentId}.`
+          : `${label} refused: ${r.reason ?? 'reverted'}${status?.keyEnrolled === false ? '. The safe is not bound yet (NotBound).' : ''}`,
+        txs: [created.txHash, r.txHash].filter((h): h is string => Boolean(h)),
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'the stability pool action failed');
     } finally {
       setBusy(null);
     }
@@ -367,7 +449,13 @@ export default function ChainConsole() {
         <Card
           label="PASSKEY"
           value={passkey ? `P-256 · ${passkey.credentialId.slice(0, 10)}...` : 'not enrolled'}
-          foot={passkey ? `rpId ${passkey.rpId}` : 'enroll to authorize'}
+          foot={
+            passkey
+              ? status?.keyEnrolled
+                ? 'bound on chain'
+                : 'saved here, not bound — spends revert NotBound'
+              : 'enroll, then bind on chain'
+          }
         />
       </div>
 
@@ -411,6 +499,53 @@ export default function ChainConsole() {
           The ceiling is a field of the permission, not a setting: adjusting it revokes the
           current intent and mints a new one, and every step is a transaction.
         </p>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Wave 2 safe · one human key · Stability Pool
+        </p>
+        <p className="mt-1 text-xs text-zinc-600">
+          Bind is one shot and must be the passkey in this browser. Until that transaction lands,
+          every spend reverts NotBound. Deposit and withdraw call Mezo provideToSP / withdrawFromSP.
+          The fee ({status?.feeBps ?? 10} bps) comes out of the signed amount. Source is verified on the Mezo explorer. Not audited.
+        </p>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <button
+            onClick={doBind}
+            disabled={!passkey || status?.keyEnrolled === true || busy === 'bind'}
+            className="rounded-xl bg-[#0d0d0d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            {busy === 'bind'
+              ? 'Binding...'
+              : status?.keyEnrolled
+                ? 'Passkey bound'
+                : 'Bind this passkey on chain'}
+          </button>
+          <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Gross MUSD
+            <input
+              value={poolAmount}
+              onChange={(e) => setPoolAmount(e.target.value)}
+              inputMode="decimal"
+              className="mt-1 block w-28 rounded-lg border border-black/15 px-3 py-2 text-sm font-medium text-[#0d0d0d]"
+            />
+          </label>
+          <button
+            onClick={() => void runPool('sp-deposit')}
+            disabled={!passkey || busy === 'sp-deposit'}
+            className="rounded-xl bg-[#c6f24e] px-4 py-2 text-sm font-bold text-[#0d0d0d] disabled:opacity-40"
+          >
+            {busy === 'sp-deposit' ? 'Waiting for passkey...' : 'Deposit to Stability Pool'}
+          </button>
+          <button
+            onClick={() => void runPool('sp-withdraw')}
+            disabled={!passkey || busy === 'sp-withdraw'}
+            className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
+          >
+            {busy === 'sp-withdraw' ? 'Waiting for passkey...' : 'Withdraw from Stability Pool'}
+          </button>
+        </div>
       </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-black/10 bg-white">
