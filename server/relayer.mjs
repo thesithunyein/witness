@@ -663,6 +663,25 @@ export async function dispatch(action, payload = {}) {
       return { status: 200, body: { ok: true, result } };
     }
 
+    case 'deploy-wave2-contracts': {
+      const { deployContracts } = await import('./wave2Deploy.mjs');
+      const result = await deployContracts();
+      return { status: 200, body: { ok: true, result } };
+    }
+
+    case 'deploy-wave2-wire': {
+      const { wireContracts } = await import('./wave2Deploy.mjs');
+      const result = await wireContracts(payload.contracts);
+      return { status: 200, body: { ok: true, result } };
+    }
+
+    case 'enroll-key': {
+      const { enrollHumanKey } = await import('./wave2Deploy.mjs');
+      const safe = payload.safe ?? ADDRESSES.safe;
+      const result = await enrollHumanKey(safe, payload.qx, payload.qy);
+      return { status: 200, body: { ok: true, result } };
+    }
+
     default:
       return { status: 400, body: { ok: false, error: `unknown action ${action || '(none)'}` } };
   }
