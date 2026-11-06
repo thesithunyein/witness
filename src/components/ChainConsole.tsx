@@ -375,14 +375,14 @@ export default function ChainConsole() {
           <button
             onClick={doEnroll}
             disabled={busy === 'enroll'}
-            className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50"
           >
             {busy === 'enroll' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
             {passkey ? 'Re-enroll passkey' : 'Enroll passkey'}
           </button>
           <button
             onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#0d0d0d]"
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2 text-sm font-semibold text-ink"
           >
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
@@ -393,7 +393,7 @@ export default function ChainConsole() {
         <div className="mt-6 rounded-2xl border border-line bg-card p-5 text-sm text-ink">
           <p className="font-semibold">The relayer has no key, so nothing can be signed.</p>
           <p className="mt-1">
-            Set <code className="rounded bg-white px-1">RELAYER_PRIVATE_KEY</code> to the
+            Set <code className="rounded bg-card px-1">RELAYER_PRIVATE_KEY</code> to the
             AgentExecutor owner or operator key. Until then this console cannot create or execute.
           </p>
         </div>
@@ -453,7 +453,7 @@ export default function ChainConsole() {
         />
       </div>
 
-      <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-line bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Policy ceiling (MUSD)
@@ -461,13 +461,13 @@ export default function ChainConsole() {
               value={ceiling}
               onChange={(e) => setCeiling(e.target.value)}
               inputMode="decimal"
-              className="mt-1 block w-32 rounded-lg border border-black/15 px-3 py-2 text-sm font-medium text-[#0d0d0d]"
+              className="mt-1 block w-32 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink"
             />
           </label>
           <button
             onClick={applyPolicy}
             disabled={busy === 'policy'}
-            className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink disabled:opacity-40"
             title="Revoke the standing permission and mint one at this ceiling"
           >
             {busy === 'policy' ? 'Writing…' : 'Set ceiling'}
@@ -475,7 +475,7 @@ export default function ChainConsole() {
           <button
             onClick={resetDemo}
             disabled={busy === 'reset'}
-            className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink disabled:opacity-40"
             title="Revoke live permissions and mint three fresh ones at the demo amounts"
           >
             {busy === 'reset' ? 'Writing…' : 'Refresh'}
@@ -483,7 +483,7 @@ export default function ChainConsole() {
           <button
             onClick={overLimitAttempt}
             disabled={!ceilingIntent || busy?.startsWith('attempt')}
-            className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink disabled:opacity-40"
             title="The agent tries nine times the ceiling with no approval"
           >
             Over ceiling
@@ -491,7 +491,7 @@ export default function ChainConsole() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-line bg-card p-4">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Pool</p>
         <p className="mt-2 text-sm text-muted">Bind once. Fee {((status?.feeBps ?? 10) / 100).toFixed(2)}%.</p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -528,8 +528,8 @@ export default function ChainConsole() {
         </div>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-black/10 bg-white">
-        <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
+      <div className="mt-8 overflow-hidden rounded-2xl border border-line bg-card">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
           <h2 className="font-display text-2xl text-ink">Intents</h2>
           <span className="text-xs text-muted">{active.length} open</span>
         </div>
@@ -543,7 +543,7 @@ export default function ChainConsole() {
         {intents.map((intent) => (
           <div key={intent.id} className="flex flex-wrap items-center gap-4 border-b border-black/5 px-6 py-5 last:border-0">
             <div className="min-w-0 flex-1">
-              <p className="text-base font-semibold text-[#0d0d0d]">
+              <p className="text-base font-semibold text-ink">
                 Intent #{intent.id} · agent {intent.agentWallet.slice(0, 6)}...
                 {intent.agentWallet.slice(-4)}
               </p>
@@ -553,7 +553,7 @@ export default function ChainConsole() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-bold text-[#0d0d0d]">{formatToken(intent.maxAmount)} MUSD</p>
+              <p className="text-lg font-bold text-ink">{formatToken(intent.maxAmount)} MUSD</p>
               <p className="text-xs text-zinc-500">ceiling</p>
             </div>
             <StateChip state={intent.state} />
@@ -568,7 +568,7 @@ export default function ChainConsole() {
               <button
                 onClick={() => void revoke(intent)}
                 disabled={intent.state !== 'active' || busy === `revoke-${intent.id}`}
-                className="rounded-lg border border-black/15 px-3 py-2 text-xs font-semibold text-[#0d0d0d] disabled:opacity-30"
+                className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-ink disabled:opacity-30"
               >
                 Reject
               </button>
@@ -579,7 +579,7 @@ export default function ChainConsole() {
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-2xl">
             <h3 className="font-display text-3xl text-ink">Sign this action</h3>
             <p className="mt-2 text-sm text-muted">The signature matches this amount and this address. Change either and it fails.</p>
 
@@ -594,7 +594,7 @@ export default function ChainConsole() {
                   onChange={(e) => setModal({ ...modal, to: e.target.value, digest: null })}
                   onBlur={(e) => void refreshDigest(modal, e.target.value, modal.amount)}
                   spellCheck={false}
-                  className="w-64 rounded-lg border border-black/15 px-2 py-1 text-right font-mono text-xs text-[#0d0d0d]"
+                  className="w-64 rounded-lg border border-line px-2 py-1 text-right font-mono text-xs text-ink"
                 />
               </label>
               <Row label="Digest" value={modal.digest ? short(modal.digest) : 'recomputing...'} />
@@ -614,7 +614,7 @@ export default function ChainConsole() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setModal(null)}
-                className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d]"
+                className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink"
               >
                 Close
               </button>
@@ -635,9 +635,9 @@ export default function ChainConsole() {
 
 function Card({ label, value, foot }: { label: string; value: string; foot: string }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-6">
+    <div className="rounded-2xl border border-line bg-card p-6">
       <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#0d0d0d]">{value}</p>
+      <p className="mt-2 text-2xl font-black text-ink">{value}</p>
       <p className="mt-1 text-xs text-zinc-500">{foot}</p>
     </div>
   );
@@ -647,7 +647,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <dt className="text-zinc-500">{label}</dt>
-      <dd className="font-medium text-[#0d0d0d]">{value}</dd>
+      <dd className="font-medium text-ink">{value}</dd>
     </div>
   );
 }

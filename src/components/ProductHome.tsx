@@ -1,169 +1,103 @@
-import Mark from './Mark';
+import { useState } from 'react';
+import Prism from './Prism';
 
 type Props = { onOpen: () => void; onRecord: () => void };
 
-const RULES = [
-  {
-    n: '01',
-    title: 'One key',
-    body: 'The vault accepts a single passkey. A different key cannot spend.',
-  },
-  {
-    n: '02',
-    title: 'Exact action',
-    body: 'Chain, contract, amount, recipient, and type sit inside the signature.',
-  },
-  {
-    n: '03',
-    title: 'One use',
-    body: 'The permission is consumed. A replay is refused.',
-  },
-];
-
-const MOVES = [
-  { name: 'Transfer', detail: 'MUSD to an address you can read before you tap.' },
-  { name: 'Pool deposit', detail: 'MUSD into the Mezo Stability Pool.' },
-  { name: 'Pool withdraw', detail: 'Back into the vault. The fee is taken on the way.' },
-];
+const TABS = [
+  { id: 'transfer', label: 'Transfer', cmd: 'Sign the amount and the address. One use.' },
+  { id: 'deposit', label: 'Deposit', cmd: 'MUSD into the Stability Pool. Fee 0.10%.' },
+  { id: 'withdraw', label: 'Withdraw', cmd: 'The position comes back to the vault.' },
+  { id: 'record', label: 'Record', cmd: 'Mezo testnet. Safe 0x17fc3f…9Ac8.' },
+] as const;
 
 export default function ProductHome({ onOpen, onRecord }: Props) {
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('transfer');
+  const [swap, setSwap] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const current = TABS.find((item) => item.id === tab) ?? TABS[0];
+
+  const pick = (id: (typeof TABS)[number]['id']) => {
+    if (id === tab) return;
+    setSwap(true);
+    window.setTimeout(() => {
+      setTab(id);
+      setSwap(false);
+    }, 160);
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(current.cmd);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   return (
     <div>
-      <section className="mx-auto grid max-w-6xl items-center gap-16 px-5 pb-20 pt-16 lg:grid-cols-12 lg:pt-24">
-        <div className="lg:col-span-6">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
-            Treasury control
-          </p>
-          <h1 className="mt-5 max-w-[12ch] text-[3.25rem] leading-[0.95] text-ink sm:text-7xl">
-            Nothing leaves without your passkey.
+      <section className="relative -mt-16 min-h-svh overflow-hidden" aria-label="Witness">
+        <Prism />
+        <div className="relative z-10 flex min-h-svh max-w-[560px] flex-col justify-center px-[clamp(16px,2.6vw,28px)] pb-16 pt-24">
+          <h1 className="rise font-display text-[clamp(72px,8.6vw,124px)] font-normal leading-[0.9] tracking-[-0.035em] text-ink">
+            Witness
           </h1>
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-muted">
-            Software may request a payment. You sign the exact action. Then that permission is gone.
+          <p className="rise rise-2 mt-[clamp(14px,1.8vw,22px)] text-[clamp(28px,3.05vw,44px)] font-normal leading-[1.2] tracking-[-0.025em] text-ink">
+            <span className="block">Nothing leaves</span>
+            <span className="block">without your passkey.</span>
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="rise rise-3 mt-[clamp(24px,2.6vw,36px)] flex flex-wrap items-center gap-2 text-[15px]" role="tablist">
+            {TABS.map((item, i) => (
+              <span key={item.id} className="flex items-center gap-2">
+                {i > 0 && <span className="text-[11px] text-dim">·</span>}
+                <button
+                  role="tab"
+                  aria-selected={tab === item.id}
+                  onClick={() => pick(item.id)}
+                  className={tab === item.id ? 'text-ink' : 'text-dim hover:text-muted'}
+                >
+                  {item.label}
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="rise rise-4 relative mt-3.5 flex max-w-[440px] items-center justify-between gap-3 border-t border-white/20 pt-3.5 text-[15px] leading-normal">
+            <span className={swap ? 'cmd-swap text-muted transition' : 'text-muted transition'}>{current.cmd}</span>
             <button
-              onClick={onOpen}
-              className="h-12 rounded-full bg-ink px-6 text-sm font-medium text-paper"
+              onClick={() => void copy()}
+              aria-label="Copy"
+              className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[7px] text-dim hover:bg-white/6 hover:text-ink"
             >
-              Open the vault
+              {copied ? '✓' : '⎘'}
             </button>
-            <button
-              onClick={onRecord}
-              className="h-12 rounded-full border border-line px-6 text-sm font-medium text-ink"
-            >
+          </div>
+          <div className="mt-8 flex gap-3">
+            <button onClick={onOpen} className="h-9 rounded-lg border border-white/15 bg-white/4 px-3 text-sm font-medium text-ink hover:bg-white/8">
+              Open vault
+            </button>
+            <button onClick={onRecord} className="h-9 rounded-lg px-3 text-sm text-muted hover:text-ink">
               Contracts
             </button>
           </div>
         </div>
-
-        <div className="relative lg:col-span-6">
-          <Specimen />
-        </div>
       </section>
 
-      <section className="border-y border-line">
+      <section className="border-t border-line">
         <div className="mx-auto grid max-w-6xl md:grid-cols-3">
-          {RULES.map((rule, i) => (
-            <article
-              key={rule.n}
-              className={`px-6 py-10 ${i > 0 ? 'border-t border-line md:border-t-0 md:border-l' : ''}`}
-            >
-              <p className="font-mono text-[11px] text-muted">{rule.n}</p>
-              <h2 className="mt-4 text-3xl text-ink">{rule.title}</h2>
-              <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{rule.body}</p>
+          {[
+            ['01', 'One key', 'The vault accepts a single passkey.'],
+            ['02', 'Exact action', 'Amount, recipient, and type are inside the signature.'],
+            ['03', 'One use', 'A replay is refused. The fee is 0.10%.'],
+          ].map(([n, title, body], i) => (
+            <article key={n} className={`px-6 py-10 ${i ? 'border-t border-line md:border-t-0 md:border-l' : ''}`}>
+              <p className="font-mono text-[11px] text-dim">{n}</p>
+              <h2 className="mt-4 text-3xl text-ink">{title}</h2>
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{body}</p>
             </article>
           ))}
         </div>
       </section>
-
-      <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 lg:grid-cols-12">
-        <div className="lg:col-span-4">
-          <h2 className="text-4xl text-ink">Three moves.</h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            Each one is a separate signature. A transfer approval cannot be reused as a pool deposit.
-          </p>
-        </div>
-        <ol className="lg:col-span-8">
-          {MOVES.map((move) => (
-            <li
-              key={move.name}
-              className="flex items-baseline justify-between gap-6 border-t border-line py-5 last:border-b"
-            >
-              <span className="font-display text-2xl text-ink">{move.name}</span>
-              <span className="max-w-xs text-right text-sm text-muted">{move.detail}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 pb-24">
-        <div className="flex flex-col items-start justify-between gap-6 rounded-[var(--radius-card)] border border-line bg-card px-8 py-10 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-3xl text-ink">The fee is 0.10%.</h2>
-            <p className="mt-2 max-w-md text-sm text-muted">
-              Taken from the signed amount. The recipient gets the rest. Capped at 1%.
-            </p>
-          </div>
-          <button
-            onClick={onOpen}
-            className="h-12 shrink-0 rounded-full bg-moss px-6 text-sm font-medium text-paper"
-          >
-            Sign in the vault
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function Specimen() {
-  return (
-    <div className="relative mx-auto h-[400px] w-full max-w-[520px] overflow-hidden [perspective:1400px] sm:h-[460px]">
-      <svg
-        className="seal-spin absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 text-ink/15 sm:h-[440px] sm:w-[440px]"
-        viewBox="0 0 200 200"
-        aria-hidden
-      >
-        <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" strokeWidth="0.4" />
-        <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" strokeWidth="0.4" />
-        {Array.from({ length: 72 }).map((_, i) => {
-          const a = (i / 72) * Math.PI * 2;
-          const inner = i % 6 === 0 ? 84 : 88;
-          const x1 = 100 + Math.cos(a) * inner;
-          const y1 = 100 + Math.sin(a) * inner;
-          const x2 = 100 + Math.cos(a) * 96;
-          const y2 = 100 + Math.sin(a) * 96;
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" strokeWidth={i % 6 === 0 ? 0.8 : 0.35} />;
-        })}
-      </svg>
-
-      <div className="specimen absolute left-1/2 top-1/2 w-[min(100%,320px)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-card)] border border-line bg-card p-5">
-        <div className="flex items-center justify-between">
-          <Mark className="h-9 w-9 text-ink" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">What you sign</span>
-        </div>
-        <p className="mt-8 font-display text-5xl leading-none tracking-tight text-ink">1.20</p>
-        <p className="mt-1 text-sm text-muted">MUSD · transfer</p>
-        <dl className="mt-6 space-y-2 border-t border-line pt-4 text-sm">
-          <SpecRow k="To" v="0x8841…e319" />
-          <SpecRow k="Ceiling" v="50.00" />
-          <SpecRow k="Fee" v="0.0012" />
-          <SpecRow k="Use" v="Once" />
-        </dl>
-        <div className="mt-5 flex items-center gap-2 text-xs text-moss">
-          <span className="h-1.5 w-1.5 rounded-full bg-moss" />
-          Waiting for the passkey
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SpecRow({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-muted">{k}</dt>
-      <dd className="font-mono text-[13px] text-ink">{v}</dd>
     </div>
   );
 }

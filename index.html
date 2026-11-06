@@ -7,6 +7,7 @@
     <meta name="description" content="Passkey approvals for a treasury. Software can ask. Only your signature spends." />
     <meta property="og:title" content="Witness" />
     <meta property="og:description" content="Passkey approvals for a treasury. Software can ask. Only your signature spends." />
+    <meta name="theme-color" content="#151517" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -15,6 +16,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

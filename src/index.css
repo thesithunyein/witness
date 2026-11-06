@@ -1,69 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,300..500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #f4f1ea;
-  --color-card: #fbfaf6;
-  --color-ink: #1c1a16;
-  --color-muted: #6e695f;
-  --color-line: #e3ddd2;
-  --color-moss: #1e3d32;
-  --color-lime: #e4f56a;
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --color-paper: #151517;
+  --color-card: #1b1b1e;
+  --color-ink: #ededed;
+  --color-muted: #a1a1a1;
+  --color-dim: #6e6e73;
+  --color-line: rgba(255, 255, 255, 0.12);
+  --color-moss: #ededed;
+  --color-lime: #ededed;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius-card: 1.25rem;
+  --radius-card: 1rem;
 }
 
 @layer base {
   html, body, #root {
-    background: var(--color-paper);
-    color: var(--color-ink);
-    font-family: var(--font-sans);
+    background: #151517;
+    color: #ededed;
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4 {
-    font-family: var(--font-display);
-    font-weight: 500;
+    font-family: "Newsreader", "Times New Roman", serif;
+    font-weight: 400;
     letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
-  p {
-    text-wrap: pretty;
-  }
+  p { text-wrap: pretty; }
+
+  a { color: inherit; text-decoration: none; }
 
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
-    cursor: pointer;
+  [role="button"]:not(:disabled) { cursor: pointer; }
+
+  :focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+    border-radius: 6px;
   }
 
-  ::selection {
-    background: #e4f56a;
-    color: #1c1a16;
-  }
+  ::selection { background: #ededed; color: #151517; }
 }
 
-@keyframes seal-spin {
-  to { transform: rotate(360deg); }
-}
+.hero-stage { position: absolute; inset: 0; z-index: 0; touch-action: pan-y; }
+.hero-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero-fx { mix-blend-mode: screen; pointer-events: none; }
 
-.seal-spin {
-  animation: seal-spin 80s linear infinite;
-}
+.rise { opacity: 0; transform: translateY(12px); animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+.rise-2 { animation-delay: 0.08s; }
+.rise-3 { animation-delay: 0.16s; }
+.rise-4 { animation-delay: 0.24s; }
+@keyframes rise { to { opacity: 1; transform: none; } }
 
-.specimen {
-  transform: rotateX(9deg) rotateY(-16deg);
-  transform-style: preserve-3d;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 30px 60px -28px rgba(28, 26, 22, 0.45);
-}
+.cmd-swap { opacity: 0; transform: translateY(3px); }
 
 @media (prefers-reduced-motion: reduce) {
-  .seal-spin { animation: none; }
-  .specimen { transform: none; }
+  .rise { opacity: 1; transform: none; animation: none; }
 }
