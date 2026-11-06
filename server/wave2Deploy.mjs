@@ -20,10 +20,24 @@ const FUND = 100n * 10n ** 18n;
 const EMPTY_CTOR = [{ type: 'constructor', stateMutability: 'nonpayable', inputs: [] }];
 
 async function send(data, account) {
-  const hash = await wallet().sendTransaction({ data, account });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') throw new Error(`tx reverted ${hash}`);
-  return { hash, receipt };
+  const gasPrice = await publicClient.getGasPrice();
+  try {
+    const hash = await wallet().sendTransaction({
+      data,
+      account,
+      gasPrice,
+      gas: 8_000_000n,
+      type: 'legacy',
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`tx reverted ${hash}`);
+    return { hash, receipt };
+  } catch (err) {
+    const bits = [err?.shortMessage, err?.details, err?.cause?.message, err?.message]
+      .filter(Boolean)
+      .join(' | ');
+    throw new Error(bits.slice(0, 280));
+  }
 }
 
 async function deploy(name, abi, args, from, nonce) {
