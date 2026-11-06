@@ -266,7 +266,7 @@ function account() {
   return cachedAccount;
 }
 
-function wallet() {
+export function wallet() {
   if (!isConfigured()) throw new Error('relayer is not configured');
   if (!cachedWallet) {
     cachedWallet = createWalletClient({
