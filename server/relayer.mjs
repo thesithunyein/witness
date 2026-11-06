@@ -518,7 +518,7 @@ export async function create({
     args: [
       ADDRESSES.executor,
       BigInt(agentId),
-      actionKind === 'sp-deposit' ? SP_DEPOSIT : TRANSFER,
+      actionKind === 'sp-deposit' ? SP_DEPOSIT : actionKind === 'sp-withdraw' ? SP_WITHDRAW : TRANSFER,
       BigInt(maxAmount),
       expiry,
       policyHash ?? keccak256(toBytes(JSON.stringify({ v: 1, at: Date.now() }))),
