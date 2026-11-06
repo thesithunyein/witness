@@ -40,23 +40,23 @@ The mark is a geometric W, the same one as the tab icon.
 | Vault | https://witness-agent.vercel.app/app |
 | Contracts | https://witness-agent.vercel.app/security |
 | Chain | Mezo testnet, chain id 31611 |
-| Safe | Started at 100 testnet MUSD. The vault now holds 98. Fee 10 bps. Admin locked. |
+| Safe | Started at 100 testnet MUSD. The vault now holds 99. Fee 10 bps. Admin locked. |
 | Passkey | Enrolled. One key, on `witness-agent.vercel.app`. |
 
-Enroll on that hostname. The verifier is frozen to `witness-agent.vercel.app`. A passkey created anywhere else will not verify. `enrollKey` is one shot, and it has already been used.
+Enroll on that hostname. The verifier is frozen to `witness-agent.vercel.app`. A passkey created anywhere else will not verify. `enrollKey` is one shot, and it has already been used on the recorded vault. A different passkey can open its own vault from the page. That does not touch this one.
 
 The site is a Vite app with three views: Overview, Vault, Record. `/api/relayer` pays gas. It cannot approve.
 
 ## Shown on Mezo
 
-Recorded 6 Nov 2026. Both transactions succeeded. The fee came out of the signed amount.
+Recorded 6 Nov 2026. The fee came out of each signed amount.
 
 | | |
 |---|---|
 | Deposit, 1 MUSD | [0x66f8a5ae…070a2](https://explorer.test.mezo.org/tx/0x66f8a5aec0e25ca2865d317fad4a59f04bae79d6c1fd6fbe0ac64d58a24070a2). 0.999 MUSD went into the Stability Pool. |
 | Transfer, 1 MUSD | [0xdefbe4c3…1c77c](https://explorer.test.mezo.org/tx/0xdefbe4c371f86f039a466c6f527d0c1129fe5736867fe46e00909a8e13e1c77c). Intent 6 is consumed. |
-| Above the ceiling | Refused. The contract returned OverLimit. The balance stayed 98. |
-| Withdraw | Refused by the pool, not by the passkey: it will not pay out while troves are below the collateral ratio. The 0.999 MUSD is still deposited. |
+| Above the ceiling | Refused. The contract returned OverLimit. Nothing moved. |
+| Withdraw | [0xd6b0ab45…e53f](https://explorer.test.mezo.org/tx/0xd6b0ab45091b7836de162816e9565a6c066db6f41bbd9bda097bca515be9e53f). Intent 8 is consumed. The pool returned the deposit and the vault holds 99. |
 
 ## What a signature can do
 
