@@ -40,13 +40,9 @@ export default function ProductHome({ onOpen, onRecord }: Props) {
       <section className="relative -mt-16 min-h-svh overflow-hidden" aria-label="Witness">
         <Prism />
         <div className="relative z-10 flex min-h-svh max-w-[560px] flex-col justify-center px-[clamp(16px,2.6vw,28px)] pb-16 pt-24">
-          <h1 className="rise font-display text-[clamp(72px,8.6vw,124px)] font-normal leading-[0.9] tracking-[-0.035em] text-ink">
-            Witness
+          <h1 className="rise max-w-[12ch] text-[clamp(40px,5.2vw,72px)] font-normal leading-[1.05] tracking-[-0.03em] text-ink">
+            Nothing leaves without your passkey.
           </h1>
-          <p className="rise rise-2 mt-[clamp(14px,1.8vw,22px)] text-[clamp(28px,3.05vw,44px)] font-normal leading-[1.2] tracking-[-0.025em] text-ink">
-            <span className="block">Nothing leaves</span>
-            <span className="block">without your passkey.</span>
-          </p>
           <div className="rise rise-3 mt-[clamp(24px,2.6vw,36px)] flex flex-wrap items-center gap-2 text-[15px]" role="tablist">
             {TABS.map((item, i) => (
               <span key={item.id} className="flex items-center gap-2">
