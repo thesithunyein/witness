@@ -13,6 +13,7 @@ import {WitnessAction} from "../src/libraries/WitnessAction.sol";
 import {IWitnessVerifier, Reason} from "../src/interfaces/IWitness.sol";
 import {AssertionVector} from "./vectors/AssertionVector.sol";
 import {MockERC8004Identity} from "./mocks/MockERC8004Identity.sol";
+import {MockStabilityPool} from "./mocks/MockStabilityPool.sol";
 
 /// @title WitnessTest
 /// @notice End-to-end tests of the Witness protocol.
@@ -78,6 +79,11 @@ contract WitnessTest is Test {
         dusd.mint(address(this), SAFE_FUNDING);
         dusd.approve(address(safe), type(uint256).max);
         safe.fund(SAFE_FUNDING);
+
+        safe.setHuman(human);
+        vm.prank(human);
+        safe.enrollKey(AssertionVector.QX, AssertionVector.QY);
+        safe.setRelayer(address(agent), true);
     }
 
     // ---------------------------------------------------------------------
@@ -85,12 +91,19 @@ contract WitnessTest is Test {
     // ---------------------------------------------------------------------
 
     function _createIntent(uint64 expiry, uint256 agentId) internal returns (uint256) {
+        return _createTyped(WitnessAction.TRANSFER, LIMIT, expiry, agentId);
+    }
+
+    function _createTyped(bytes32 actionType, uint256 maxAmount, uint64 expiry, uint256 agentId)
+        internal
+        returns (uint256)
+    {
         vm.prank(human);
         return registry.createIntent(
             address(agent),
             agentId,
-            WitnessAction.TRANSFER,
-            LIMIT,
+            actionType,
+            maxAmount,
             expiry,
             POLICY,
             CREDENTIAL,
@@ -341,7 +354,7 @@ contract WitnessTest is Test {
         WebAuthn.Assertion memory a = _sign(ah);
 
         vm.prank(operatorKey);
-        _expectUnauthorized(Reason.WrongAgent);
+        vm.expectRevert(DemoSafe.NotRelayer.selector);
         rogueAgent.executeTransfer(intentId, alice, LIMIT, a);
     }
 
@@ -353,7 +366,7 @@ contract WitnessTest is Test {
         WebAuthn.Assertion memory a = _sign(ah);
 
         vm.prank(attacker);
-        _expectUnauthorized(Reason.WrongAgent);
+        vm.expectRevert(DemoSafe.NotRelayer.selector);
         safe.execute(intentId, ah, alice, LIMIT, a);
         assertEq(dusd.balanceOf(alice), 0, "funds are unreachable from outside");
     }
@@ -417,7 +430,7 @@ contract WitnessTest is Test {
         WebAuthn.Assertion memory a = _sign(honest);
 
         bytes32 wrong = keccak256("not-the-action");
-        vm.prank(operatorKey);
+        vm.prank(address(agent));
         vm.expectRevert(DemoSafe.HashMismatch.selector);
         safe.execute(intentId, wrong, alice, LIMIT, a);
     }
@@ -538,6 +551,173 @@ contract WitnessTest is Test {
         registry.createIntent(
             address(agent), 0, WitnessAction.TRANSFER, LIMIT, 1, POLICY, CREDENTIAL, 1, 1
         );
+    }
+
+    // ---------------------------------------------------------------------
+    // 8. Wave 2: bound key, relayer, fee, Stability Pool
+    // ---------------------------------------------------------------------
+
+    function test_wave2_strangerCannotEnrollOrReenroll() public {
+        vm.prank(attacker);
+        vm.expectRevert(DemoSafe.NotHuman.selector);
+        safe.enrollKey(AssertionVector.QX, AssertionVector.QY);
+
+        vm.prank(human);
+        vm.expectRevert(DemoSafe.AlreadyEnrolled.selector);
+        safe.enrollKey(AssertionVector.QX, AssertionVector.QY);
+    }
+
+    /// @notice Ownership lock does not take enroll away from the human, and does
+    ///         not give it to anyone else.
+    function test_wave2_enrollSurvivesOwnershipLock() public {
+        DemoSafe fresh = new DemoSafe(address(verifier), address(dusd));
+        fresh.setHuman(human);
+        fresh.lockOwnership();
+
+        vm.prank(attacker);
+        vm.expectRevert(DemoSafe.NotHuman.selector);
+        fresh.enrollKey(1, 1);
+
+        vm.prank(human);
+        fresh.enrollKey(AssertionVector.QX, AssertionVector.QY);
+        assertTrue(fresh.keyEnrolled());
+        assertEq(fresh.enrolledQx(), AssertionVector.QX);
+
+        vm.prank(human);
+        vm.expectRevert(DemoSafe.AlreadyEnrolled.selector);
+        fresh.enrollKey(AssertionVector.QX, AssertionVector.QY);
+    }
+
+    function test_wave2_unboundSafeRevertsNotBound() public {
+        DemoSafe fresh = new DemoSafe(address(verifier), address(dusd));
+        fresh.setRelayer(address(agent), true);
+
+        WebAuthn.Assertion memory empty;
+        vm.prank(address(agent));
+        vm.expectRevert(DemoSafe.NotBound.selector);
+        fresh.execute(1, bytes32(uint256(1)), alice, 1, empty);
+    }
+
+    /// @notice The Wave 1 drain: a stranger registers their own P-256 key, allowlists
+    ///         themselves as a caller, and still cannot move the safe.
+    function test_wave2_foreignKeyCannotDrain() public {
+        uint64 expiry = _defaultExpiry();
+        vm.prank(attacker);
+        uint256 id = registry.createIntent(
+            attacker,
+            0,
+            WitnessAction.TRANSFER,
+            LIMIT,
+            expiry,
+            POLICY,
+            CREDENTIAL,
+            AssertionVector.QX + 1,
+            AssertionVector.QY
+        );
+
+        safe.setRelayer(attacker, true);
+        bytes32 ah = safe.actionHash(id, attacker, LIMIT);
+        WebAuthn.Assertion memory empty;
+
+        vm.prank(attacker);
+        vm.expectRevert(DemoSafe.KeyMismatch.selector);
+        safe.execute(id, ah, attacker, LIMIT, empty);
+
+        assertEq(dusd.balanceOf(attacker), 0);
+        assertEq(safe.balance(), SAFE_FUNDING);
+        assertFalse(registry.getIntent(id).consumed);
+    }
+
+    function test_wave2_setFeeRejectsAboveOnePercent() public {
+        vm.expectRevert(DemoSafe.FeeTooHigh.selector);
+        safe.setFee(address(0xFEE), 101);
+    }
+
+    function test_wave2_relayerChangeRevertsAfterLock() public {
+        safe.lockOwnership();
+        vm.expectRevert(DemoSafe.Locked.selector);
+        safe.setRelayer(attacker, true);
+        assertFalse(safe.isRelayer(attacker));
+    }
+
+    function test_wave2_transferFeeIsTakenFromTheSignedGross() public {
+        address feeTo = address(0xFEE);
+        safe.setFee(feeTo, 100); // 1%
+
+        intentId = _createIntent(_defaultExpiry(), 0);
+        bytes32 ah = safe.actionHash(intentId, alice, LIMIT);
+        WebAuthn.Assertion memory a = _sign(ah);
+
+        vm.prank(operatorKey);
+        agent.executeTransfer(intentId, alice, LIMIT, a);
+
+        uint256 fee = LIMIT / 100;
+        assertEq(dusd.balanceOf(alice), LIMIT - fee, "payee receives the net");
+        assertEq(dusd.balanceOf(feeTo), fee, "fee recipient receives 1%");
+        assertEq(safe.balance(), SAFE_FUNDING - LIMIT, "gross leaves the safe");
+    }
+
+    function test_wave2_stabilityDepositOverCeiling() public {
+        MockStabilityPool pool = new MockStabilityPool(address(dusd));
+        safe.setStabilityPool(address(pool));
+        intentId = _createTyped(WitnessAction.SP_DEPOSIT, LIMIT, _defaultExpiry(), 0);
+
+        WebAuthn.Assertion memory empty;
+        vm.prank(operatorKey);
+        _expectUnauthorized(Reason.OverLimit);
+        agent.depositToStabilityPool(intentId, LIMIT * 2, empty);
+
+        assertEq(pool.deposits(address(safe)), 0);
+        assertEq(safe.balance(), SAFE_FUNDING);
+        assertTrue(registry.isActive(intentId));
+    }
+
+    function test_wave2_stabilityDepositThenWithdrawTakesFee() public {
+        MockStabilityPool pool = new MockStabilityPool(address(dusd));
+        safe.setStabilityPool(address(pool));
+        address feeTo = address(0xFEE);
+        safe.setFee(feeTo, 10); // 0.10%
+
+        uint256 depositId = _createTyped(WitnessAction.SP_DEPOSIT, LIMIT, _defaultExpiry(), 0);
+        bytes32 depositHash = safe.stabilityDepositHash(depositId, LIMIT);
+        WebAuthn.Assertion memory depositSig = _sign(depositHash);
+
+        vm.prank(operatorKey);
+        agent.depositToStabilityPool(depositId, LIMIT, depositSig);
+
+        uint256 depositFee = (LIMIT * 10) / 10_000;
+        uint256 net = LIMIT - depositFee;
+        assertEq(pool.deposits(address(safe)), net, "pool receives the net deposit");
+        assertEq(dusd.balanceOf(feeTo), depositFee, "fee skimmed before the pool");
+        assertEq(safe.balance(), SAFE_FUNDING - LIMIT, "gross left the safe");
+        assertTrue(registry.getIntent(depositId).consumed);
+
+        vm.prank(operatorKey);
+        _expectUnauthorized(Reason.AlreadyConsumed);
+        agent.depositToStabilityPool(depositId, LIMIT, depositSig);
+        assertEq(pool.deposits(address(safe)), net, "replay does not deposit again");
+
+        uint256 withdrawId = _createTyped(WitnessAction.SP_WITHDRAW, net, _defaultExpiry(), 0);
+        bytes32 withdrawHash = safe.stabilityWithdrawHash(withdrawId, net);
+        WebAuthn.Assertion memory withdrawSig = _sign(withdrawHash);
+
+        vm.prank(operatorKey);
+        agent.withdrawFromStabilityPool(withdrawId, net, withdrawSig);
+
+        uint256 withdrawFee = (net * 10) / 10_000;
+        assertEq(pool.deposits(address(safe)), 0, "position is closed");
+        assertEq(dusd.balanceOf(feeTo), depositFee + withdrawFee);
+        assertEq(safe.balance(), SAFE_FUNDING - LIMIT + net - withdrawFee, "net stays in the safe");
+        assertTrue(registry.getIntent(withdrawId).consumed);
+    }
+
+    function test_wave2_stabilityPoolUnsetRevertsBeforeConsume() public {
+        intentId = _createTyped(WitnessAction.SP_DEPOSIT, LIMIT, _defaultExpiry(), 0);
+        WebAuthn.Assertion memory empty;
+        vm.prank(operatorKey);
+        vm.expectRevert(DemoSafe.StabilityPoolUnset.selector);
+        agent.depositToStabilityPool(intentId, LIMIT, empty);
+        assertTrue(registry.isActive(intentId));
     }
 
     // ---------------------------------------------------------------------

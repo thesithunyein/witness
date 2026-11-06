@@ -167,7 +167,7 @@ export default function ContractsExplorer() {
               <FileCode className="w-3.5 h-3.5 text-slate-500" />
               P256Verifier.sol (Lines 70-87 Formatted)
             </span>
-            <span className="text-emerald-700 font-medium">Foundry style verified</span>
+            <span className="text-emerald-700 font-medium">forge fmt only — not explorer-verified</span>
           </div>
 
           <pre className="p-4 rounded-xl bg-slate-900 text-[11px] text-slate-200 font-mono overflow-x-auto leading-relaxed">

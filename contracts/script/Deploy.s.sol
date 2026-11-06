@@ -61,6 +61,10 @@ contract Deploy is Script {
         /// @dev ERC-20 the safe holds. Zero means "deploy DemoUSD for this run".
         address asset;
         string assetSymbol;
+        address stabilityPool;
+        address feeRecipient;
+        uint256 feeBps;
+        address human;
     }
 
     struct Deployed {
@@ -87,6 +91,13 @@ contract Deploy is Script {
         return address(0);
     }
 
+    /// @dev Mezo Stability Pool. Testnet 31611 and mainnet 31612 from mezo-org/musd.
+    function _defaultStabilityPool(uint256 chainId) internal pure returns (address) {
+        if (chainId == 31611) return 0x1CCA7E410eE41739792eA0A24e00349Dd247680e;
+        if (chainId == 31612) return 0x73245Eff485aB3AAc1158B3c4d8f4b23797B0e32;
+        return address(0);
+    }
+
     function _config() internal view returns (Config memory c) {
         c.chainId = block.chainid;
         c.rpId = vm.envOr("RP_ID", string("witness.sithunyein.com"));
@@ -99,6 +110,9 @@ contract Deploy is Script {
         c.asset = vm.envOr("ASSET_TOKEN", address(0));
         c.assetSymbol =
             vm.envOr("ASSET_SYMBOL", c.asset == address(0) ? string("DemoUSD") : string("MUSD"));
+        c.stabilityPool = vm.envOr("STABILITY_POOL", _defaultStabilityPool(c.chainId));
+        c.feeBps = vm.envOr("FEE_BPS", uint256(10));
+        c.human = vm.envOr("HUMAN", address(0));
     }
 
     function run() external {
@@ -106,6 +120,8 @@ contract Deploy is Script {
         Config memory c = _config();
         c.deployer = vm.addr(pk);
         c.payee = vm.envOr("DEMO_PAYEE", c.deployer);
+        c.feeRecipient = vm.envOr("FEE_RECIPIENT", c.deployer);
+        if (c.human == address(0)) c.human = c.deployer;
 
         Deployed memory d = _deploy(pk, c);
         _writeManifest(c, d);
@@ -159,6 +175,13 @@ contract Deploy is Script {
         // local/dev convenience, and is rotated with setOperator on a real deployment.
         AgentExecutor agent = new AgentExecutor(payable(d.safe), c.deployer);
         d.agent = address(agent);
+
+        safe.setHuman(c.human);
+        safe.setRelayer(d.agent, true);
+        if (c.stabilityPool != address(0)) {
+            safe.setStabilityPool(c.stabilityPool);
+        }
+        safe.setFee(c.feeRecipient, c.feeBps);
 
         // Pre-fund the safe so the demo can move real value immediately.
         if (c.asset == address(0)) {
@@ -223,6 +246,10 @@ contract Deploy is Script {
         vm.serializeUint(root, "agentId", d.agentId);
         vm.serializeAddress(root, "erc8004IdentityRegistry", c.identityRegistry);
         vm.serializeAddress(root, "payee", c.payee);
+        vm.serializeAddress(root, "human", c.human);
+        vm.serializeAddress(root, "feeRecipient", c.feeRecipient);
+        vm.serializeAddress(root, "stabilityPool", c.stabilityPool);
+        vm.serializeUint(root, "feeBps", c.feeBps);
         vm.serializeString(root, "assetSymbol", c.assetSymbol);
         vm.serializeString(root, "contracts", contractsJson);
         vm.serializeString(root, "safeFunding", vm.toString(c.funding));

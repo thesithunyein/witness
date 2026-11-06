@@ -92,6 +92,27 @@ contract AgentExecutor is IERC721Receiver {
         demoSafe.executeNative(intentId, actionHash, to, amount, assertion);
     }
 
+    /// @notice Passkey-approved Stability Pool deposit. The executor is the relayer,
+    ///         not the authorizer.
+    function depositToStabilityPool(
+        uint256 intentId,
+        uint256 amount,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.stabilityDepositHash(intentId, amount);
+        demoSafe.depositToStabilityPool(intentId, actionHash, amount, assertion);
+    }
+
+    /// @notice Passkey-approved Stability Pool withdraw back into the safe.
+    function withdrawFromStabilityPool(
+        uint256 intentId,
+        uint256 amount,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.stabilityWithdrawHash(intentId, amount);
+        demoSafe.withdrawFromStabilityPool(intentId, actionHash, amount, assertion);
+    }
+
     /// @notice Accept the ERC-8004 identity token when the registry mints it.
     ///
     /// @dev Required, and not a formality: the ERC-8004 Identity Registry mints the

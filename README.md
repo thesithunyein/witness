@@ -72,7 +72,7 @@ Witness decouples autonomous intent generation from financial execution authorit
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ UNTRUSTED ZONE (Agent Execution Environment)                                           │
-│  [ Autonomous AI Agent ] (LangChain / Eliza / AutoGPT)                                 │
+│  [ Agent process ] (holds no key; no LangChain or Eliza adapter ships with this build) │
 │         │                                                                              │
 │         ▼ (1) Crafts Non-Custodial Intent (Target: MUSD, Amount: 450, Recipient: 0x…)  │
 │[ Unsigned request ] (the agent holds no key; the human passkey signs later)            │
@@ -852,16 +852,18 @@ before a mainnet deployment.
 
 ---
 
-## Roadmap: Wave 2 & Future Milestones
+## Wave 2 delta
 
-Mezo rewards long-term commitment and iterative progress across Waves. Here is our roadmap into Wave 2 ($5,000 pool):
+The judge-facing changelog is [WAVE2.md](WAVE2.md). Short version: DemoSafe is bound to one enrolled human P-256 key, only an allowlisted relayer may submit, Stability Pool deposit and withdraw call Mezo `provideToSP` / `withdrawFromSP`, and a per-approval fee (default 10 bps, max 1%) is taken from the signed gross amount.
 
-- [x] **Wave 1 Milestone (Delivered)**: Mezo Testnet deployment (31611), DemoSafe MUSD treasury integration, P-256 passkey verification, interactive console, and 41 passing Foundry test suites.
-- [ ] **Wave 2 Milestone 1: Agent Framework Plugins**: Release pre-built adapters for **LangChain**, **AutoGPT**, and **Eliza** agent frameworks to request MUSD disbursements through Witness with zero manual plumbing.
-- [ ] **Wave 2 Milestone 2: Native MEZO Token Staking Intent**: Expand policy modules to support delegated MEZO staking and auto-rebalancing MUSD/MEZO yield strategies.
-- [ ] **Wave 2 Milestone 3: Mainnet Readiness & Multi-Signer Policies**: Multi-device quorum (e.g. 2-of-3 passkeys required for treasuries > 10,000 MUSD) and preparing for formal third-party audits.
+Not in this build, and not claimed on the landing page or the deck: daily or monthly budgets, autonomous spend under the ceiling, a Gnosis Safe module, MEZO treasuries, LangChain / Eliza / AutoGPT plugins, an audit, or explorer-verified bytecode. The Wave 1 Mezo addresses are the pre-fix deployment until you redeploy.
 
----
+## Roadmap
+
+- [x] **Wave 1**: Mezo testnet deployment (31611), DemoSafe holding testnet MUSD, P-256 verification, console, Foundry tests. That deployment does not include the key bind.
+- [x] **Wave 2 code**: enrolled human key, relayer allowlist, Stability Pool deposit and withdraw, per-approval fee, honest materials. See [WAVE2.md](WAVE2.md).
+- [ ] **Wave 2 ops**: redeploy, `enrollKey`, explorer verification, 2-minute pitch video, Akindo resubmit. Cannot be done from this repo without the deployer key.
+- [ ] **Not scheduled as shipped work**: LangChain / Eliza adapters, veMEZO or trove loops, multi-device quorum, mainnet.
 
 ## Contributing
 

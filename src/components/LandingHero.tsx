@@ -31,15 +31,15 @@ const FAQ_ITEMS: FAQItem[] = [
     category: 'General',
     question: 'What is Witness Protocol and what problem does it solve?',
     answer:
-      'Witness Protocol is a hardware passkey authorization layer built for autonomous on-chain agents. Autonomous AI agents need to pay for RPCs, indexers, data feeds, and DeFi rebalancing. However, giving agents unfettered private key access risks complete treasury drainage upon prompt injections or software exploits. Witness lets agents draft and queue intents, while transactions exceeding policy ceilings require instant biometric confirmation from your iPhone, Android, or hardware key.',
-    highlight: 'Zero hot private keys stored in agent memory or cloud servers.',
+      'Witness is a passkey authorization layer for agents that need to move value. The agent can propose an action. Nothing moves unless the human passkey signs that exact action. There is no path that spends under a ceiling without a tap.',
+    highlight: 'Zero hot private keys. Every outbound move needs a passkey.',
   },
   {
     category: 'Mezo & MUSD',
     question: 'How does Witness support MUSD and MEZO on the Mezo Network?',
     answer:
-      'Witness is natively deployed on the Mezo Testnet (Chain ID 31611) to safeguard MUSD and MEZO treasuries. Using the Treasury Console, owners set active spending ceilings (e.g., 5.00 MUSD/day). Automated agent workflows transfer MUSD within normal parameters autonomously, but any intent above the ceiling triggers a cryptographic WebAuthn hardware challenge, keeping your Bitcoin-backed stablecoins completely protected.',
-    highlight: 'Full native compatibility with Mezo Testnet Safe treasuries and MUSD.',
+      'On Mezo testnet (chain 31611) DemoSafe holds canonical testnet MUSD. One human enrolls one P-256 passkey. Only an allowlisted relayer may submit, and every outbound move — ERC-20 transfer, native transfer, Stability Pool deposit, or Stability Pool withdraw — needs that passkey over the exact action. There is no daily autopilot and no MEZO treasury module in this build.',
+    highlight: 'One enrolled key. The relayer is not an authorizer. Stability Pool is a real Mezo call.',
   },
   {
     category: 'Security',
@@ -59,22 +59,22 @@ const FAQ_ITEMS: FAQItem[] = [
     category: 'Security',
     question: 'How does the vault integration work?',
     answer:
-      'Witness authorizes a purpose-built vault contract, DemoSafe, which holds the MUSD and has exactly two gated outbound paths. On a request, DemoSafe calls WitnessVerifier, which checks the enrolled passkey signature against the exact action digest, then releases the funds and consumes the permission. There is no module and no Safe proxy: the check lives inside the contract that holds the value.',
-    highlight: 'Non-custodial, modular design compatible with battle-tested Safe vaults.',
+      'DemoSafe holds the asset and is the enforcement point. It is bound to one human passkey. execute, executeNative, depositToStabilityPool, and withdrawFromStabilityPool all refuse a caller who is not an allowlisted relayer, and refuse an intent whose key is not the enrolled one. There is no Gnosis Safe module in this build.',
+    highlight: 'The check lives in the contract that holds the value. Not a Safe module.',
   },
   {
     category: 'Developers',
     question: 'How do developers integrate Witness into their AI agent frameworks?',
     answer:
       'Developers can integrate with 3 lines of TypeScript using @witness/sdk. The agent submits a request and holds no key that can move funds; the human passkey signs the canonical action digest read from DemoSafe, and the relayer submits it. Every action needs that tap, and the permission ceiling bounds what the tap can authorize.',
-    highlight: 'Works with LangChain, AutoGPT, Eliza, and custom TypeScript agents.',
+    highlight: 'TypeScript SDK only. LangChain, AutoGPT, and Eliza adapters are not in this build.',
   },
   {
     category: 'Developers',
-    question: 'Are the contracts audited and compliant with Foundry standards?',
+    question: 'Are the contracts audited?',
     answer:
-      'Yes. All contracts—including P256Verifier.sol and Deploy.s.sol—are 100% compliant with canonical Foundry formatting (forge fmt) and tested across comprehensive unit and invariant test suites. Configuration parameters (origin and rpId) are immutably locked on-chain to prevent cross-site replay attacks.',
-    highlight: '41/41 test suites passing with zero formatting discrepancies.',
+      'No. They are a testnet reference: forge fmt clean, and covered by Foundry tests including the Wave 2 key-binding, relayer, fee, and Stability Pool cases. They are not audited. The Mezo addresses from Wave 1 are the pre-fix deployment until they are redeployed and verified on the explorer.',
+    highlight: 'Tested, not audited. Explorer verification happens after redeploy.',
   },
 ];
 
@@ -98,15 +98,13 @@ const intent = await witness.createIntent({
     step: '02',
     title: 'Policy Engine Evaluates',
     subtitle: 'Automated ceiling enforcement',
-    desc: 'WitnessIntentRegistry holds the ceiling and expiry the human set when granting the permission. The ceiling is a bound, not an autopilot: it caps what a single approval can authorize, and an attempt above it is refused on chain even if a signature is present.',
+    desc: 'WitnessIntentRegistry holds one maxAmount and an expiry for the permission the human granted. The ceiling is a bound, not an autopilot: an amount above it reverts OverLimit even if a signature is attached, and there is no daily accumulator.',
     badge: 'On-Chain Policy Guard',
-    codeSnippet: `// WitnessIntentRegistry.sol
-if (intent.amount <= policy.ceilingPerTx &&
-    dailySpent + intent.amount <= policy.dailyCeiling) {
-  emit IntentAutoApproved(intent.nonce);
-} else {
-  revert REQUIRES_BIOMETRIC_CONSENT();
-}`,
+    codeSnippet: `// WitnessVerifier.sol — one ceiling, checked before the signature
+if (amount > intent.maxAmount) return Reason.OverLimit;
+// DemoSafe.sol — stranger keys and unlisted callers never reach that check
+if (!isRelayer[msg.sender]) revert NotRelayer();
+if (intent.user != human || intent.qx != enrolledQx) revert KeyMismatch();`,
     icon: Sliders,
   },
   {
@@ -279,7 +277,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
               How Witness Works
             </h2>
             <p className="text-sm text-zinc-600 max-w-2xl font-inter">
-              From autonomous agent proposal to biometric hardware verification and treasury disbursal on Mezo.
+              From agent proposal to a passkey over the exact action, then disbursal on Mezo.
             </p>
           </div>
 
@@ -417,7 +415,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                     {activeHowStep === 0 && 'Non-custodial intent submission: Agent holds no long-term funds.'}
                     {activeHowStep === 1 && 'Instant policy check before any funds move: refuses a rogue agent transaction.'}
                     {activeHowStep === 2 && 'Cryptographic passkey signing: Hardware enclave isolation via NIST P-256.'}
-                    {activeHowStep === 3 && 'On-chain Safe module execution: Verified on Mezo Testnet (Chain 31611).'}
+                    {activeHowStep === 3 && 'DemoSafe releases funds only after the enrolled key and the relayer check. Not a Safe module.'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-zinc-700">
@@ -709,7 +707,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
             Mezo & Monad Testnets
           </h3>
           <p className="text-xs text-zinc-600 leading-relaxed">
-            Deployed live on Mezo Bitcoin Layer 2 and Monad EVM. Compatible with Gnosis Safe multisig modules.
+            Wave 1 shipped on Mezo testnet and Monad. Wave 2 binds the safe to one passkey and calls the Mezo Stability Pool. Gnosis Safe modules are not in this build. The old Mezo addresses are the pre-fix deployment until you redeploy.
           </p>
 
           <div className="space-y-2 text-xs font-mono">
@@ -769,7 +767,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
                 Frequently Asked Questions
               </h2>
               <p className="text-sm text-zinc-600 max-w-xl font-inter">
-                Everything you need to know about autonomous agent intent delegation, MUSD spend limits, and biometric passkey authorization.
+                Everything you need to know about passkey-gated intents, the one enrolled key, and what this build does not do.
               </p>
             </div>
 
@@ -854,7 +852,7 @@ export default function LandingHero({ onLaunchConsole, onViewContracts, onViewDo
           <div className="space-y-2 text-center md:text-left">
             <h3 className="text-2xl font-bold">Start testing on Mezo Testnet</h3>
             <p className="text-xs text-zinc-400">
-              Interactive console with hardware biometric passkeys and verified Safe contracts.
+              Interactive console. Passkey over the exact action. Contracts are tested, not audited, and not explorer-verified until redeployed.
             </p>
           </div>
 

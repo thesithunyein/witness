@@ -37,6 +37,12 @@ library WitnessAction {
     ///      even if both happen to use the same amount and recipient.
     bytes32 internal constant TRANSFER_NATIVE = keccak256("witness.action.transfer.native");
 
+    /// @dev Deposit MUSD from the safe into Mezo's Stability Pool.
+    bytes32 internal constant SP_DEPOSIT = keccak256("witness.action.sp.deposit");
+
+    /// @dev Withdraw MUSD from Mezo's Stability Pool back into the safe.
+    bytes32 internal constant SP_WITHDRAW = keccak256("witness.action.sp.withdraw");
+
     function hash(
         uint256 chainId,
         address domain,

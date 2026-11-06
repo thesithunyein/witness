@@ -34,11 +34,10 @@ jobs:
         with:
           node-version: 22
 
-      # AND that runtime needs the module the signer imports. @noble/curves is not
-      # declared directly: it arrives at the repository root as viem's dependency,
-      # which is where scripts/sign-action.mjs resolves it from. Installing from the
-      # root is what puts it there; without this step every ffi call dies on a
-      # missing module instead of testing the contracts.
+      # The signer imports `@noble/curves/nist.js`, which is the v2 entry. viem
+      # still depends on 1.9.1, and that release does not export `nist.js`, so
+      # @noble/curves 2.0.1 is a direct dependency of the root package.json.
+      # Installing from the root is what puts it on the module path scripts/ use.
       #
       # bun, not npm: the root package.json declares esbuild ^0.25 alongside vite ^8,
       # and npm resolves that as ERESOLVE, so plain `npm install` fails before forge

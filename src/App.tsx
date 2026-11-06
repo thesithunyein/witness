@@ -176,7 +176,7 @@ export default function App() {
                 </span>
               </div>
               <p className="font-inter text-sm text-zinc-200 max-w-sm leading-relaxed">
-                Hardware passkey authorization for autonomous treasury workflows. Built on NIST P-256 curves and a purpose-built vault contract.
+                Hardware passkey authorization for treasury workflows. Every outbound move needs a tap. Built on NIST P-256 and a purpose-built vault contract.
               </p>
               <div className="inline-flex items-center gap-2 text-xs font-mono text-zinc-100 bg-[#161616] px-3.5 py-1.5 rounded-full border border-zinc-700 shadow-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#c2f325] ring-2 ring-[#c2f325]/40" />

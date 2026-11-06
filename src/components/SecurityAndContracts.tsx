@@ -39,7 +39,7 @@ Subject: [PATCH] style: fix forge fmt check in P256Verifier and Deploy.s.sol
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.035em] text-[#111110]">Security & Contracts</h2>
           <p className="text-xs text-zinc-500 font-mono mt-0.5">
-            Audited smart contracts and verified cryptographic parameters
+            Tested contracts. Not audited. NIST P-256 parameters, not an audit report.
           </p>
         </div>
 

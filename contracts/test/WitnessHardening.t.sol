@@ -61,6 +61,11 @@ contract WitnessHardeningTest is Test {
         safe.fund(100e18);
 
         vm.deal(address(safe), NATIVE_FUNDING);
+
+        safe.setHuman(human);
+        vm.prank(human);
+        safe.enrollKey(AssertionVector.QX, AssertionVector.QY);
+        safe.setRelayer(address(agent), true);
     }
 
     // ---------------------------------------------------------------------

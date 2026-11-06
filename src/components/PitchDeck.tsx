@@ -213,7 +213,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                 </div>
 
                 <p className="text-lg sm:text-xl font-luckiest text-zinc-700 tracking-wide">
-                  Hardware Passkey Authorization for Autonomous On-Chain Workflows & MUSD Treasuries
+                  Hardware passkey authorization for agents that move MUSD. Nothing moves without a tap.
                 </p>
 
                 <p className="text-sm text-zinc-600 max-w-xl mx-auto font-inter leading-relaxed">
@@ -307,7 +307,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     </span>
                     <h4 className="font-luckiest text-base text-zinc-900">On-Chain Policy Ceiling</h4>
                     <p className="text-xs text-zinc-600 leading-relaxed">
-                      Autonomous execution runs freely within daily MUSD limits. Out-of-policy requests pause for keeper consent.
+                      The signed amount is a ceiling, not an autopilot. Nothing moves without a passkey over that exact action. There is no daily limit in this build.
                     </p>
                   </div>
 
@@ -353,7 +353,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     </div>
                     <div className="font-luckiest text-sm text-zinc-900">Policy Check</div>
                     <p className="text-zinc-600 leading-relaxed">
-                      `WitnessIntentRegistry` verifies parameters against per-tx and daily ceilings.
+                      `WitnessIntentRegistry` stores one maxAmount per permission. Above it the verifier returns OverLimit, before it looks at the signature.
                     </p>
                   </div>
 
@@ -544,7 +544,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                     <div>
                       <div className="font-luckiest text-sm text-emerald-950">Wave 1 Delivered (October 2026)</div>
                       <p className="text-emerald-900/80 leading-relaxed mt-0.5">
-                        Mezo Testnet verified deployment (31611), DemoSafe MUSD treasury, NIST P-256 verifier, interactive console, and 41 passing Foundry test suites.
+                        Mezo testnet deployment (31611) of the Wave 1 build: DemoSafe holding testnet MUSD, NIST P-256 verifier, console, Foundry tests. Those addresses do not include the Wave 2 key bind.
                       </p>
                     </div>
                   </div>
@@ -552,9 +552,9 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                   <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-start gap-3">
                     <Layers className="w-5 h-5 text-zinc-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-luckiest text-sm text-zinc-900">Wave 2 Milestone 1: LangChain & Eliza Plugins</div>
+                      <div className="font-luckiest text-sm text-zinc-900">Wave 2 shipped: bound key, relayer, Stability Pool, fee</div>
                       <p className="text-zinc-600 leading-relaxed mt-0.5">
-                        1-click SDK adapters for Python and TypeScript agent frameworks to request MUSD disbursements with 3 lines of code.
+                        DemoSafe accepts only the enrolled human P-256 key. Callers must be allowlisted. Deposit and withdraw call Mezo `provideToSP` / `withdrawFromSP`. A per-approval fee (default 10 bps, max 1%) is taken from the signed gross. Not in this build: daily limits, autonomous sub-ceiling spend, Gnosis Safe, MEZO treasuries, LangChain or Eliza plugins, audits.
                       </p>
                     </div>
                   </div>
@@ -562,9 +562,9 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                   <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-zinc-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-luckiest text-sm text-zinc-900">Wave 2 Milestone 2: Native MEZO Staking Intent</div>
+                      <div className="font-luckiest text-sm text-zinc-900">Still required before the live demo matches the code</div>
                       <p className="text-zinc-600 leading-relaxed mt-0.5">
-                        Expanding policy modules to support delegated MEZO token staking and automated MUSD/MEZO yield farming.
+                        Redeploy with the deployer key, enroll the passkey, and verify the new bytecode on the Mezo explorer. The Wave 1 addresses are the vulnerable build until that happens.
                       </p>
                     </div>
                   </div>
