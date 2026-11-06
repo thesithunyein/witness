@@ -367,10 +367,8 @@ export default function ChainConsole() {
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted">Vault</p>
           <h1 className="mt-2 text-5xl text-ink">Live</h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            {status
-              ? `${status.chainName} (Chain ${status.chainId}) · Registry ${short(status.addresses.registry)}`
-              : 'Reading the registry...'}
+          <p className="mt-2 text-sm text-muted">
+            {status ? 'Mezo testnet' : 'Reading the vault…'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -392,7 +390,7 @@ export default function ChainConsole() {
       </div>
 
       {status && !status.configured && (
-        <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+        <div className="mt-6 rounded-2xl border border-line bg-card p-5 text-sm text-ink">
           <p className="font-semibold">The relayer has no key, so nothing can be signed.</p>
           <p className="mt-1">
             Set <code className="rounded bg-white px-1">RELAYER_PRIVATE_KEY</code> to the
@@ -412,8 +410,8 @@ export default function ChainConsole() {
         <div
           className={`mt-6 rounded-2xl border p-4 text-sm ${
             notice.ok
-              ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-              : 'border-amber-300 bg-amber-50 text-amber-900'
+              ? 'border-line bg-card text-ink'
+              : 'border-line bg-card text-ink'
           }`}
         >
           <p className="font-semibold">{notice.text}</p>
@@ -436,21 +434,21 @@ export default function ChainConsole() {
       )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Card label="VAULT BALANCE" value={`${balance} MUSD`} foot="DemoSafe.balance()" />
+        <Card label="Balance" value={`${balance} MUSD`} foot="In the vault" />
         <Card
-          label="REAL CEILING"
-          value={ceilingIntent ? `${formatToken(ceilingIntent.maxAmount)} MUSD` : 'none'}
-          foot={ceilingIntent ? `intent ${ceilingIntent.id}` : 'create an intent'}
+          label="Ceiling"
+          value={ceilingIntent ? `${formatToken(ceilingIntent.maxAmount)} MUSD` : 'None'}
+          foot={ceilingIntent ? `Intent ${ceilingIntent.id}` : 'Set one below'}
         />
         <Card
-          label="PASSKEY"
-          value={passkey ? `P-256 · ${passkey.credentialId.slice(0, 10)}...` : 'not enrolled'}
+          label="Passkey"
+          value={passkey ? 'On this device' : 'None'}
           foot={
             passkey
               ? status?.keyEnrolled
-                ? 'bound on chain'
-                : 'saved here, not bound — spends revert NotBound'
-              : 'enroll, then bind on chain'
+                ? 'Bound'
+                : 'Not bound yet'
+              : 'Enroll, then bind'
           }
         />
       </div>
@@ -472,7 +470,7 @@ export default function ChainConsole() {
             className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
             title="Revoke the standing permission and mint one at this ceiling"
           >
-            {busy === 'policy' ? 'Writing...' : 'Adjust Policy'}
+            {busy === 'policy' ? 'Writing…' : 'Set ceiling'}
           </button>
           <button
             onClick={resetDemo}
@@ -480,7 +478,7 @@ export default function ChainConsole() {
             className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
             title="Revoke live permissions and mint three fresh ones at the demo amounts"
           >
-            {busy === 'reset' ? 'Writing…' : 'Refresh permissions'}
+            {busy === 'reset' ? 'Writing…' : 'Refresh'}
           </button>
           <button
             onClick={overLimitAttempt}
@@ -488,73 +486,57 @@ export default function ChainConsole() {
             className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
             title="The agent tries nine times the ceiling with no approval"
           >
-            Try an amount over the ceiling
+            Over ceiling
           </button>
         </div>
-        <p className="mt-2 text-xs text-zinc-500">
-          The ceiling is a field of the permission, not a setting: adjusting it revokes the
-          current intent and mints a new one, and every step is a transaction.
-        </p>
       </div>
 
       <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Stability Pool
-        </p>
-        <p className="mt-1 text-xs text-zinc-600">
-          Bind is one shot and must be the passkey in this browser. Until that transaction lands,
-          every spend reverts NotBound. Deposit and withdraw call Mezo provideToSP / withdrawFromSP.
-          The fee ({status?.feeBps ?? 10} bps) comes out of the signed amount. Source is verified on the Mezo explorer. Not audited.
-        </p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Pool</p>
+        <p className="mt-2 text-sm text-muted">Bind once. Fee {((status?.feeBps ?? 10) / 100).toFixed(2)}%.</p>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
           <button
             onClick={doBind}
             disabled={!passkey || status?.keyEnrolled === true || busy === 'bind'}
-            className="rounded-xl bg-[#0d0d0d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper disabled:opacity-40"
           >
-            {busy === 'bind'
-              ? 'Binding...'
-              : status?.keyEnrolled
-                ? 'Passkey bound'
-                : 'Bind this passkey on chain'}
+            {busy === 'bind' ? 'Binding…' : status?.keyEnrolled ? 'Bound' : 'Bind passkey'}
           </button>
-          <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Gross MUSD
+          <label className="text-xs text-muted">
+            Amount
             <input
               value={poolAmount}
               onChange={(e) => setPoolAmount(e.target.value)}
               inputMode="decimal"
-              className="mt-1 block w-28 rounded-lg border border-black/15 px-3 py-2 text-sm font-medium text-[#0d0d0d]"
+              className="mt-1 block h-11 w-24 rounded-xl border border-line bg-paper px-3 text-sm text-ink"
             />
           </label>
           <button
             onClick={() => void runPool('sp-deposit')}
             disabled={!passkey || busy === 'sp-deposit'}
-            className="rounded-xl bg-[#c6f24e] px-4 py-2 text-sm font-bold text-[#0d0d0d] disabled:opacity-40"
+            className="h-11 rounded-full bg-moss px-5 text-sm font-medium text-paper disabled:opacity-40"
           >
-            {busy === 'sp-deposit' ? 'Waiting for passkey...' : 'Deposit to Stability Pool'}
+            {busy === 'sp-deposit' ? 'Waiting…' : 'Deposit'}
           </button>
           <button
             onClick={() => void runPool('sp-withdraw')}
             disabled={!passkey || busy === 'sp-withdraw'}
-            className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[#0d0d0d] disabled:opacity-40"
+            className="h-11 rounded-full border border-line px-5 text-sm font-medium text-ink disabled:opacity-40"
           >
-            {busy === 'sp-withdraw' ? 'Waiting for passkey...' : 'Withdraw from Stability Pool'}
+            {busy === 'sp-withdraw' ? 'Waiting…' : 'Withdraw'}
           </button>
         </div>
       </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-black/10 bg-white">
         <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
-          <h2 className="text-lg font-black uppercase tracking-tight text-[#0d0d0d]">
-            Intents ({active.length} active)
-          </h2>
-          <span className="text-xs text-zinc-500">Read from WitnessIntentRegistry</span>
+          <h2 className="font-display text-2xl text-ink">Intents</h2>
+          <span className="text-xs text-muted">{active.length} open</span>
         </div>
 
         {intents.length === 0 && (
           <p className="px-6 py-10 text-sm text-zinc-600">
-            No intents exist yet. Enroll a passkey, then create one.
+            No intents yet.
           </p>
         )}
 
@@ -579,7 +561,7 @@ export default function ChainConsole() {
               <button
                 onClick={() => void openReview(intent)}
                 disabled={intent.state !== 'active' || busy === `open-${intent.id}`}
-                className="rounded-lg bg-[#c6f24e] px-3 py-2 text-xs font-bold text-[#0d0d0d] disabled:opacity-30"
+                className="h-9 rounded-full bg-ink px-4 text-xs font-medium text-paper disabled:opacity-30"
               >
                 Review &amp; Sign
               </button>
@@ -598,11 +580,8 @@ export default function ChainConsole() {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-black text-[#0d0d0d]">Authorize on-chain intent</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              The passkey signs this exact digest. Change the amount or the destination and the
-              signature no longer verifies.
-            </p>
+            <h3 className="font-display text-3xl text-ink">Sign this action</h3>
+            <p className="mt-2 text-sm text-muted">The signature matches this amount and this address. Change either and it fails.</p>
 
             <dl className="mt-4 space-y-2 text-sm">
               <Row label="Intent" value={`#${modal.intent.id}`} />
@@ -624,7 +603,7 @@ export default function ChainConsole() {
             {modal.result && (
               <p
                 className={`mt-4 rounded-xl p-3 text-sm ${
-                  modal.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-800'
+                  modal.ok ? 'bg-paper text-ink' : 'bg-paper text-ink'
                 }`}
               >
                 {modal.ok && <Check className="mr-1 inline h-4 w-4" />}
@@ -642,7 +621,7 @@ export default function ChainConsole() {
               <button
                 onClick={approve}
                 disabled={modal.busy || !modal.digest}
-                className="rounded-xl bg-[#c6f24e] px-4 py-2 text-sm font-bold text-[#0d0d0d] disabled:opacity-50"
+                className="h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper disabled:opacity-50"
               >
                 {modal.busy ? 'Waiting for passkey...' : 'Sign with passkey'}
               </button>
@@ -676,10 +655,10 @@ function Row({ label, value }: { label: string; value: string }) {
 function StateChip({ state }: { state: ChainIntent['state'] }) {
   const tone =
     state === 'active'
-      ? 'bg-amber-100 text-amber-800'
+      ? 'bg-paper text-ink'
       : state === 'consumed'
-        ? 'bg-zinc-100 text-zinc-700'
-        : 'bg-red-100 text-red-700';
+        ? 'bg-paper text-muted'
+        : 'bg-paper text-ink';
   return <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${tone}`}>{state}</span>;
 }
 
