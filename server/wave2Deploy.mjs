@@ -20,14 +20,11 @@ const FUND = 100n * 10n ** 18n;
 const EMPTY_CTOR = [{ type: 'constructor', stateMutability: 'nonpayable', inputs: [] }];
 
 async function send(data, account) {
-  const gasPrice = await publicClient.getGasPrice();
   try {
     const hash = await wallet().sendTransaction({
       data,
       account,
-      gasPrice,
-      gas: 8_000_000n,
-      type: 'legacy',
+      gas: 6_000_000n,
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status !== 'success') throw new Error(`tx reverted ${hash}`);
