@@ -266,6 +266,13 @@ export const EXECUTOR_ABI = [
   },
   {
     type: 'function',
+    name: 'demoSafe',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
     name: 'owner',
     stateMutability: 'view',
     inputs: [],
@@ -371,8 +378,40 @@ export function wallet() {
 
 export const operatorAddress = () => (isConfigured() ? account().address : null);
 
+const POOL_ABI = [
+  {
+    type: 'function',
+    name: 'getCompoundedMUSDDeposit',
+    stateMutability: 'view',
+    inputs: [{ name: 'depositor', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+];
+
+/** Canonical vault, or a guest vault this relayer actually operates. */
+export async function resolveVault(payload = {}) {
+  const safe = payload.safe ?? ADDRESSES.safe;
+  const executor = payload.executor ?? ADDRESSES.executor;
+  const same =
+    String(safe).toLowerCase() === String(ADDRESSES.safe).toLowerCase() &&
+    String(executor).toLowerCase() === String(ADDRESSES.executor).toLowerCase();
+  if (same) return { safe: ADDRESSES.safe, executor: ADDRESSES.executor, guest: false };
+  if (!isConfigured()) throw new Error('relayer is not configured');
+  const [demoSafe, operator] = await Promise.all([
+    publicClient.readContract({ address: executor, abi: EXECUTOR_ABI, functionName: 'demoSafe' }),
+    publicClient.readContract({ address: executor, abi: EXECUTOR_ABI, functionName: 'operator' }),
+  ]);
+  if (String(demoSafe).toLowerCase() !== String(safe).toLowerCase()) {
+    throw new Error('that executor does not belong to this vault');
+  }
+  if (String(operator).toLowerCase() !== String(operatorAddress()).toLowerCase()) {
+    throw new Error('that vault is not run by this relayer');
+  }
+  return { safe, executor, guest: true };
+}
+
 /** Read the deployed state the console needs, in one round trip where possible. */
-export async function status() {
+export async function status(vault = { safe: ADDRESSES.safe, executor: ADDRESSES.executor, guest: false }) {
   const configured = isConfigured();
   const out = {
     configured,
@@ -381,18 +420,22 @@ export async function status() {
     rpId: RP_ID,
     origin: ORIGIN,
     explorer: process.env.WITNESS_EXPLORER ?? deployment.explorer,
-    addresses: ADDRESSES,
+    addresses: { ...ADDRESSES, safe: vault.safe, executor: vault.executor },
     nextIntentId: null,
     safeBalance: null,
     operator: null,
     executorOperator: null,
     keyEnrolled: null,
     feeBps: null,
+    poolDeposit: null,
+    enrolledQx: null,
+    enrolledQy: null,
+    guest: Boolean(vault.guest),
     reason: configured
       ? null
       : 'no signing key: set RELAYER_PRIVATE_KEY to the executor\'s operator key',
   };
-  if (!ADDRESSES.registry || !ADDRESSES.safe) return out;
+  if (!ADDRESSES.registry || !vault.safe) return out;
 
   const [nextId, balance] = await Promise.all([
     publicClient.readContract({
@@ -401,7 +444,7 @@ export async function status() {
       functionName: 'nextIntentId',
     }),
     publicClient.readContract({
-      address: ADDRESSES.safe,
+      address: vault.safe,
       abi: SAFE_ABI,
       functionName: 'balance',
     }),
@@ -411,28 +454,54 @@ export async function status() {
   out.operator = operatorAddress();
   out.keyEnrolled = null;
   out.feeBps = null;
-  if (ADDRESSES.executor) {
+  if (vault.executor) {
     out.executorOperator = await publicClient.readContract({
-      address: ADDRESSES.executor,
+      address: vault.executor,
       abi: EXECUTOR_ABI,
       functionName: 'operator',
     });
   }
   try {
-    const [enrolled, bps] = await Promise.all([
+    const [enrolled, bps, qx, qy, pool] = await Promise.all([
       publicClient.readContract({
-        address: ADDRESSES.safe,
+        address: vault.safe,
         abi: SAFE_ABI,
         functionName: 'keyEnrolled',
       }),
       publicClient.readContract({
-        address: ADDRESSES.safe,
+        address: vault.safe,
         abi: SAFE_ABI,
         functionName: 'feeBps',
+      }),
+      publicClient.readContract({
+        address: vault.safe,
+        abi: [{ type: 'function', name: 'enrolledQx', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
+        functionName: 'enrolledQx',
+      }),
+      publicClient.readContract({
+        address: vault.safe,
+        abi: [{ type: 'function', name: 'enrolledQy', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
+        functionName: 'enrolledQy',
+      }),
+      publicClient.readContract({
+        address: vault.safe,
+        abi: [{ type: 'function', name: 'stabilityPool', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] }],
+        functionName: 'stabilityPool',
       }),
     ]);
     out.keyEnrolled = Boolean(enrolled);
     out.feeBps = Number(bps);
+    out.enrolledQx = qx.toString();
+    out.enrolledQy = qy.toString();
+    if (pool && pool !== '0x0000000000000000000000000000000000000000') {
+      const deposit = await publicClient.readContract({
+        address: pool,
+        abi: POOL_ABI,
+        functionName: 'getCompoundedMUSDDeposit',
+        args: [vault.safe],
+      });
+      out.poolDeposit = deposit.toString();
+    }
   } catch {
     // The Wave 1 safe has neither getter. Leave them null rather than failing status.
   }
@@ -440,7 +509,7 @@ export async function status() {
 }
 
 /** Every intent the registry holds, newest first, with its real state. */
-export async function list(limit = 24) {
+export async function list(limit = 24, vault = { executor: ADDRESSES.executor }) {
   if (!ADDRESSES.registry) return [];
   const nextId = Number(
     await publicClient.readContract({
@@ -450,7 +519,8 @@ export async function list(limit = 24) {
     })
   );
   const ids = [];
-  for (let id = nextId - 1; id >= 1 && ids.length < limit; id -= 1) ids.push(id);
+  const scan = Math.min(nextId - 1, limit * 8);
+  for (let id = nextId - 1; id >= 1 && ids.length < scan; id -= 1) ids.push(id);
 
   const rows = await Promise.all(
     ids.map(async (id) => {
@@ -491,7 +561,10 @@ export async function list(limit = 24) {
       }
     })
   );
-  return rows.filter(Boolean);
+  return rows.filter(Boolean).filter((row) => {
+    if (!vault.executor) return true;
+    return String(row.agentWallet).toLowerCase() === String(vault.executor).toLowerCase();
+  }).slice(0, limit);
 }
 
 /** Create a real permission. The human's passkey public key goes in it. */
@@ -504,6 +577,7 @@ export async function create({
   agentId = deployment.agentId ?? 0,
   policyHash,
   actionKind,
+  vault = { executor: ADDRESSES.executor },
 }) {
   if (!qx || !qy) throw new Error('a real passkey public key (qx, qy) is required');
   if (BigInt(maxAmount) <= 0n) throw new Error('maxAmount must be positive');
@@ -516,7 +590,7 @@ export async function create({
     abi: REGISTRY_ABI,
     functionName: 'createIntent',
     args: [
-      ADDRESSES.executor,
+      vault.executor,
       BigInt(agentId),
       actionKind === 'sp-deposit' ? SP_DEPOSIT : actionKind === 'sp-withdraw' ? SP_WITHDRAW : TRANSFER,
       BigInt(maxAmount),
@@ -544,12 +618,12 @@ export async function create({
 }
 
 /** The exact digest the passkey has to sign. Read from the contract, never derived here. */
-export async function digest({ intentId, to, amount, kind }) {
+export async function digest({ intentId, to, amount, kind, vault = { safe: ADDRESSES.safe } }) {
   const value = BigInt(amount);
   if (value <= 0n) throw new Error('amount must be positive');
   if (kind === 'sp-deposit' || kind === 'sp-withdraw') {
     const hash = await publicClient.readContract({
-      address: ADDRESSES.safe,
+      address: vault.safe,
       abi: SAFE_ABI,
       functionName: kind === 'sp-withdraw' ? 'stabilityWithdrawHash' : 'stabilityDepositHash',
       args: [BigInt(intentId), value],
@@ -558,7 +632,7 @@ export async function digest({ intentId, to, amount, kind }) {
   }
   if (!to || to === ZERO) throw new Error('a destination address is required');
   const hash = await publicClient.readContract({
-    address: ADDRESSES.safe,
+    address: vault.safe,
     abi: SAFE_ABI,
     functionName: 'actionHash',
     args: [BigInt(intentId), to, value],
@@ -620,7 +694,7 @@ function reasonOf(err) {
  * which is exactly how the console demonstrates a ceiling: the transaction is
  * real, it goes to the chain, and the contract refuses it on its own.
  */
-export async function execute({ intentId, to, amount, assertion, kind }) {
+export async function execute({ intentId, to, amount, assertion, kind, vault = { executor: ADDRESSES.executor } }) {
   const value = BigInt(amount);
   if (value > MAX_AMOUNT) return { ok: false, reason: 'AboveRelayerCap', code: null };
 
@@ -640,7 +714,7 @@ export async function execute({ intentId, to, amount, assertion, kind }) {
     // Simulate first so a refusal is reported as the contract's reason instead of
     // a mined reverted transaction, which would cost gas to learn nothing.
     await publicClient.simulateContract({
-      address: ADDRESSES.executor,
+      address: vault.executor,
       abi: EXECUTOR_ABI,
       functionName,
       args,
@@ -648,7 +722,7 @@ export async function execute({ intentId, to, amount, assertion, kind }) {
     });
 
     const hash = await client.writeContract({
-      address: ADDRESSES.executor,
+      address: vault.executor,
       abi: EXECUTOR_ABI,
       functionName,
       args,
@@ -689,7 +763,7 @@ export async function revoke({ intentId }) {
  * is the same thing with a known set of amounts. Both report every hash so the
  * page can link each transaction instead of asserting that something happened.
  */
-export async function reseat({ qx, qy, credentialHash, ceilings, expirySeconds = 3600, revokeActive = true }) {
+export async function reseat({ qx, qy, credentialHash, ceilings, expirySeconds = 3600, revokeActive = true, vault }) {
   if (!qx || !qy) throw new Error('a real passkey public key (qx, qy) is required');
   const amounts = ceilings.map((c) => BigInt(c));
   if (amounts.length === 0) throw new Error('at least one ceiling is required');
@@ -700,7 +774,7 @@ export async function reseat({ qx, qy, credentialHash, ceilings, expirySeconds =
   const skipped = [];
 
   if (revokeActive) {
-    const active = (await list(12)).filter((i) => i.state === 'active');
+    const active = (await list(12, vault)).filter((i) => i.state === 'active');
     for (const intent of active) {
       // revokeIntent is user-only, so an intent someone else owns would revert.
       if (intent.user.toLowerCase() !== me) {
@@ -728,6 +802,7 @@ export async function reseat({ qx, qy, credentialHash, ceilings, expirySeconds =
       credentialHash,
       maxAmount: amount.toString(),
       expirySeconds,
+      vault,
     });
     created.push({ ...made, maxAmount: amount.toString() });
   }
@@ -740,12 +815,13 @@ export async function reseat({ qx, qy, credentialHash, ceilings, expirySeconds =
  * there is only one place where an action name becomes a chain call.
  */
 export async function dispatch(action, payload = {}) {
+  const vault = action === 'open-vault' ? null : await resolveVault(payload);
   switch (action) {
     case 'status':
-      return { status: 200, body: { ok: true, status: await status() } };
+      return { status: 200, body: { ok: true, status: await status(vault) } };
 
     case 'list':
-      return { status: 200, body: { ok: true, intents: await list(Number(payload.limit ?? 24)) } };
+      return { status: 200, body: { ok: true, intents: await list(Number(payload.limit ?? 24), vault) } };
 
     case 'create': {
       const created = await create({
@@ -757,6 +833,7 @@ export async function dispatch(action, payload = {}) {
         agentId: payload.agentId,
         policyHash: payload.policyHash,
         actionKind: payload.actionKind,
+        vault,
       });
       return { status: 200, body: { ok: true, ...created } };
     }
@@ -767,6 +844,7 @@ export async function dispatch(action, payload = {}) {
         to: payload.to,
         amount: payload.amount,
         kind: payload.kind,
+        vault,
       });
       return { status: 200, body: { ok: true, ...d } };
     }
@@ -778,6 +856,7 @@ export async function dispatch(action, payload = {}) {
         amount: payload.amount,
         assertion: payload.assertion,
         kind: payload.kind,
+        vault,
       });
       return { status: 200, body: { ok: result.ok, result } };
     }
@@ -794,6 +873,7 @@ export async function dispatch(action, payload = {}) {
         credentialHash: payload.credentialHash,
         ceilings: [payload.maxAmount],
         expirySeconds: payload.expirySeconds,
+        vault,
       });
       return { status: 200, body: { ok: true, result } };
     }
@@ -805,6 +885,7 @@ export async function dispatch(action, payload = {}) {
         credentialHash: payload.credentialHash,
         ceilings: payload.ceilings ?? DEMO_CEILINGS,
         expirySeconds: payload.expirySeconds,
+        vault,
       });
       return { status: 200, body: { ok: true, result } };
     }
@@ -822,6 +903,15 @@ export async function dispatch(action, payload = {}) {
           },
         },
       };
+
+    case 'open-vault': {
+      const { openVault } = await import('./wave2Deploy.mjs');
+      const result = await openVault({
+        verifier: deployment.contracts.WitnessVerifier,
+        musd: ADDRESSES.token,
+      });
+      return { status: 200, body: { ok: true, result } };
+    }
 
     case 'enroll-key': {
       const { enrollHumanKey } = await import('./wave2Deploy.mjs');

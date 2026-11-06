@@ -21,6 +21,10 @@ export type RelayerStatus = {
   executorOperator: string | null;
   keyEnrolled: boolean | null;
   feeBps: number | null;
+  poolDeposit: string | null;
+  enrolledQx: string | null;
+  enrolledQy: string | null;
+  guest: boolean;
   reason: string | null;
 };
 
@@ -54,12 +58,31 @@ export type ReseatResult = {
 
 type Reply<T> = { ok: boolean; error?: string } & T;
 
+const VAULT_KEY = 'witness.vault.v1';
+
+export function savedVault(): { safe: string; executor: string } | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VAULT_KEY) || 'null') as { safe?: string; executor?: string } | null;
+    if (parsed?.safe && parsed?.executor) return { safe: parsed.safe, executor: parsed.executor };
+  } catch {
+    localStorage.removeItem(VAULT_KEY);
+  }
+  return null;
+}
+
+export function saveVault(vault: { safe: string; executor: string } | null) {
+  if (!vault) localStorage.removeItem(VAULT_KEY);
+  else localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
+}
+
 async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<Reply<T>> {
+  const vault = action === 'open-vault' ? {} : (savedVault() ?? {});
   const res = await fetch('/api/relayer', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ action, ...payload }),
+    body: JSON.stringify({ action, ...vault, ...payload }),
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
@@ -128,6 +151,10 @@ export const relayer = {
   /** One-shot. Binds the browser passkey on DemoSafe. A second call reverts AlreadyEnrolled. */
   bind: (input: { qx: string; qy: string }) =>
     call<{ result: { hash: string; safe: string } }>('enroll-key', input),
+
+  /** A new unbound vault for a passkey that is not the one already on the recorded safe. */
+  openVault: () =>
+    call<{ result: { safe: string; executor: string; funded: string; txs: string[] } }>('open-vault'),
 };
 
 export const formatToken = (value: string | null, decimals = 18) => {

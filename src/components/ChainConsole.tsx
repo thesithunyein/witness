@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, ExternalLink, Fingerprint, Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { parseUnits } from 'viem';
-import { relayer, formatToken, type ChainIntent, type RelayerStatus } from '../lib/relayerClient';
+import { relayer, formatToken, saveVault, type ChainIntent, type RelayerStatus } from '../lib/relayerClient';
 import { enrollPasskey, assertDigest, type EnrolledPasskey } from '../lib/passkey';
 import { MEZO_DEPLOYMENT } from '../data/witnessData';
 
@@ -15,6 +15,13 @@ import { MEZO_DEPLOYMENT } from '../data/witnessData';
  */
 
 const STORAGE_KEY = 'witness.passkey.v1';
+
+function rawToDecimal(raw: string) {
+  const padded = raw.padStart(19, '0');
+  const whole = padded.slice(0, -18).replace(/^0+/, '') || '0';
+  const frac = padded.slice(-18).replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole;
+}
 
 /** What a person, or a judge, should read. The chain code stays on the transaction. */
 function explain(reason?: string | null, code?: number | null): string {
@@ -68,6 +75,10 @@ export default function ChainConsole() {
         const l = await relayer.list();
         setIntents(l.intents);
       }
+      if (s.status.poolDeposit && s.status.poolDeposit !== '0') {
+        const exact = rawToDecimal(s.status.poolDeposit);
+        setPoolAmount((current) => (current === '1' ? exact : current));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'the relayer did not answer');
     }
@@ -112,6 +123,26 @@ export default function ChainConsole() {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'enrollment failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openOwn = async () => {
+    setBusy('open-vault');
+    setError(null);
+    try {
+      const res = await relayer.openVault();
+      saveVault({ safe: res.result.safe, executor: res.result.executor });
+      setPoolAmount('1');
+      setNotice({
+        ok: true,
+        text: 'This browser now has its own vault. Bind the passkey, then spend.',
+        txs: res.result.txs,
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? explain(err.message) : 'the new vault was not created');
     } finally {
       setBusy(null);
     }
@@ -429,6 +460,39 @@ export default function ChainConsole() {
         </div>
       )}
 
+      {passkey && status?.keyEnrolled && status.enrolledQx && status.enrolledQy &&
+        (passkey.qx !== BigInt(status.enrolledQx) || passkey.qy !== BigInt(status.enrolledQy)) && (
+        <div className="mt-6 rounded-2xl border border-line bg-card p-5">
+          <p className="font-display text-2xl text-ink">This passkey is not on this vault.</p>
+          <p className="mt-2 max-w-xl text-sm text-muted">
+            The recorded vault already has a key. A different one is refused. Open a vault for this passkey, then bind it.
+          </p>
+          <button
+            onClick={() => void openOwn()}
+            disabled={busy === 'open-vault'}
+            className="mt-4 h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper disabled:opacity-40"
+          >
+            {busy === 'open-vault' ? 'Opening…' : 'Open a vault for this passkey'}
+          </button>
+        </div>
+      )}
+
+      {status?.guest && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card px-5 py-4 text-sm text-muted">
+          <span>This is your vault. The recorded one is unchanged.</span>
+          <button
+            onClick={() => {
+              saveVault(null);
+              setPoolAmount('1');
+              void load();
+            }}
+            className="text-ink underline"
+          >
+            Back to the recorded vault
+          </button>
+        </div>
+      )}
+
       {notice && (
         <div
           className={`mt-6 rounded-2xl border p-4 text-sm ${
@@ -516,7 +580,10 @@ export default function ChainConsole() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-4">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Pool</p>
-        <p className="mt-2 text-sm text-muted">Bind once. Fee {((status?.feeBps ?? 10) / 100).toFixed(2)}%.</p>
+        <p className="mt-2 text-sm text-muted">
+          Bind once. Fee {((status?.feeBps ?? 10) / 100).toFixed(2)}%.
+          {status?.poolDeposit && status.poolDeposit !== '0' ? ` In the pool: ${rawToDecimal(status.poolDeposit)} MUSD.` : ''}
+        </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <button
             onClick={doBind}

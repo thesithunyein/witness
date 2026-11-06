@@ -176,3 +176,54 @@ export async function enrollHumanKey(safe, qx, qy) {
   const hash = await call(safe, safeAbi, 'enrollKey', [BigInt(qx), BigInt(qy)]);
   return { hash, safe };
 }
+
+/**
+ * A second vault for a passkey that is not the one already enrolled.
+ * Same verifier, same Mezo pool, no key yet. The browser that asked binds it.
+ */
+export async function openVault({ verifier, musd }) {
+  const from = operatorAddress();
+  let nonce = await publicClient.getTransactionCount({ address: from });
+  const safeCtor = [{
+    type: 'constructor',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'verifier_', type: 'address' },
+      { name: 'token_', type: 'address' },
+    ],
+  }];
+  const safe = await deploy('DemoSafe', safeCtor, [verifier, musd], from, nonce);
+  nonce = await publicClient.getTransactionCount({ address: from });
+  const agentCtor = [{
+    type: 'constructor',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'demoSafe_', type: 'address' },
+      { name: 'operator_', type: 'address' },
+    ],
+  }];
+  const agent = await deploy('AgentExecutor', agentCtor, [safe.address, from], from, nonce);
+
+  const fund = 10n * 10n ** 18n;
+  const txs = [];
+  txs.push(await call(safe.address, safeAbi, 'setHuman', [from]));
+  txs.push(await call(safe.address, safeAbi, 'setRelayer', [agent.address, true]));
+  txs.push(await call(safe.address, safeAbi, 'setStabilityPool', [STABILITY_POOL]));
+  txs.push(await call(safe.address, safeAbi, 'setFee', [from, FEE_BPS]));
+  const held = await publicClient.readContract({
+    address: musd,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [from],
+  });
+  const amount = held < fund ? held : fund;
+  if (amount > 0n) txs.push(await call(musd, erc20Abi, 'transfer', [safe.address, amount]));
+  txs.push(await call(safe.address, safeAbi, 'lockOwnership', []));
+
+  return {
+    safe: safe.address,
+    executor: agent.address,
+    funded: amount.toString(),
+    txs,
+  };
+}
