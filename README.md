@@ -40,12 +40,23 @@ The mark is a geometric W, the same one as the tab icon.
 | Vault | https://witness-agent.vercel.app/app |
 | Contracts | https://witness-agent.vercel.app/security |
 | Chain | Mezo testnet, chain id 31611 |
-| Safe | 100 testnet MUSD. Fee 10 bps. Admin locked. |
-| Passkey | **Not enrolled.** Spends revert `NotBound` until the human binds one key. |
+| Safe | Started at 100 testnet MUSD. The vault now holds 98. Fee 10 bps. Admin locked. |
+| Passkey | Enrolled. One key, on `witness-agent.vercel.app`. |
 
-Enroll on that hostname. The verifier is frozen to `witness-agent.vercel.app`. A passkey created anywhere else will not verify. `enrollKey` is one shot.
+Enroll on that hostname. The verifier is frozen to `witness-agent.vercel.app`. A passkey created anywhere else will not verify. `enrollKey` is one shot, and it has already been used.
 
 The site is a Vite app with three views: Overview, Vault, Record. `/api/relayer` pays gas. It cannot approve.
+
+## Shown on Mezo
+
+Recorded 6 Nov 2026. Both transactions succeeded. The fee came out of the signed amount.
+
+| | |
+|---|---|
+| Deposit, 1 MUSD | [0x66f8a5ae…070a2](https://explorer.test.mezo.org/tx/0x66f8a5aec0e25ca2865d317fad4a59f04bae79d6c1fd6fbe0ac64d58a24070a2). 0.999 MUSD went into the Stability Pool. |
+| Transfer, 1 MUSD | [0xdefbe4c3…1c77c](https://explorer.test.mezo.org/tx/0xdefbe4c371f86f039a466c6f527d0c1129fe5736867fe46e00909a8e13e1c77c). Intent 6 is consumed. |
+| Above the ceiling | Refused. The contract returned OverLimit. The balance stayed 98. |
+| Withdraw | Refused by the pool, not by the passkey: it will not pay out while troves are below the collateral ratio. The 0.999 MUSD is still deposited. |
 
 ## What a signature can do
 
