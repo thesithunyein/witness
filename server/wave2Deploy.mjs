@@ -19,13 +19,9 @@ const FUND = 100n * 10n ** 18n;
 
 const EMPTY_CTOR = [{ type: 'constructor', stateMutability: 'nonpayable', inputs: [] }];
 
-async function send(data, account) {
+async function send(tx) {
   try {
-    const hash = await wallet().sendTransaction({
-      data,
-      account,
-      gas: 6_000_000n,
-    });
+    const hash = await wallet().sendTransaction({ ...tx, gas: tx.gas ?? 6_000_000n });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status !== 'success') throw new Error(`tx reverted ${hash}`);
     return { hash, receipt };
@@ -44,14 +40,14 @@ async function deploy(name, abi, args, from, nonce) {
   if (existing && existing !== '0x') {
     return { name, address: predicted, hash: null, skipped: true };
   }
-  const { hash, receipt } = await send(data, from);
+  const { hash, receipt } = await send({ data });
   const address = receipt.contractAddress ?? predicted;
   return { name, address, hash, skipped: false };
 }
 
-async function call(to, abi, functionName, args, account) {
+async function call(to, abi, functionName, args) {
   const data = encodeFunctionData({ abi, functionName, args });
-  const { hash } = await send(data, account);
+  const { hash } = await send({ to, data, gas: 1_500_000n });
   return hash;
 }
 
@@ -146,11 +142,11 @@ export async function deployContracts() {
 export async function wireContracts(contracts) {
   const from = operatorAddress();
   const txs = [];
-  txs.push(['setVerifier', await call(contracts.WitnessIntentRegistry, registryAbi, 'setVerifier', [contracts.WitnessVerifier], from)]);
-  txs.push(['setHuman', await call(contracts.DemoSafe, safeAbi, 'setHuman', [from], from)]);
-  txs.push(['setRelayer', await call(contracts.DemoSafe, safeAbi, 'setRelayer', [contracts.AgentExecutor, true], from)]);
-  txs.push(['setStabilityPool', await call(contracts.DemoSafe, safeAbi, 'setStabilityPool', [STABILITY_POOL], from)]);
-  txs.push(['setFee', await call(contracts.DemoSafe, safeAbi, 'setFee', [from, FEE_BPS], from)]);
+  txs.push(['setVerifier', await call(contracts.WitnessIntentRegistry, registryAbi, 'setVerifier', [contracts.WitnessVerifier])]);
+  txs.push(['setHuman', await call(contracts.DemoSafe, safeAbi, 'setHuman', [from])]);
+  txs.push(['setRelayer', await call(contracts.DemoSafe, safeAbi, 'setRelayer', [contracts.AgentExecutor, true])]);
+  txs.push(['setStabilityPool', await call(contracts.DemoSafe, safeAbi, 'setStabilityPool', [STABILITY_POOL])]);
+  txs.push(['setFee', await call(contracts.DemoSafe, safeAbi, 'setFee', [from, FEE_BPS])]);
 
   const held = await publicClient.readContract({
     address: MUSD,
@@ -160,12 +156,12 @@ export async function wireContracts(contracts) {
   });
   const amount = held < FUND ? held : FUND;
   if (amount > 0n) {
-    txs.push(['fund', await call(MUSD, erc20Abi, 'transfer', [contracts.DemoSafe, amount], from)]);
+    txs.push(['fund', await call(MUSD, erc20Abi, 'transfer', [contracts.DemoSafe, amount])]);
   }
 
-  txs.push(['lockVerifier', await call(contracts.WitnessVerifier, verifierAbi, 'lockConfiguration', [], from)]);
-  txs.push(['lockRegistry', await call(contracts.WitnessIntentRegistry, registryAbi, 'lockConfiguration', [], from)]);
-  txs.push(['lockSafe', await call(contracts.DemoSafe, safeAbi, 'lockOwnership', [], from)]);
+  txs.push(['lockVerifier', await call(contracts.WitnessVerifier, verifierAbi, 'lockConfiguration', [])]);
+  txs.push(['lockRegistry', await call(contracts.WitnessIntentRegistry, registryAbi, 'lockConfiguration', [])]);
+  txs.push(['lockSafe', await call(contracts.DemoSafe, safeAbi, 'lockOwnership', [])]);
 
   return {
     stabilityPool: STABILITY_POOL,
@@ -177,6 +173,6 @@ export async function wireContracts(contracts) {
 
 export async function enrollHumanKey(safe, qx, qy) {
   const from = operatorAddress();
-  const hash = await call(safe, safeAbi, 'enrollKey', [BigInt(qx), BigInt(qy)], from);
+  const hash = await call(safe, safeAbi, 'enrollKey', [BigInt(qx), BigInt(qy)]);
   return { hash, safe };
 }
