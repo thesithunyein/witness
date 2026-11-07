@@ -14,6 +14,8 @@
   ·
   <a href="https://witness-agent.vercel.app/app">Vault</a>
   ·
+  <a href="https://witness-agent.vercel.app/deck.pdf">Deck</a>
+  ·
   <a href="https://explorer.test.mezo.org">Mezo testnet</a>
   ·
   <a href="WAVE2.md">Wave 2 notes</a>
