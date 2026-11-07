@@ -40,6 +40,7 @@ The mark is a geometric W, the same one as the tab icon.
 |---|---|
 | Site | https://witness-agent.vercel.app |
 | Vault | https://witness-agent.vercel.app/app |
+| Deck | https://witness-agent.vercel.app/deck.pdf |
 | Contracts | https://witness-agent.vercel.app/security |
 | Chain | Mezo testnet, chain id 31611 |
 | Safe | Started at 100 testnet MUSD. The vault now holds 99. Fee 10 bps. Admin locked. |
