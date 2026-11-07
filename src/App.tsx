@@ -57,6 +57,13 @@ export default function App() {
               Open vault
             </button>
             <a
+              href="https://x.com/witness_agent"
+              aria-label="X"
+              className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-white/6 hover:text-ink"
+            >
+              <X />
+            </a>
+            <a
               href="https://github.com/thesithunyein/witness"
               aria-label="GitHub"
               className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-white/6 hover:text-ink"
@@ -79,15 +86,31 @@ export default function App() {
             <Mark className="h-6 w-6 text-ink" />
             <p className="text-sm text-muted">Passkey approvals for a treasury.</p>
           </div>
-          <a
-            href="https://github.com/thesithunyein/witness"
-            className="text-sm text-ink underline-offset-4 hover:underline"
-          >
-            GitHub
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://x.com/witness_agent"
+              className="text-sm text-ink underline-offset-4 hover:underline"
+            >
+              X
+            </a>
+            <a
+              href="https://github.com/thesithunyein/witness"
+              className="text-sm text-ink underline-offset-4 hover:underline"
+            >
+              GitHub
+            </a>
+          </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function X() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
   );
 }
 
