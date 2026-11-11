@@ -7,9 +7,7 @@ pragma solidity ^0.8.20;
 ///      `repayMUSD` burns MUSD from `msg.sender` without an approval.
 ///      Testnet 31611: 0xCdF7028ceAB81fA0C6971208e83fa7872994beE5
 interface IBorrowerOperations {
-    function openTrove(uint256 _debtAmount, address _upperHint, address _lowerHint)
-        external
-        payable;
+    function openTrove(uint256 _debtAmount, address _upperHint, address _lowerHint) external payable;
 
     function addColl(address _upperHint, address _lowerHint) external payable;
 
