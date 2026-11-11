@@ -1,0 +1,37 @@
+{
+  "chainId": 31611,
+  "deployedAt": "2026-11-11",
+  "deployer": "0x4271A2cc0756aD5ffb7c6f1A79574158871fADdb",
+  "human": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
+  "operator": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
+  "feeRecipient": "0xFc31378e13B4Cb7B545bAC58b28916476406439d",
+  "feeBps": 10,
+  "contracts": {
+    "DemoSafe": "0xd180dd35522d1297b3cbaa5046b34850ae55569d",
+    "AgentExecutor": "0x674777ba2c3f4011cffa0fbc34953d1abf3fd213",
+    "WitnessVerifier": "0x6d9e9Bd86Bcd6D5e0E060DFB3186f52091d858f2",
+    "WitnessIntentRegistry": "0x84502BA6Bf4A565b84E8eC1747568d54610E71E2",
+    "MUSD": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+    "StabilityPool": "0x1CCA7E410eE41739792eA0A24e00349Dd247680e",
+    "BorrowerOperations": "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
+    "TroveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
+    "HintHelpers": "0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6",
+    "SortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
+    "PriceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366"
+  },
+  "fundedBtc": "0.048",
+  "keyEnrolled": false,
+  "deploy": {
+    "DemoSafe": "0x000fd0e84ea34c20fc0d40c923cfab987732ad200c2bae8e2a9271575f486a5f",
+    "AgentExecutor": "0x6c6d376c3a84321214cda7dce0a7bf313499915df585544e3c54588fdf839e59"
+  },
+  "txs": {
+    "setHuman": "0x761f0e35fda4ad18d842f75d06473975ebab4270a0abd3a8990d80ad3e9fc4c2",
+    "setRelayer": "0x36b8ddfc58db2a50cccfa5353d6c373e77fdb29bcd16cd87ebe4ad612036a85b",
+    "setStabilityPool": "0xe6b10508d96305be3d0c6b21c19a7eaa3b1ae1da1acce028abae0e0a9a3613a1",
+    "setBorrowerOperations": "0x4bbc91a2adc979c48d1a6ecb6868b5009e0c0b89a43c197a33c02f361b0e76c8",
+    "setFee": "0xe34c46e04695df0236380b6676824728753ff5a7fb7186bd60e5c34318943735",
+    "fundBtc": "0x491468995f3cf253d225062546424081956c677819c72fc3758e8e50c58aa82e",
+    "lockOwnership": "0xfc7024536ef15c0ae750981edb5c21a451f97c657924637deea0971e4eea2a8a"
+  }
+}
