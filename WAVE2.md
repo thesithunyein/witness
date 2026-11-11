@@ -47,7 +47,7 @@ The signer imports `@noble/curves/nist.js` (v2). That path is not in the 1.9.1 c
 
 ## Deployed (Mezo testnet 31611)
 
-The Wave 2 stack is on chain. Admin is locked. The safe holds 100 testnet MUSD. Fee is 10 bps to the deployer. The Stability Pool is set. `keyEnrolled` is still false, so every spend reverts `NotBound` until the human binds the passkey that will sign the demo. `enrollKey` is one shot. Do not enroll a test key or a virtual authenticator.
+The Wave 2 stack is on chain. Admin is locked. The safe was funded with 100 testnet MUSD. Fee is 10 bps to the deployer. The Stability Pool is set. The human passkey is enrolled (`enrollKey` is one shot and has been used), so the recorded vault answers only to that key.
 
 | Contract | Address |
 |---|---|
@@ -70,7 +70,7 @@ Source is verified on the Mezo testnet explorer (Blockscout, `Pass - Verified`, 
 | DemoSafe | https://explorer.test.mezo.org/address/0x17fc3f962213bb9156Fd36c856B1FC0B696D9Ac8 |
 | AgentExecutor | https://explorer.test.mezo.org/address/0x7010c0474AA1c8E8039712d314d105D1aDe0a87d |
 
-Repeat calls of `deploy-wave2-contracts` and `deploy-wave2-wire` do not send transactions. `enroll-key` remains, and it must be the phone passkey.
+Repeat calls of `deploy-wave2-contracts` and `deploy-wave2-wire` do not send transactions.
 
 ## Wave 1 (unsafe, do not use)
 
@@ -88,14 +88,18 @@ Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe modu
 
 The landing page, the deck, and the security panel match this list. The Monad-era writeup is archived at `docs/archive/monad/SUBMISSION.md`; do not paste it as the Wave 2 description.
 
-## Still human
+## Recorded on Mezo testnet (6 Nov 2026)
 
-1. Open the console on https://witness-agent.vercel.app/app, enroll the phone passkey, and tap **Bind this passkey on chain**.
-2. Deposit to the Stability Pool, then show the pool balance, the fee, and a replay revert.
-3. Record that as the 2-minute pitch. Do not generate a stand-in video.
-4. Resubmit on Akindo before the Wave 2 deadline, describing this delta. Do not paste the archived Monad writeup.
+| Action | Transaction |
+|---|---|
+| Transfer, 1 MUSD | https://explorer.test.mezo.org/tx/0xdefbe4c371f86f039a466c6f527d0c1129fe5736867fe46e00909a8e13e1c77c |
+| Stability Pool deposit, 1 MUSD | https://explorer.test.mezo.org/tx/0x66f8a5aec0e25ca2865d317fad4a59f04bae79d6c1fd6fbe0ac64d58a24070a2 |
+| Stability Pool withdraw | https://explorer.test.mezo.org/tx/0xd6b0ab45091b7836de162816e9565a6c066db6f41bbd9bda097bca515be9e53f |
+| A second passkey opens its own vault and deposits 1 MUSD; the recorded vault is untouched | https://explorer.test.mezo.org/tx/0x38650d3a1708aabc4705fbdecf3489be9560bf266d4d5c1ebea8f82caf0d4ca7 |
 
-## Pitch video (2 minutes)
+An amount above the ceiling is refused with `OverLimit` and moves nothing. The pitch video is https://youtu.be/zLq3KtyDPtU.
+
+## What the pitch video shows (2 minutes)
 
 1. Show `enrollKey` from the human address, then the enrolled `qx`/`qy` on the explorer.
 2. Agent proposes a Stability Pool deposit. The human passkey signs the digest from `stabilityDepositHash`.

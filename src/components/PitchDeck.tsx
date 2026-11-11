@@ -418,7 +418,7 @@ export default function PitchDeck({ onBackToHome, onOpenConsole }: PitchDeckProp
                         <span className="text-zinc-500 truncate max-w-[150px]">0x118917a4...c503</span>
                       </li>
                     </ul>
-                    <p className="text-[11px] text-zinc-500">Source matches on the Mezo explorer. Not audited. Passkey not enrolled. Wave 1 safe is retired.</p>
+                    <p className="text-[11px] text-zinc-500">Source matches on the Mezo explorer. Not audited. Passkey enrolled. Wave 1 safe is retired.</p>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
