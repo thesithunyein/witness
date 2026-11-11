@@ -113,6 +113,45 @@ contract AgentExecutor is IERC721Receiver {
         demoSafe.withdrawFromStabilityPool(intentId, actionHash, amount, assertion);
     }
 
+    /// @notice Passkey-approved: open the safe's Mezo trove.
+    function openTrove(
+        uint256 intentId,
+        uint256 collateral,
+        uint256 debt,
+        address upperHint,
+        address lowerHint,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.troveOpenHash(intentId, collateral, debt);
+        demoSafe.openTrove(intentId, actionHash, collateral, debt, upperHint, lowerHint, assertion);
+    }
+
+    /// @notice Passkey-approved: add BTC collateral to the safe's trove.
+    function addTroveCollateral(
+        uint256 intentId,
+        uint256 collateral,
+        address upperHint,
+        address lowerHint,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.troveAddCollHash(intentId, collateral);
+        demoSafe.addTroveCollateral(
+            intentId, actionHash, collateral, upperHint, lowerHint, assertion
+        );
+    }
+
+    /// @notice Passkey-approved: repay the safe's trove debt from the safe's MUSD.
+    function repayTroveDebt(
+        uint256 intentId,
+        uint256 amount,
+        address upperHint,
+        address lowerHint,
+        WebAuthn.Assertion calldata assertion
+    ) external onlyOperator returns (bytes32 actionHash) {
+        actionHash = demoSafe.troveRepayHash(intentId, amount);
+        demoSafe.repayTroveDebt(intentId, actionHash, amount, upperHint, lowerHint, assertion);
+    }
+
     /// @notice Accept the ERC-8004 identity token when the registry mints it.
     ///
     /// @dev Required, and not a formality: the ERC-8004 Identity Registry mints the

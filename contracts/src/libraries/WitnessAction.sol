@@ -43,6 +43,45 @@ library WitnessAction {
     /// @dev Withdraw MUSD from Mezo's Stability Pool back into the safe.
     bytes32 internal constant SP_WITHDRAW = keccak256("witness.action.sp.withdraw");
 
+    /// @dev Open a Mezo trove owned by the safe: BTC collateral in, MUSD debt out.
+    bytes32 internal constant TROVE_OPEN = keccak256("witness.action.trove.open");
+
+    /// @dev Add BTC collateral to the safe's trove.
+    bytes32 internal constant TROVE_ADD_COLL = keccak256("witness.action.trove.addcoll");
+
+    /// @dev Repay the safe's trove debt with MUSD the safe holds.
+    bytes32 internal constant TROVE_REPAY = keccak256("witness.action.trove.repay");
+
+    /// @dev Trove actions carry two amounts (collateral and debt), so they get their
+    ///      own type string. The tag set is disjoint from the transfer and pool tags,
+    ///      so neither digest format can be replayed as the other.
+    bytes32 internal constant TROVE_HASH_TYPEHASH = keccak256(
+        "WitnessTroveAction(uint256 chainId,address domain,uint256 intentId,bytes32 actionType,address borrowerOperations,uint256 collateral,uint256 debt)"
+    );
+
+    function troveHash(
+        uint256 chainId,
+        address domain,
+        uint256 intentId,
+        bytes32 actionType,
+        address borrowerOperations,
+        uint256 collateral,
+        uint256 debt
+    ) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                TROVE_HASH_TYPEHASH,
+                chainId,
+                domain,
+                intentId,
+                actionType,
+                borrowerOperations,
+                collateral,
+                debt
+            )
+        );
+    }
+
     function hash(
         uint256 chainId,
         address domain,
