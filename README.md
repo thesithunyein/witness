@@ -66,7 +66,7 @@ Recorded 6 Nov 2026. The fee came out of each signed amount.
 
 A second vault owns a Mezo trove. Opening it, adding BTC collateral, and repaying MUSD each go through Mezo's `BorrowerOperations`, and each needs the enrolled passkey over that exact action, from the allowlisted relayer, once. The intent ceiling applies to the debt on open, the collateral on a top-up, and the amount on a repay. The 0.10% fee is taken from borrowed MUSD only; protective actions are free.
 
-Recorded 11 Nov 2026 on Mezo testnet. Vault [`0xd180dd…569d`](https://explorer.test.mezo.org/address/0xd180dd35522d1297b3cbaa5046b34850ae55569d), executor [`0x674777…d213`](https://explorer.test.mezo.org/address/0x674777ba2c3f4011cffa0fbc34953d1abf3fd213), admin locked.
+Recorded 11 Nov 2026 on Mezo testnet. Vault [`0xd180dd…569d`](https://explorer.test.mezo.org/address/0xd180dd35522d1297b3cbaa5046b34850ae55569d), executor [`0x674777…d213`](https://explorer.test.mezo.org/address/0x674777ba2c3f4011cffa0fbc34953d1abf3fd213), admin locked. Both contracts are source-verified on the explorer.
 
 | | |
 |---|---|
