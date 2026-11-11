@@ -13,15 +13,21 @@
  *
  * Usage (from the repo root):
  *   cd contracts && forge build && cd ..
- *   RELAYER_PRIVATE_KEY=0x... node scripts/deploy-trove-vault.mjs --dry-run
- *   RELAYER_PRIVATE_KEY=0x... node scripts/deploy-trove-vault.mjs
+ *   DEPLOYER_PRIVATE_KEY=0x... node scripts/deploy-trove-vault.mjs --dry-run
+ *   DEPLOYER_PRIVATE_KEY=0x... node scripts/deploy-trove-vault.mjs
  *
  * Options:
  *   --dry-run            print the plan and checks, send nothing
  *   --btc=0.04           BTC to send to the vault as trove collateral (default 0.04)
+ *   --relayer=0x...      address of the live app's relayer key. It becomes the
+ *                        vault's human (the only address that can enroll a
+ *                        passkey), the executor's operator, and the fee recipient.
+ *                        Default: the live Wave 2 relayer from 31611.json.
  *
- * The key must be the relayer key that runs the live app, so the app can drive
- * the new executor. Writes contracts/deployments/31611-trove.json.
+ * The deployer key only pays gas and sends the collateral. It does not need to be
+ * the relayer key, so that key can stay in Vercel. The deployer gets no power
+ * over funds: admin is locked at the end, and only the enrolled passkey can move
+ * anything. Writes contracts/deployments/31611-trove.json.
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -76,10 +82,10 @@ function artifact(name) {
   return { abi: a.abi, bytecode: a.bytecode.object };
 }
 
-const key = ['RELAYER_PRIVATE_KEY', 'WITNESS_OPERATOR_PRIVATE_KEY']
+const key = ['DEPLOYER_PRIVATE_KEY', 'RELAYER_PRIVATE_KEY', 'WITNESS_OPERATOR_PRIVATE_KEY']
   .map((n) => process.env[n]?.trim())
   .find((v) => v && /^(0x)?[0-9a-fA-F]{64}$/.test(v));
-if (!key) fail('set RELAYER_PRIVATE_KEY to the relayer key that runs the live app');
+if (!key) fail('set DEPLOYER_PRIVATE_KEY to a funded Mezo testnet key (64 hex characters)');
 const account = privateKeyToAccount(key.startsWith('0x') ? key : `0x${key}`);
 
 const pub = createPublicClient({ chain, transport: http(RPC) });
@@ -87,6 +93,8 @@ const wallet = createWalletClient({ account, chain, transport: http(RPC) });
 
 const wave2 = JSON.parse(readFileSync(join(ROOT, 'contracts/deployments/31611.json'), 'utf8'));
 const VERIFIER = wave2.contracts.WitnessVerifier;
+const RELAYER = String(args.get('relayer') ?? wave2.human ?? wave2.deployer);
+if (!/^0x[0-9a-fA-F]{40}$/.test(RELAYER)) fail(`--relayer is not an address: ${RELAYER}`);
 
 const safeArt = artifact('DemoSafe');
 const agentArt = artifact('AgentExecutor');
@@ -167,7 +175,8 @@ async function main() {
 
   const bal = await pub.getBalance({ address: account.address });
   const safeSize = (safeArt.bytecode.length - 2) / 2;
-  console.log(`  deployer / human     ${account.address}`);
+  console.log(`  deployer (gas only)  ${account.address}`);
+  console.log(`  relayer / human      ${RELAYER}`);
   console.log(`  BTC balance          ${formatEther(bal)}`);
   console.log(`  verifier (reused)    ${VERIFIER}`);
   console.log(`  BorrowerOperations   ${BORROWER_OPERATIONS} (debt token MUSD ✓)`);
@@ -195,14 +204,14 @@ async function main() {
     data: encodeDeployData({
       abi: agentArt.abi,
       bytecode: agentArt.bytecode,
-      args: [safe, account.address],
+      args: [safe, RELAYER],
     }),
     gas: 3_000_000n,
   });
   const executor = agentR.contractAddress;
 
   const txs = {};
-  txs.setHuman = await write('setHuman', safe, safeArt.abi, 'setHuman', [account.address]);
+  txs.setHuman = await write('setHuman', safe, safeArt.abi, 'setHuman', [RELAYER]);
   txs.setRelayer = await write('setRelayer', safe, safeArt.abi, 'setRelayer', [executor, true]);
   txs.setStabilityPool = await write('setStabilityPool', safe, safeArt.abi, 'setStabilityPool', [
     STABILITY_POOL,
@@ -214,7 +223,7 @@ async function main() {
     'setBorrowerOperations',
     [BORROWER_OPERATIONS]
   );
-  txs.setFee = await write('setFee', safe, safeArt.abi, 'setFee', [account.address, FEE_BPS]);
+  txs.setFee = await write('setFee', safe, safeArt.abi, 'setFee', [RELAYER, FEE_BPS]);
   const fundR = await send('send BTC collateral', { to: safe, value: BTC, gas: 100_000n });
   txs.fundBtc = fundR.transactionHash;
   txs.lockOwnership = await write('lockOwnership', safe, safeArt.abi, 'lockOwnership', []);
@@ -222,8 +231,10 @@ async function main() {
   const record = {
     chainId: 31611,
     deployedAt: new Date().toISOString(),
-    human: account.address,
-    feeRecipient: account.address,
+    deployer: account.address,
+    human: RELAYER,
+    operator: RELAYER,
+    feeRecipient: RELAYER,
     feeBps: Number(FEE_BPS),
     contracts: {
       DemoSafe: safe,
