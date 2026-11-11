@@ -44,6 +44,8 @@ const OUT = join(ROOT, 'contracts/deployments/31611-trove.json');
 const MUSD = '0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503';
 const STABILITY_POOL = '0x1CCA7E410eE41739792eA0A24e00349Dd247680e';
 const BORROWER_OPERATIONS = '0xCdF7028ceAB81fA0C6971208e83fa7872994beE5';
+// mezo-org/musd, solidity/artifacts/deployments/matsnet (Mezo testnet).
+const PRICE_FEED = '0x86bCF0841622a5dAC14A313a15f96A95421b9366';
 const FEE_BPS = 10n;
 
 const args = new Map(
@@ -129,6 +131,39 @@ async function main() {
 
   const verifierCode = await pub.getBytecode({ address: VERIFIER });
   if (!verifierCode || verifierCode === '0x') fail(`no code at Wave 2 verifier ${VERIFIER}`);
+
+  // What a first trove would look like with this collateral, read from Mezo.
+  const view = (name, out = 'uint256', inputs = []) => ({
+    type: 'function',
+    name,
+    stateMutability: 'view',
+    inputs,
+    outputs: [{ type: out }],
+  });
+  const [minNetDebt, gasComp, price] = await Promise.all([
+    pub.readContract({ address: BORROWER_OPERATIONS, abi: [view('minNetDebt')], functionName: 'minNetDebt' }),
+    pub.readContract({
+      address: BORROWER_OPERATIONS,
+      abi: [view('MUSD_GAS_COMPENSATION')],
+      functionName: 'MUSD_GAS_COMPENSATION',
+    }),
+    pub.readContract({ address: PRICE_FEED, abi: [view('fetchPrice')], functionName: 'fetchPrice' }),
+  ]);
+  const fee = await pub.readContract({
+    address: BORROWER_OPERATIONS,
+    abi: [view('getBorrowingFee', 'uint256', [{ type: 'uint256' }])],
+    functionName: 'getBorrowingFee',
+    args: [minNetDebt],
+  });
+  const totalDebt = minNetDebt + fee + gasComp;
+  const crPct = Number((BTC * price * 100n) / totalDebt) / 1e18;
+  console.log(`  BTC price (Mezo)     $${formatEther(price)}`);
+  console.log(`  min borrow           ${formatEther(minNetDebt)} MUSD`);
+  console.log(`  trove debt at min    ${formatEther(totalDebt)} MUSD (borrow + fee + gas reserve)`);
+  console.log(`  collateral ratio     ${crPct.toFixed(0)}% at the minimum borrow`);
+  if (crPct < 200) {
+    console.log('  ! below 200%: send more BTC with --btc= or the trove sits near liquidation (110%)');
+  }
 
   const bal = await pub.getBalance({ address: account.address });
   const safeSize = (safeArt.bytecode.length - 2) / 2;
