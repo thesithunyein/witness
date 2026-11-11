@@ -262,6 +262,13 @@ contract WitnessTroveTest is Test {
         safe.setBorrowerOperations(address(wrong));
     }
 
+    /// @notice Mezo enforces the EIP-170 code size limit, so the deploy would fail
+    ///         if the trove paths pushed either contract over it.
+    function test_trove_contractsFitUnderTheCodeSizeLimit() public view {
+        assertLe(address(safe).code.length, 24_576, "DemoSafe under EIP-170");
+        assertLe(address(agent).code.length, 24_576, "AgentExecutor under EIP-170");
+    }
+
     function test_trove_setBorrowerOperationsFrozenAfterLock() public {
         safe.lockOwnership();
         vm.expectRevert(DemoSafe.Locked.selector);
