@@ -117,10 +117,12 @@ Tests: 15 in `WitnessTrove.t.sol` with real P-256 signatures, including a strang
 
 Deployed with `scripts/deploy-trove-vault.mjs`, reusing the locked Wave 2 verifier and registry. Record: `contracts/deployments/31611-trove.json`.
 
+Both new contracts are verified on the Mezo testnet explorer (Blockscout, `Pass - Verified`, solc 0.8.21, via IR). That is a source match, not an audit. Verified with `forge verify-contract --verifier blockscout --verifier-url https://api.explorer.test.mezo.org/api/`.
+
 | Contract | Address |
 |---|---|
-| DemoSafe (trove vault) | `0xd180dd35522d1297b3cbaa5046b34850ae55569d` |
-| AgentExecutor | `0x674777ba2c3f4011cffa0fbc34953d1abf3fd213` |
+| DemoSafe (trove vault), verified | https://explorer.test.mezo.org/address/0xd180dd35522d1297b3cbaa5046b34850ae55569d |
+| AgentExecutor, verified | https://explorer.test.mezo.org/address/0x674777ba2c3f4011cffa0fbc34953d1abf3fd213 |
 | BorrowerOperations (Mezo) | `0xCdF7028ceAB81fA0C6971208e83fa7872994beE5` |
 
 | Action | Transaction |
