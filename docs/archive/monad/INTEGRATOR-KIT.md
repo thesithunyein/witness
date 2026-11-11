@@ -147,7 +147,7 @@ only if they agreed to be named.
 2. https://witness-agent.vercel.app/docs, the developer surface, with a live preflight
 3. `packages/sdk`, so they can see it is a package, not a paste (`npm pack` there builds the
    tarball; it publishes as `@witness-agent/sdk`)
-4. [THREAT-MODEL.md](THREAT-MODEL.md), **send this one to engineers only.** The
+4. [THREAT-MODEL.md](../../../THREAT-MODEL.md), **send this one to engineers only.** The
    honest limits section is why they will read the rest
 
 Do not send a deck. Do not send a roadmap. Engineers reply to a diff.
