@@ -57,7 +57,7 @@ const SP_WITHDRAW = keccak256(toBytes('witness.action.sp.withdraw'));
 const ZERO = '0x0000000000000000000000000000000000000000';
 
 /** Used when the console demonstrates a refusal and the human never signed. */
-const emptyAssertion = {
+export const emptyAssertion = {
   authenticatorData: '0x',
   clientDataJSON: '0x',
   r: 0n,
@@ -505,6 +505,13 @@ export async function status(vault = { safe: ADDRESSES.safe, executor: ADDRESSES
   } catch {
     // The Wave 1 safe has neither getter. Leave them null rather than failing status.
   }
+  out.trove = null;
+  try {
+    const { troveStatus } = await import('./trove.mjs');
+    out.trove = await troveStatus(vault.safe);
+  } catch {
+    // Mezo did not answer for the trove. Status still reports the rest.
+  }
   return out;
 }
 
@@ -581,7 +588,17 @@ export async function create({
 }) {
   if (!qx || !qy) throw new Error('a real passkey public key (qx, qy) is required');
   if (BigInt(maxAmount) <= 0n) throw new Error('maxAmount must be positive');
-  if (BigInt(maxAmount) > MAX_AMOUNT) throw new Error('maxAmount above the relayer cap');
+  const trove = await import('./trove.mjs');
+  const troveKind = trove.isTroveKind(actionKind);
+  const cap = troveKind ? trove.troveCap(actionKind) : MAX_AMOUNT;
+  if (BigInt(maxAmount) > cap) throw new Error('maxAmount above the relayer cap');
+  const tag = troveKind
+    ? trove.troveTag(actionKind)
+    : actionKind === 'sp-deposit'
+      ? SP_DEPOSIT
+      : actionKind === 'sp-withdraw'
+        ? SP_WITHDRAW
+        : TRANSFER;
 
   const expiry = BigInt(Math.floor(Date.now() / 1000) + Number(expirySeconds));
   const client = wallet();
@@ -592,7 +609,7 @@ export async function create({
     args: [
       vault.executor,
       BigInt(agentId),
-      actionKind === 'sp-deposit' ? SP_DEPOSIT : actionKind === 'sp-withdraw' ? SP_WITHDRAW : TRANSFER,
+      tag,
       BigInt(maxAmount),
       expiry,
       policyHash ?? keccak256(toBytes(JSON.stringify({ v: 1, at: Date.now() }))),
@@ -618,9 +635,21 @@ export async function create({
 }
 
 /** The exact digest the passkey has to sign. Read from the contract, never derived here. */
-export async function digest({ intentId, to, amount, kind, vault = { safe: ADDRESSES.safe } }) {
+export async function digest({ intentId, to, amount, kind, collateral, vault = { safe: ADDRESSES.safe } }) {
   const value = BigInt(amount);
   if (value <= 0n) throw new Error('amount must be positive');
+  const trove = await import('./trove.mjs');
+  if (trove.isTroveKind(kind)) {
+    const hash = await trove.troveDigest({ intentId, kind, amount: value, collateral, safe: vault.safe });
+    return {
+      digest: hash,
+      intentId: Number(intentId),
+      to: null,
+      amount: value.toString(),
+      collateral: collateral == null ? null : String(collateral),
+      kind,
+    };
+  }
   if (kind === 'sp-deposit' || kind === 'sp-withdraw') {
     const hash = await publicClient.readContract({
       address: vault.safe,
@@ -641,7 +670,7 @@ export async function digest({ intentId, to, amount, kind, vault = { safe: ADDRE
 }
 
 /** Pull the contract's typed reason, if this failure had one, out of a viem error. */
-function reasonOf(err) {
+export function reasonOf(err) {
   let e = err;
   let depth = 0;
   while (e && typeof e === 'object' && depth < 12) {
@@ -694,7 +723,27 @@ function reasonOf(err) {
  * which is exactly how the console demonstrates a ceiling: the transaction is
  * real, it goes to the chain, and the contract refuses it on its own.
  */
-export async function execute({ intentId, to, amount, assertion, kind, vault = { executor: ADDRESSES.executor } }) {
+export async function execute({
+  intentId,
+  to,
+  amount,
+  assertion,
+  kind,
+  collateral,
+  vault = { safe: ADDRESSES.safe, executor: ADDRESSES.executor },
+}) {
+  const trove = await import('./trove.mjs');
+  if (trove.isTroveKind(kind)) {
+    return trove.troveExecute({
+      intentId,
+      kind,
+      amount,
+      collateral,
+      assertion,
+      safe: vault.safe,
+      executor: vault.executor,
+    });
+  }
   const value = BigInt(amount);
   if (value > MAX_AMOUNT) return { ok: false, reason: 'AboveRelayerCap', code: null };
 
@@ -844,6 +893,7 @@ export async function dispatch(action, payload = {}) {
         to: payload.to,
         amount: payload.amount,
         kind: payload.kind,
+        collateral: payload.collateral,
         vault,
       });
       return { status: 200, body: { ok: true, ...d } };
@@ -856,6 +906,7 @@ export async function dispatch(action, payload = {}) {
         amount: payload.amount,
         assertion: payload.assertion,
         kind: payload.kind,
+        collateral: payload.collateral,
         vault,
       });
       return { status: 200, body: { ok: result.ok, result } };
