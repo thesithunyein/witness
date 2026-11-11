@@ -1,5 +1,7 @@
 # Witness: Mezo submission
 
+> **Archived.** This is the Wave 1 submission. It describes the Wave 1 safe (`0x1FeB…E1E6`), which had the key-binding drain fixed in Wave 2. For the current deployment, see [README.md](../../../README.md) and [WAVE2.md](../../../WAVE2.md).
+
 Everything below is copy-paste ready, and every number in it was read from the live chain, not
 remembered. Match each block to the field of the same name in the AKINDO form; if a field is missing
 from the form, fold its content into the description.
