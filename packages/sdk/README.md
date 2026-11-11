@@ -26,7 +26,7 @@ surface cannot drift apart.
 | The agent | The human | Your contract |
 |---|---|---|
 | asks for 0.5 MON to `0x…` | taps a passkey | calls `authorizeAndConsume` |
-| cannot sign | signs one digest | verifies it with Monad's P-256 precompile |
+| cannot sign | signs one digest | verifies it on-chain (a deployed `P256Verifier` on Mezo, the `0x0100` precompile on Monad) |
 | cannot retry | one use only | moves the money, or reverts with a typed reason |
 
 The digest binds the chain id, your contract, the permission, the recipient and

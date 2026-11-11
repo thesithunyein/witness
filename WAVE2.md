@@ -86,14 +86,14 @@ Repeat calls of `deploy-wave2-contracts` and `deploy-wave2-wire` do not send tra
 
 Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe module. MEZO treasuries or veMEZO locks. BorrowerOperations / trove intents. LangChain, AutoGPT, or Eliza plugins. An audit.
 
-The landing page, the deck, and the security panel match this list. `SUBMISSION.md` is the Wave 1 writeup; do not paste it as the Wave 2 description.
+The landing page, the deck, and the security panel match this list. The Monad-era writeup is archived at `docs/archive/monad/SUBMISSION.md`; do not paste it as the Wave 2 description.
 
 ## Still human
 
 1. Open the console on https://witness-agent.vercel.app/app, enroll the phone passkey, and tap **Bind this passkey on chain**.
 2. Deposit to the Stability Pool, then show the pool balance, the fee, and a replay revert.
 3. Record that as the 2-minute pitch. Do not generate a stand-in video.
-4. Resubmit on Akindo before the Wave 2 deadline, describing this delta. Do not paste `SUBMISSION.md`.
+4. Resubmit on Akindo before the Wave 2 deadline, describing this delta. Do not paste the archived Monad writeup.
 
 ## Pitch video (2 minutes)
 

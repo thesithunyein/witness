@@ -170,6 +170,15 @@ Not claimed, and not in this build:
 
 Threat model: [THREAT-MODEL.md](THREAT-MODEL.md). Disclosure: [SECURITY.md](SECURITY.md).
 
+## Where this started
+
+Witness was first built on Monad testnet in October 2026, where P-256 is a native
+precompile at `0x0100`. It was ported to Mezo for the MUSD buildathon: Mezo has no
+such precompile, so the same 160-byte call goes to a deployed `P256Verifier`, and
+the safe was rebuilt around MUSD and the Stability Pool. The Mezo deployment above
+is the one this repo submits. The Monad writeup and its addresses are kept in
+[docs/archive/monad](docs/archive/monad/README.md) for history.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

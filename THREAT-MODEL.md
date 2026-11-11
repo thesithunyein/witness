@@ -7,9 +7,25 @@ Reviewed by: nobody yet. This is the author's own model, published so a reviewer
 can disagree with something specific. Treat it as a starting point, not a
 certification.
 
-Deployment this describes: chain `10143` (Monad testnet), addresses in
-[`contracts/deployments/10143.json`](contracts/deployments/10143.json), source
-verified with `exact_match` on Sourcify/MonadVision (`contracts/verify.sh`).
+Current deployment: chain `31611` (Mezo testnet), addresses in
+[`contracts/deployments/31611.json`](contracts/deployments/31611.json) and
+[WAVE2.md](WAVE2.md), source verified on the Mezo Blockscout explorer.
+
+This model was first written for the earlier Monad testnet deployment (chain
+`10143`, [`contracts/deployments/10143.json`](contracts/deployments/10143.json)).
+The invariant and the attack classes carry over. Where they differ on Mezo:
+
+- **Signature check.** Mezo has no secp256r1 precompile. P-256 is verified by the
+  deployed `P256Verifier` contract, which serves the same 160-byte ABI as `0x0100`.
+  Its address is immutable on `WitnessVerifier`. Wherever this document says
+  "Monad's precompile", read "the deployed `P256Verifier`" for Mezo.
+- **Key binding.** The Wave 2 `DemoSafe` accepts only the one enrolled human key
+  (`KeyMismatch` otherwise) and only the allowlisted `AgentExecutor` as caller
+  (`NotRelayer`). This closes the Wave 1 drain described in [WAVE2.md](WAVE2.md).
+- **Value path.** The Mezo safe holds MUSD and can deposit to and withdraw from the
+  MUSD Stability Pool, with a fee capped at 1%.
+- **RPC and explorer.** "The Monad RPC endpoint" and "MonadVision" below map to the
+  Mezo RPC and the Mezo Blockscout explorer.
 
 ---
 

@@ -27,7 +27,9 @@ security bug regardless of the deployment.
 | Anything else | No |
 
 The contracts are immutable and deployed at fixed addresses. A contract fix means a
-new deployment with new addresses, not a patch; the deployment addresses live in
+new deployment with new addresses, not a patch; the current Mezo testnet addresses
+live in [`contracts/deployments/31611.json`](contracts/deployments/31611.json) and
+[WAVE2.md](WAVE2.md). The earlier Monad testnet deployment is in
 [`contracts/deployments/10143.json`](contracts/deployments/10143.json).
 
 ## Reporting a vulnerability
