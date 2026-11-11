@@ -26,7 +26,9 @@ function readable(reason?: string | null): string {
   if (reason === 'ChallengeMismatch') return 'Refused: the action differs from what the passkey signed.';
   if (reason === 'AboveRelayerCap') return 'Above the relayer cap for trove actions.';
   if (/ICR|MCR|TCR|CCR/i.test(reason)) return `Mezo refused the collateral ratio: ${reason}`;
-  if (/minimum|MinNetDebt|net debt/i.test(reason)) return `Below Mezo's minimum borrow: ${reason}`;
+  if (/minimum|MinNetDebt|net debt/i.test(reason)) {
+    return "Mezo keeps every open trove at 1,800 MUSD net debt or more, so this repay would go below it. Repay at most the amount shown, or close the trove. Nothing moved.";
+  }
   return reason;
 }
 
@@ -45,7 +47,7 @@ export default function TrovePanel() {
   const [openColl, setOpenColl] = useState('0.043');
   const [openDebt, setOpenDebt] = useState('1800');
   const [addColl, setAddColl] = useState('0.005');
-  const [repay, setRepay] = useState('100');
+  const [repay, setRepay] = useState('1');
 
   const load = useCallback(async () => {
     try {
@@ -196,6 +198,12 @@ export default function TrovePanel() {
     }
   };
 
+  // Mezo's net debt excludes the gas reserve, and must stay at or above the minimum.
+  const maxRepay =
+    trove?.open && trove.debt
+      ? BigInt(trove.debt) - BigInt(trove.gasCompensation) - BigInt(trove.minNetDebt)
+      : null;
+
   const icrPct = trove?.icr ? Number(formatUnits(BigInt(trove.icr), 16)) : null;
   const ratioTone =
     icrPct == null ? 'text-ink' : icrPct < 150 ? 'text-red-400' : icrPct < 200 ? 'text-amber-300' : 'text-moss';
@@ -276,7 +284,14 @@ export default function TrovePanel() {
             />
           </ActionCard>
 
-          <ActionCard title="Repay" foot="Burns MUSD from the vault against the debt. No fee.">
+          <ActionCard
+            title="Repay"
+            foot={
+              maxRepay != null && maxRepay > 0n
+                ? `Burns MUSD from the vault against the debt. No fee. Up to ${fmt(maxRepay.toString(), 2)} MUSD while open: Mezo keeps 1,800 MUSD minimum.`
+                : 'Burns MUSD from the vault against the debt. No fee.'
+            }
+          >
             <Field label="Repay, MUSD" value={repay} onChange={setRepay} />
             <Go
               onClick={() => void run('trove-repay')}
