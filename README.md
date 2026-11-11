@@ -23,7 +23,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/chain-Mezo%20testnet%2031611-1c1a16" alt="Mezo testnet" />
-  <img src="https://img.shields.io/badge/tests-51%20passing-1e3d32" alt="51 tests" />
+  <img src="https://img.shields.io/badge/tests-66%20passing-1e3d32" alt="66 tests" />
   <img src="https://img.shields.io/badge/source-verified%2C%20not%20audited-6e695f" alt="Verified, not audited" />
   <img src="https://img.shields.io/badge/license-MIT-6e695f" alt="MIT" />
 </p>
@@ -62,6 +62,21 @@ Recorded 6 Nov 2026. The fee came out of each signed amount.
 | Withdraw | [0xd6b0ab45…e53f](https://explorer.test.mezo.org/tx/0xd6b0ab45091b7836de162816e9565a6c066db6f41bbd9bda097bca515be9e53f). Intent 8 is consumed. The pool returned the deposit to the vault, less the fee. |
 | A different passkey | [0x38650d3a…ca7](https://explorer.test.mezo.org/tx/0x38650d3a1708aabc4705fbdecf3489be9560bf266d4d5c1ebea8f82caf0d4ca7). A second browser's passkey opened its own vault and deposited 1 MUSD. The recorded vault was not touched. |
 
+## Mezo Borrow: a trove the passkey guards
+
+A second vault owns a Mezo trove. Opening it, adding BTC collateral, and repaying MUSD each go through Mezo's `BorrowerOperations`, and each needs the enrolled passkey over that exact action, from the allowlisted relayer, once. The intent ceiling applies to the debt on open, the collateral on a top-up, and the amount on a repay. The 0.10% fee is taken from borrowed MUSD only; protective actions are free.
+
+Recorded 11 Nov 2026 on Mezo testnet. Vault [`0xd180dd…569d`](https://explorer.test.mezo.org/address/0xd180dd35522d1297b3cbaa5046b34850ae55569d), executor [`0x674777…d213`](https://explorer.test.mezo.org/address/0x674777ba2c3f4011cffa0fbc34953d1abf3fd213), admin locked.
+
+| | |
+|---|---|
+| Open trove | [0xf941fe81…f733](https://explorer.test.mezo.org/tx/0xf941fe81b3559cd1722f529c235c9a7d31dbc0b8d25b349101bc2ab6ac3ff733). 0.043 BTC collateral, 1,800 MUSD borrowed into the vault, less the fee. |
+| Add collateral | [0xa54c300e…102b](https://explorer.test.mezo.org/tx/0xa54c300e9aa7146a3448b3342fdf8fd2e1fe538978869a350791d3e09997102b). +0.005 BTC. Ratio 176%. No fee. |
+| Repay | [0x23e32372…c21e](https://explorer.test.mezo.org/tx/0x23e3237203c332954ece4098a7ff1c46cd61355805390873cd5fa341c1d4c21e). 1 MUSD burned from the vault; debt 2,001.8 to 2,000.8. No fee. |
+| Agent asks for 2x the approved repay, unsigned | Refused with `OverLimit`. Nothing moved, so there is no transaction. |
+
+Mezo keeps an open trove at or above 1,800 MUSD net debt (excluding the 200 MUSD gas reserve), so a minimum-size trove can repay only a little while it stays open. Deployment record: [`contracts/deployments/31611-trove.json`](contracts/deployments/31611-trove.json).
+
 ## What a signature can do
 
 | Action | What moves |
@@ -69,6 +84,9 @@ Recorded 6 Nov 2026. The fee came out of each signed amount.
 | Transfer | MUSD to the address in the signature |
 | Pool deposit | Net MUSD into the Mezo Stability Pool |
 | Pool withdraw | The position back into the safe |
+| Open trove | BTC from the vault into a Mezo trove; borrowed MUSD into the vault |
+| Add collateral | BTC from the vault into its trove |
+| Repay | MUSD from the vault burned against the trove's debt |
 
 Each action is its own signature. A transfer approval cannot be reused as a deposit.
 
@@ -127,7 +145,7 @@ Mezo has no secp256r1 precompile. `P256Verifier` is the deployed check, same 160
 ## Develop
 
 ```bash
-cd contracts && forge test     # 51 tests, real P-256 via scripts/sign-action.mjs
+cd contracts && forge test     # 66 tests, real P-256 via scripts/sign-action.mjs
 cd .. && npm install && npm run dev
 ```
 
@@ -142,7 +160,7 @@ forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
 
 ## Tests
 
-`cd contracts && forge test` — 51 passed.
+`cd contracts && forge test`: 66 passed (35 core, 16 hardening, 15 trove).
 
 Wave 2 cases include: a stranger cannot enroll, a second enroll reverts, an unbound safe reverts `NotBound`, a foreign key cannot drain, a fee above 100 bps reverts, a transfer and a pool deposit take the fee from the gross, a replay is consumed, and a withdraw returns the position to the safe.
 
@@ -157,7 +175,8 @@ Not claimed, and not in this build:
 - autonomous spend under the ceiling
 - a Gnosis Safe module
 - LangChain, Eliza, or any agent framework adapter
-- troves or veMEZO
+- veMEZO
+- closing a trove or withdrawing its collateral (open, add collateral and repay are built)
 - mainnet
 
 ## Security

@@ -14,7 +14,7 @@ This is the change log against the Wave 1 Mezo submission. The Wave 1 DemoSafe (
 
 2. **Relayer allowlist.** `execute`, `executeNative`, `depositToStabilityPool`, and `withdrawFromStabilityPool` revert `NotRelayer` unless `msg.sender` was allowlisted. The allowlisted caller is the `AgentExecutor` (the intent's `agentWallet`). The operator key drives the executor and pays gas. It is not an authorizer, and it is not a DemoSafe caller.
 
-3. **One Mezo path: Stability Pool.** Not troves, not veMEZO.
+3. **Mezo Stability Pool.** Deposit and withdraw. (Mezo Borrow, below, was added later in Wave 2.)
    - Testnet (31611): `0x1CCA7E410eE41739792eA0A24e00349Dd247680e`
    - Mainnet (31612): `0x73245Eff485aB3AAc1158B3c4d8f4b23797B0e32`
    - Calls match mezo-org/musd with no front-end tag: `provideToSP(uint256)`, `withdrawFromSP(uint256)`.
@@ -27,7 +27,7 @@ This is the change log against the Wave 1 Mezo submission. The Wave 1 DemoSafe (
 
 ## Tests
 
-`cd contracts && forge test` — 51 passed (35 in `Witness.t.sol`, 16 in `WitnessHardening.t.sol`). Real P-256 via `node ../scripts/sign-action.mjs`, not a mocked curve.
+`cd contracts && forge test`: 66 passed (35 in `Witness.t.sol`, 16 in `WitnessHardening.t.sol`, 15 in `WitnessTrove.t.sol`). Real P-256 via `node ../scripts/sign-action.mjs`, not a mocked curve.
 
 Wave 2 cases:
 
@@ -84,7 +84,7 @@ Repeat calls of `deploy-wave2-contracts` and `deploy-wave2-wire` do not send tra
 
 ## What this build does not claim
 
-Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe module. MEZO treasuries or veMEZO locks. BorrowerOperations / trove intents. LangChain, AutoGPT, or Eliza plugins. An audit.
+Daily or monthly budgets. Autonomous spend under the ceiling. A Gnosis Safe module. MEZO treasuries or veMEZO locks. Closing a trove or withdrawing its collateral. LangChain, AutoGPT, or Eliza plugins. An audit.
 
 The landing page, the deck, and the security panel match this list. The Monad-era writeup is archived at `docs/archive/monad/SUBMISSION.md`; do not paste it as the Wave 2 description.
 
@@ -106,3 +106,26 @@ An amount above the ceiling is refused with `OverLimit` and moves nothing. The p
 3. Show the pool's deposit for the safe (net of the fee) and the fee recipient's balance.
 4. Replay the same assertion. It reverts.
 5. One sentence on what is not in the build: no daily autopilot, no Safe module, not audited, Wave 1 addresses are dead.
+
+## Mezo Borrow: trove guard (added 11 Nov 2026)
+
+The Wave 1 review asked for "passkey-approved intents that open, top up or repay a trove through BorrowerOperations". This is that.
+
+`DemoSafe` gained `openTrove`, `addTroveCollateral` and `repayTroveDebt`. Each runs the same four checks as every other path (enrolled key, allowlisted relayer, exact digest, one use) before calling Mezo's `BorrowerOperations` as the trove owner. The trove digest binds chain, vault, intent, action, `BorrowerOperations`, collateral and debt. `setBorrowerOperations` refuses a deployment whose debt token is not the vault's MUSD. Hints are computed by the relayer and are not signed: they cannot change an amount or the owner.
+
+Tests: 15 in `WitnessTrove.t.sol` with real P-256 signatures, including a stranger key, replay, over-ceiling, a changed collateral amount, a pool approval used to repay, and the EIP-170 size limit. 66 total, green in CI.
+
+Deployed with `scripts/deploy-trove-vault.mjs`, reusing the locked Wave 2 verifier and registry. Record: `contracts/deployments/31611-trove.json`.
+
+| Contract | Address |
+|---|---|
+| DemoSafe (trove vault) | `0xd180dd35522d1297b3cbaa5046b34850ae55569d` |
+| AgentExecutor | `0x674777ba2c3f4011cffa0fbc34953d1abf3fd213` |
+| BorrowerOperations (Mezo) | `0xCdF7028ceAB81fA0C6971208e83fa7872994beE5` |
+
+| Action | Transaction |
+|---|---|
+| Open trove: 0.043 BTC, 1,800 MUSD | https://explorer.test.mezo.org/tx/0xf941fe81b3559cd1722f529c235c9a7d31dbc0b8d25b349101bc2ab6ac3ff733 |
+| Add collateral: 0.005 BTC, ratio 176% | https://explorer.test.mezo.org/tx/0xa54c300e9aa7146a3448b3342fdf8fd2e1fe538978869a350791d3e09997102b |
+| Repay: 1 MUSD, debt 2,001.8 to 2,000.8 | https://explorer.test.mezo.org/tx/0x23e3237203c332954ece4098a7ff1c46cd61355805390873cd5fa341c1d4c21e |
+| Agent asks for 2x the approved repay, unsigned | Refused `OverLimit`, no transaction |
