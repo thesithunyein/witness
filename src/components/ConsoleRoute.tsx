@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import ChainConsole from './ChainConsole';
 import VaultQuiet from './VaultQuiet';
+import TrovePanel from './TrovePanel';
 import { relayer } from '../lib/relayerClient';
 
 export default function ConsoleRoute() {
@@ -21,7 +22,14 @@ export default function ConsoleRoute() {
     };
   }, []);
 
-  if (mode === 'chain') return <ChainConsole />;
+  if (mode === 'chain') {
+    return (
+      <>
+        <ChainConsole />
+        <TrovePanel />
+      </>
+    );
+  }
   if (mode === 'quiet') return <VaultQuiet />;
 
   return (

@@ -26,7 +26,31 @@ export type RelayerStatus = {
   enrolledQy: string | null;
   guest: boolean;
   reason: string | null;
+  /** Present only for a vault that owns a Mezo trove. Raw 18-decimal strings. */
+  trove?: TroveStatus | null;
 };
+
+export type TroveStatus = {
+  borrowerOperations: string;
+  open: boolean;
+  statusCode: number;
+  collateral: string;
+  debt: string;
+  icr: string | null;
+  liquidationPrice: string | null;
+  price: string;
+  btcInVault: string;
+  minNetDebt: string;
+  gasCompensation: string;
+};
+
+export type ActionKind =
+  | 'transfer'
+  | 'sp-deposit'
+  | 'sp-withdraw'
+  | 'trove-open'
+  | 'trove-addcoll'
+  | 'trove-repay';
 
 export type ChainIntent = {
   id: number;
@@ -76,7 +100,10 @@ export function saveVault(vault: { safe: string; executor: string } | null) {
   else localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
 }
 
-async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<Reply<T>> {
+export async function call<T>(
+  action: string,
+  payload: Record<string, unknown> = {}
+): Promise<Reply<T>> {
   const vault = action === 'open-vault' ? {} : (savedVault() ?? {});
   const res = await fetch('/api/relayer', {
     method: 'POST',
@@ -101,14 +128,15 @@ export const relayer = {
     credentialHash: string;
     maxAmount: string;
     expirySeconds?: number;
-    actionKind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
+    actionKind?: ActionKind;
   }) => call<{ intentId: number | null; txHash: string }>('create', input),
 
   digest: (input: {
     intentId: number;
     to?: string;
     amount: string;
-    kind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
+    collateral?: string;
+    kind?: ActionKind;
   }) =>
     call<{ digest: `0x${string}`; intentId: number; to: string | null; amount: string }>(
       'digest',
@@ -119,7 +147,8 @@ export const relayer = {
     intentId: number;
     to?: string;
     amount: string;
-    kind?: 'transfer' | 'sp-deposit' | 'sp-withdraw';
+    collateral?: string;
+    kind?: ActionKind;
     assertion?: {
       authenticatorData: string;
       clientDataJSON: string;
