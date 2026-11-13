@@ -47,7 +47,7 @@ export default function TrovePanel() {
   const [openColl, setOpenColl] = useState('0.043');
   const [openDebt, setOpenDebt] = useState('1800');
   const [addColl, setAddColl] = useState('0.005');
-  const [repay, setRepay] = useState('1');
+  const [repay, setRepay] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -83,6 +83,22 @@ export default function TrovePanel() {
 
   const trove = status?.trove ?? null;
   const explorer = status?.explorer ?? 'https://explorer.test.mezo.org';
+
+  // Mezo's net debt excludes the gas reserve, and must stay at or above the minimum.
+  const maxRepay =
+    trove?.open && trove.debt
+      ? BigInt(trove.debt) - BigInt(trove.gasCompensation) - BigInt(trove.minNetDebt)
+      : null;
+
+  // Start the repay box at a third of what Mezo allows, rounded down to 0.01, so
+  // the default always goes through and leaves room for another repay.
+  useEffect(() => {
+    if (repay !== '' || maxRepay == null || maxRepay <= 0n) return;
+    const third = maxRepay / 3n;
+    const cents = third / 10n ** 16n;
+    const value = cents > 0n ? cents * 10n ** 16n : third;
+    setRepay(formatUnits(value, 18));
+  }, [maxRepay, repay]);
 
   const bind = async () => {
     if (!passkey) {
@@ -131,6 +147,11 @@ export default function TrovePanel() {
             : parseUnits(repay || '0', 18);
       const collateral = kind === 'trove-open' ? parseUnits(openColl || '0', 18) : 0n;
       if (amount <= 0n) throw new Error('Amount must be greater than zero.');
+      if (kind === 'trove-repay' && !refuse && maxRepay != null && amount > maxRepay) {
+        throw new Error(
+          `Repay at most ${fmt(maxRepay.toString(), 2)} MUSD while the trove is open: Mezo keeps 1,800 MUSD minimum.`
+        );
+      }
 
       const created = await call<{ intentId: number | null; txHash: string }>('create', {
         ...vaultPayload,
@@ -197,12 +218,6 @@ export default function TrovePanel() {
       setBusy(null);
     }
   };
-
-  // Mezo's net debt excludes the gas reserve, and must stay at or above the minimum.
-  const maxRepay =
-    trove?.open && trove.debt
-      ? BigInt(trove.debt) - BigInt(trove.gasCompensation) - BigInt(trove.minNetDebt)
-      : null;
 
   const icrPct = trove?.icr ? Number(formatUnits(BigInt(trove.icr), 16)) : null;
   const ratioTone =
